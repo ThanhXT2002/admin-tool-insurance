@@ -20,9 +20,7 @@
                         "outputPath": "dist/admin-tool-insurance",
                         "index": "src/index.html",
                         "browser": "src/main.ts",
-                        "polyfills": [
-                            "zone.js"
-                        ],
+                        "polyfills": ["zone.js"],
                         "tsConfig": "tsconfig.app.json",
                         "inlineStyleLanguage": "scss",
                         "assets": [
@@ -31,14 +29,18 @@
                                 "input": "public"
                             }
                         ],
-                        "styles": [
-                            "src/assets/styles.scss"
-                        ],
+                        "styles": ["src/assets/styles.scss"],
                         "scripts": []
                     },
                     "configurations": {
                         "production": {
-                            "outputHashing": "all"
+                            "outputHashing": "all",
+                            "fileReplacements": [
+                                {
+                                    "replace": "src/environments/environment.ts",
+                                    "with": "src/environments/environment.prod.ts"
+                                }
+                            ]
                         },
                         "development": {
                             "optimization": false,
@@ -66,10 +68,7 @@
                 "test": {
                     "builder": "@angular-devkit/build-angular:karma",
                     "options": {
-                        "polyfills": [
-                            "zone.js",
-                            "zone.js/testing"
-                        ],
+                        "polyfills": ["zone.js", "zone.js/testing"],
                         "tsConfig": "tsconfig.spec.json",
                         "inlineStyleLanguage": "scss",
                         "assets": [
@@ -78,9 +77,7 @@
                                 "input": "public"
                             }
                         ],
-                        "styles": [
-                            "src/assets/styles.scss"
-                        ],
+                        "styles": ["src/assets/styles.scss"],
                         "scripts": []
                     }
                 }
@@ -88,6 +85,6 @@
         }
     },
     "cli": {
-      "analytics": false
+        "analytics": false
     }
 }

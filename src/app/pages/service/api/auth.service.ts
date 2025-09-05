@@ -1,0 +1,103 @@
+import { inject, Injectable, signal } from '@angular/core';
+import { createClient, SupabaseClient, AuthChangeEvent, Session, User } from '@supabase/supabase-js';
+
+// import { createUser } from '../interfaces/user.interface';
+import { Observable } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
+import { environment } from 'src/environments/environment';
+import { MessageService } from 'primeng/api';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+    private supabase: SupabaseClient;
+    readonly user = signal<User | null>(null);
+    private http = inject(HttpClient);
+    apiUrl = environment.apiUrl + '/users';
+    private router = inject(Router);
+    private messageService = inject(MessageService);
+
+    constructor() {
+        this.supabase = createClient(environment.SUPABASE_URL, environment.SUPABASE_ANON_KEY, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true
+            }
+        });
+        // Lắng nghe trạng thái đăng nhập
+        this.supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+            this.user.set(session?.user ?? null);
+        });
+        // Khởi tạo user khi app load
+        this.supabase.auth.getUser().then(({ data }) => {
+            this.user.set(data.user ?? null);
+        });
+        // console.log('access_token:', this.getAccessToken());
+    }
+
+    // Đăng ký tài khoản mới
+    async signUp(email: string, password: string) {
+        return this.supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                emailRedirectTo: window.location.origin + '/verify-email'
+            }
+        });
+    }
+
+    // Đăng nhập bằng email/password
+    async signIn(email: string, password: string) {
+        return this.supabase.auth.signInWithPassword({ email, password });
+    }
+
+    // Đăng xuất
+    async logout() {
+        try {
+            await this.supabase.auth.signOut();
+            this.user.set(null);
+            this.router.navigate(['/auth/login']);
+            this.messageService.add({ severity: 'success', summary: 'Đăng xuất thành công!' });
+        } catch (error) {
+            this.messageService.add({ severity: 'error', summary: 'Đăng xuất thất bại!' });
+        }
+    }
+
+    // Gửi email quên mật khẩu
+    async resetPassword(email: string) {
+        return this.supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/reset-password'
+        });
+    }
+
+    // Cập nhật mật khẩu mới cho user (dùng cho reset password)
+    async updateUserPassword(newPassword: string) {
+        return this.supabase.auth.updateUser({ password: newPassword });
+    }
+
+    // Lấy user hiện tại
+    getCurrentUser() {
+        return this.user();
+    }
+
+    // Lấy thông tin user thực tế từ Supabase (dùng cho guard)
+    async getUser() {
+        const { data } = await this.supabase.auth.getUser();
+        return data.user;
+    }
+
+    // Lắng nghe thay đổi trạng thái đăng nhập
+    authChanges(callback: (event: AuthChangeEvent, session: Session | null) => void) {
+        return this.supabase.auth.onAuthStateChange(callback);
+    }
+
+    //   createUser(userData: createUser): Observable<unknown> {
+    //     return this.http.post(`${this.apiUrl}/register`, userData);
+    //   }
+
+    async getAccessToken(): Promise<string | null> {
+        const { data } = await this.supabase.auth.getSession();
+        // console.log('Current session:', data.session?.access_token);
+        return data.session?.access_token ?? null;
+    }
+}

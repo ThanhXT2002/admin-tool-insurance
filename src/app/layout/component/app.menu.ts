@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
 import { AppMenuitem } from './app.menuitem';
+import { AuthService } from '@/pages/service/api/auth.service';
 
 @Component({
     selector: 'app-menu',
@@ -16,6 +17,7 @@ import { AppMenuitem } from './app.menuitem';
     </ul> `
 })
 export class AppMenu {
+    authService = inject(AuthService);
     model: MenuItem[] = [];
 
     ngOnInit() {
@@ -145,10 +147,13 @@ export class AppMenu {
                         routerLink: ['/documentation']
                     },
                     {
-                        label: 'View Source',
-                        icon: 'pi pi-fw pi-github',
-                        url: 'https://github.com/primefaces/admin-tool-insurance',
-                        target: '_blank'
+                        label: 'Logout',
+                        icon: 'pi pi-fw pi-sign-out',
+                        command: async () => {
+                            await this.authService.logout();
+
+
+                        }
                     }
                 ]
             }

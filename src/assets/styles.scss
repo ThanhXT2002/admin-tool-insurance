@@ -3,3 +3,33 @@
 @use './layout/layout.scss';
 @use 'primeicons/primeicons.css';
 @use './demo/demo.scss';
+@tailwind utilities;
+@layer utilities {
+  .flex__middle {
+    @apply flex justify-center items-center;
+  }
+
+  .flex__start {
+    @apply flex justify-start items-center;
+  }
+
+  .flexStartItem {
+    @apply flex justify-center items-start;
+  }
+
+  .flex__between {
+    @apply flex justify-between items-center;
+  }
+
+  .flex__evenly {
+    @apply flex justify-evenly items-center;
+  }
+
+  .flex__around {
+    @apply flex justify-around items-center;
+  }
+
+  .flex__end {
+    @apply flex justify-end items-center;
+  }
+}
