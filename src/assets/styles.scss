@@ -3,6 +3,7 @@
 @use './layout/layout.scss';
 @use 'primeicons/primeicons.css';
 @use './demo/demo.scss';
+@use "remixicon/fonts/remixicon.css";
 @tailwind utilities;
 @layer utilities {
   .flex__middle {

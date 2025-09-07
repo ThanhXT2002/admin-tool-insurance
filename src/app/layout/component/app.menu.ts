@@ -27,6 +27,14 @@ export class AppMenu {
                 items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/'] }]
             },
             {
+                label: 'Insurance',
+                // <i class="ri-newspaper-line"></i>
+                items: [
+                    { label: 'Post', icon: 'ri-news-line ', routerLink: ['/insurance/posts'] },
+                    { label: 'Post Categories', icon: 'ri-newspaper-line', routerLink: ['/insurance/post/categories'] }
+                ]
+            },
+            {
                 label: 'UI Components',
                 items: [
                     { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', routerLink: ['/uikit/formlayout'] },
@@ -151,8 +159,6 @@ export class AppMenu {
                         icon: 'pi pi-fw pi-sign-out',
                         command: async () => {
                             await this.authService.logout();
-
-
                         }
                     }
                 ]
