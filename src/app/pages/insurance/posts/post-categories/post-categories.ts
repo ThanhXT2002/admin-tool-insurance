@@ -79,7 +79,7 @@ export class PostCategories {
 
     cols!: Column[];
 
-    isShowForm =signal(false);
+    isShowForm =signal(true);
 
     constructor(
         private productService: ProductService,
