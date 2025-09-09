@@ -1,31 +1,17 @@
 import { Component } from '@angular/core';
-import { Logo } from './app.logo';
 
 @Component({
     standalone: true,
     selector: 'app-loading',
-    imports: [Logo],
+    imports: [],
     template: `
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <div style="margin-bottom: 2rem;">
-                <app-logo width="w-24 md:w-32" />
+        <div class="h-screen w-full flex justify-center items-center bg-white dark:bg-gray-900">
+            <div class="relative flex items-center justify-center w-54 h-54">
+                <span class="absolute w-48 h-48 border-4 border-green-700 border-t-transparent rounded-full animate-spin"></span>
+                <img src="https://xtbh.tranxuanthanhtxt.com/assets/images/logo-insurance.webp" class="w-32 h-32 relative z-10" alt="" />
             </div>
         </div>
-    `,
-    styles: [
-        `
-            @keyframes bounce {
-                0%,
-                80%,
-                100% {
-                    transform: scale(0);
-                }
-                40% {
-                    transform: scale(1);
-                }
-            }
-        `
-    ]
+    `
 })
 export class AppLoading {
     constructor() {
