@@ -18,8 +18,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
             return next(authReq).pipe(
                 catchError((err: any) => {
                     if (err?.status === 401) {
-                        authStore.clear();
-                        router.navigate(['/auth/login']);
+                        try {
+                            authStore.clear();
+                        } catch (e) {}
+                        // avoid navigating if already on login page
+                        if (router.url !== '/auth/login') {
+                            router.navigate(['/auth/login']);
+                        }
                     }
                     return throwError(() => err);
                 })

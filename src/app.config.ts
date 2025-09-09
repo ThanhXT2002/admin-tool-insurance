@@ -1,13 +1,14 @@
 import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
-import { ApplicationConfig } from '@angular/core';
+import { ApplicationConfig, provideAppInitializer, inject } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScrolling } from '@angular/router';
 import Aura from '@primeuix/themes/aura';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
-import { authInterceptor } from '@/interceptors/auth.interceptor';
+import { authInterceptor } from './app/core/auth/auth.interceptor';
+import { AuthStore } from './app/core/auth/auth.store';
+import { AuthService } from './app/pages/service/api/auth.service';
 import { MessageService } from 'primeng/api';
-
 
 export const appConfig: ApplicationConfig = {
     providers: [
@@ -15,6 +16,35 @@ export const appConfig: ApplicationConfig = {
         provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
         provideAnimationsAsync(),
         providePrimeNG({ theme: { preset: Aura, options: { darkModeSelector: '.app-dark' } } }),
-         MessageService,
+        MessageService,
+        provideAppInitializer(async () => {
+            const authStore = inject(AuthStore);
+            const authService = inject(AuthService);
+            try {
+                const token = await authService.getAccessToken();
+                if (token) {
+                    // try loadProfile with a simple retry (2 attempts)
+                    let attempts = 0;
+                    const maxAttempts = 2;
+                    while (attempts < maxAttempts) {
+                        attempts++;
+                        try {
+                            await authStore.loadProfile();
+                            break;
+                        } catch (err) {
+                            console.warn(`auth initializer loadProfile attempt ${attempts} failed`, err);
+                            if (attempts >= maxAttempts) {
+                                console.error('auth initializer failed to load profile');
+                            } else {
+                                // small backoff
+                                await new Promise((r) => setTimeout(r, 300));
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('auth initializer error', e);
+            }
+        })
     ]
 };
