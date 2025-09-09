@@ -11,6 +11,7 @@ import { Logo } from '@/layout/component/app.logo';
 import { AuthService } from '../service/auth.service';
 import { AuthStore } from '../../core/auth/auth.store';
 import { MessageService } from 'primeng/api';
+import { LoadingService } from '@/layout/service/loading.service';
 
 @Component({
     selector: 'app-login',
@@ -50,6 +51,7 @@ export class Login {
     private authService = inject(AuthService);
     private authStore = inject(AuthStore);
     private messageService = inject(MessageService);
+    private loadingService = inject(LoadingService);
 
     loginForm!: FormGroup;
     forgotForm!: FormGroup;
@@ -75,48 +77,49 @@ export class Login {
         return this.loginForm.get('password');
     }
 
-async submitLogin() {
-    if (!this.loginForm.valid) {
-        this.loginForm.markAllAsTouched();
-        return;
-    }
-
-    const { email, password } = this.loginForm.value;
-    this.isSubmitting = true;
-
-    const showMessage = (severity: 'success' | 'error', summary: string) => {
-        this.messageService.add({ severity, summary });
-    };
-
-    try {
-        const { data, error } = await this.authService.signIn(email, password);
-
-        if (error) {
-            showMessage('error', error.message || 'Đăng nhập thất bại');
+    async submitLogin() {
+        if (!this.loginForm.valid) {
+            this.loginForm.markAllAsTouched();
             return;
         }
 
-        if (!data?.session) {
-            showMessage('error', 'Đăng nhập thất bại!');
-            return;
-        }
+        const { email, password } = this.loginForm.value;
+        this.isSubmitting = true;
+
+        const showMessage = (severity: 'success' | 'error', summary: string) => {
+            this.messageService.add({ severity, summary });
+        };
 
         try {
-            const profile = await this.authStore.loadProfile();
-            if (profile?.active) {
-                showMessage('success', 'Đăng nhập thành công!');
-                await this.router.navigate(['/']);
-            }
-        } catch {
-            showMessage('error', 'Không load được profile');
-        }
-    } catch (err: any) {
-        showMessage('error', err?.message || 'Lỗi khi đăng nhập');
-    } finally {
-        this.isSubmitting = false;
-    }
-}
+            const { data, error } = await this.authService.signIn(email, password);
 
+            if (error) {
+                showMessage('error', error.message || 'Đăng nhập thất bại');
+                return;
+            }
+
+            if (!data?.session) {
+                showMessage('error', 'Đăng nhập thất bại!');
+                return;
+            }
+
+            try {
+                this.loadingService.show();
+                const profile = await this.authStore.loadProfile();
+                if (profile?.active) {
+                    showMessage('success', 'Đăng nhập thành công!');
+                    await this.router.navigate(['/']);
+                }
+            } catch {
+                showMessage('error', 'Không load được profile');
+            }
+        } catch (err: any) {
+            showMessage('error', err?.message || 'Lỗi khi đăng nhập');
+        } finally {
+            this.isSubmitting = false;
+            this.loadingService.hide();
+        }
+    }
 
     isInvalid(controlName: string) {
         const control = this.loginForm.get(controlName);
