@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
 import { MessageService } from 'primeng/api';
+import { AuthStore } from '../../core/auth/auth.store';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
     apiUrl = environment.apiUrl + '/users';
     private router = inject(Router);
     private messageService = inject(MessageService);
+    private authStore = inject(AuthStore);
 
     constructor() {
         this.supabase = createClient(environment.SUPABASE_URL, environment.SUPABASE_ANON_KEY, {
@@ -52,13 +54,22 @@ export class AuthService {
     // Đăng xuất
     async logout() {
         try {
-            await this.supabase.auth.signOut();
-            this.user.set(null);
-            this.router.navigate(['/auth/login']);
+            await this.signOut();
             this.messageService.add({ severity: 'success', summary: 'Đăng xuất thành công!' });
         } catch (error) {
             this.messageService.add({ severity: 'error', summary: 'Đăng xuất thất bại!' });
         }
+    }
+
+    async signOut() {
+        await this.supabase.auth.signOut();
+        this.user.set(null);
+        // clear client-side auth store so guards and UI reflect logged-out state immediately
+        try {
+            this.authStore.clear();
+        } catch (e) {}
+        // await navigation so caller sees the route change before continuing
+        await this.router.navigate(['/auth/login']);
     }
 
     // Gửi email quên mật khẩu

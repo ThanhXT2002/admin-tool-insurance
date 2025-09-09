@@ -33,7 +33,7 @@ import { MessageService } from 'primeng/api';
 
                             <label for="password" class="block text-surface-900 dark:text-surface-0 font-medium text-xl mb-2">Password</label>
                             <p-password id="password" formControlName="password" placeholder="Password" [toggleMask]="true" class="mb-4" [fluid]="true" [feedback]="false" [invalid]="isInvalid('password')"></p-password>
-                            <p-button label="Sign In" styleClass="w-full" type="submit"></p-button>
+                            <p-button label="Sign In" styleClass="w-full" type="submit" [disabled]="isSubmitting"></p-button>
                             <div class="text-center mt-2">
                                 <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">Forgot password?</span>
                             </div>
@@ -55,6 +55,7 @@ export class Login {
     forgotForm!: FormGroup;
     isShowPassword = false;
     isTabLogin = true;
+    isSubmitting = false;
 
     constructor() {
         this.loginForm = this.fb.group({
@@ -74,47 +75,48 @@ export class Login {
         return this.loginForm.get('password');
     }
 
-    submitLogin() {
-        if (this.loginForm.valid) {
-            const { email, password } = this.loginForm.value;
-            this.authService.signIn(email, password).then(
-                async (result: {
-                    data: {
-                        session?: {
-                            access_token: string;
-                            refresh_token: string;
-                        } | null;
-                        user?: unknown;
-                    };
-                    error?: { message: string } | null;
-                }) => {
-                    const { data, error } = result;
-                    if (error) {
-                        // Xử lý lỗi đăng nhập (ví dụ: hiển thị thông báo)
-
-                        this.messageService.add({ severity: 'error', summary: error.message });
-
-                        return;
-                    }
-                    if (data.session) {
-                        this.messageService.add({ severity: 'success', summary: 'Đăng nhập thành công!' });
-                        try {
-                            const profile = await this.authStore.loadProfile();
-                            if (profile) this.router.navigate(['/']);
-                            else throw new Error('No profile');
-                            this.router.navigate(['/']);
-                        } catch (err: any) {
-                            this.messageService.add({ severity: 'error', summary: 'Không load được profile' });
-                        }
-                    } else {
-                        this.messageService.add({ severity: 'error', summary: 'Đăng nhập thất bại!' });
-                    }
-                }
-            );
-        } else {
-            this.loginForm.markAllAsTouched();
-        }
+async submitLogin() {
+    if (!this.loginForm.valid) {
+        this.loginForm.markAllAsTouched();
+        return;
     }
+
+    const { email, password } = this.loginForm.value;
+    this.isSubmitting = true;
+
+    const showMessage = (severity: 'success' | 'error', summary: string) => {
+        this.messageService.add({ severity, summary });
+    };
+
+    try {
+        const { data, error } = await this.authService.signIn(email, password);
+
+        if (error) {
+            showMessage('error', error.message || 'Đăng nhập thất bại');
+            return;
+        }
+
+        if (!data?.session) {
+            showMessage('error', 'Đăng nhập thất bại!');
+            return;
+        }
+
+        try {
+            const profile = await this.authStore.loadProfile();
+            if (profile?.active) {
+                showMessage('success', 'Đăng nhập thành công!');
+                await this.router.navigate(['/']);
+            }
+        } catch {
+            showMessage('error', 'Không load được profile');
+        }
+    } catch (err: any) {
+        showMessage('error', err?.message || 'Lỗi khi đăng nhập');
+    } finally {
+        this.isSubmitting = false;
+    }
+}
+
 
     isInvalid(controlName: string) {
         const control = this.loginForm.get(controlName);
