@@ -28,10 +28,8 @@ export class AuthService {
         this.supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
             this.user.set(session?.user ?? null);
         });
-        // Khởi tạo user khi app load
-        this.supabase.auth.getUser().then(({ data }) => {
-            this.user.set(data.user ?? null);
-        });
+        // NOTE: avoid calling getUser() here to prevent duplicate network requests on app reload.
+        // onAuthStateChange will handle updating `user` when Supabase initializes the session.
         // console.log('access_token:', this.getAccessToken());
     }
 
@@ -81,9 +79,21 @@ export class AuthService {
     }
 
     // Lấy thông tin user thực tế từ Supabase (dùng cho guard)
+    private pendingGetUser: Promise<User | null> | null = null;
+
+    // Dedupe concurrent getUser calls so multiple callers on reload don't trigger multiple requests
     async getUser() {
-        const { data } = await this.supabase.auth.getUser();
-        return data.user;
+        if (this.pendingGetUser) return this.pendingGetUser;
+        this.pendingGetUser = (async () => {
+            try {
+                const { data } = await this.supabase.auth.getUser();
+                return data.user ?? null;
+            } finally {
+                // clear pending promise so subsequent calls can re-fetch when needed
+                this.pendingGetUser = null;
+            }
+        })();
+        return this.pendingGetUser;
     }
 
     // Lắng nghe thay đổi trạng thái đăng nhập

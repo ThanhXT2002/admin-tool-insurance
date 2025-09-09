@@ -5,10 +5,10 @@ import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScroll
 import Aura from '@primeuix/themes/aura';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
-import { authInterceptor } from './app/core/auth/auth.interceptor';
 import { AuthStore } from './app/core/auth/auth.store';
-import { AuthService } from './app/pages/service/api/auth.service';
+import { AuthService } from './app/pages/service/auth.service';
 import { MessageService } from 'primeng/api';
+import { authInterceptor } from '@/interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
     providers: [
