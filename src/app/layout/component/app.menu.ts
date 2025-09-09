@@ -27,11 +27,19 @@ export class AppMenu {
                 items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/'] }]
             },
             {
-                label: 'Insurance',
+                label: 'Quản Lý Bài Viết',
                 // <i class="ri-newspaper-line"></i>
                 items: [
                     { label: 'Bài Viết', icon: 'ri-news-line ', routerLink: ['/insurance/posts'] },
                     { label: 'Danh Mục Bài Viết', icon: 'ri-newspaper-line', routerLink: ['/insurance/post/categories'] }
+                ]
+            },
+            {
+                label: 'Quản Lý Thành Viên',
+                // <i class="ri-newspaper-line"></i>
+                items: [
+                    { label: 'Danh Sách Thành Viên', icon: 'ri-user-line', routerLink: ['/insurance/members'] },
+                    { label: 'Quyền Hạn', icon: 'ri-user-add-line', routerLink: ['/insurance/members/add'] }
                 ]
             },
             {
