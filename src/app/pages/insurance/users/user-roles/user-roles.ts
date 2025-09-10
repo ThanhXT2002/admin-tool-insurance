@@ -7,17 +7,22 @@ import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { UserRoleForm } from '../user-role-form/user-role-form';
 import { RefreshService } from '@/pages/service/refresh.service';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { ConfirmDialog } from 'primeng/confirmdialog';
 
 @Component({
     selector: 'app-user-roles',
-    imports: [Button, TableModule, IconField, InputIcon, InputTextModule, UserRoleForm],
+    imports: [Button, TableModule, IconField, InputIcon, InputTextModule, UserRoleForm, ConfirmDialog],
     templateUrl: './user-roles.html',
-    styleUrl: './user-roles.scss'
+    styleUrl: './user-roles.scss',
+    providers: [ConfirmationService, MessageService]
 })
 export class UserRoles implements OnInit, OnDestroy {
     userRoleService = inject(UserRoleService);
     private refreshService = inject(RefreshService);
+    private messageService = inject(MessageService);
 
+    constructor(private confirmationService: ConfirmationService) {}
 
     selectedRoles: any[] = [];
     userRoles = signal<userRole[]>([]);
@@ -98,8 +103,47 @@ export class UserRoles implements OnInit, OnDestroy {
         this.userRoleService.isEditMode.set(true);
         this.userRoleService.isShowForm.set(true);
     }
-    deleteUserRole(id: number) {
-        // Implement delete functionality here
+    deleteUserRole(role: userRole) {
+        // this.userRoleService.deleteRole(role.id).subscribe({
+        //     next: () => {
+        //         this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Role deleted successfully' });
+        //         this.loadData();
+        //     },
+        //     error: (err) => {
+        //         this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.message });
+        //     }
+        // });
+
+        this.confirmationService.confirm({
+            message: 'Bạn có chắc muốn xóa bản ghi này không?',
+            header: 'Xóa vai trò',
+            icon: 'pi pi-info-circle',
+            rejectLabel: 'Hủy',
+            rejectButtonProps: {
+                label: 'Hủy',
+                severity: 'secondary',
+                outlined: true
+            },
+            acceptButtonProps: {
+                label: 'Xóa',
+                severity: 'danger'
+            },
+
+            accept: () => {
+                // Gọi endpoint xóa
+                this.userRoleService.deleteRole(role.id).subscribe({
+                    next: () => {
+                        this.messageService.add({ severity: 'success', summary: 'Thành công', detail: 'Xóa vai trò thành công' });
+                        this.loadData();
+                    },
+                    error: (err) => {
+                        this.messageService.add({ severity: 'error', summary: 'Lỗi', detail: err?.message || 'Không thể xóa vai trò' });
+                    }
+                });
+            },
+            reject: () => {
+                this.messageService.add({ severity: 'warn', summary: 'Đã hủy', detail: 'Bạn đã hủy thao tác' });
+            }
+        });
     }
-    deleteSelected() {}
 }
