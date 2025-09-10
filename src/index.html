@@ -20,5 +20,14 @@
             </div>
         </div>
         <app-root></app-root>
+        <script>
+            // Các path không cho phép hiển thị loader
+            const hiddenPaths = ['/landing', '/notfound', '/auth'];
+            const currentPath = window.location.pathname.toLowerCase();
+            if (hiddenPaths.some((p) => currentPath.startsWith(p))) {
+                const loader = document.getElementById('global-loader');
+                if (loader) loader.style.display = 'none';
+            }
+        </script>
     </body>
 </html>

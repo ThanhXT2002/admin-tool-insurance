@@ -7,3 +7,8 @@ export interface UserProfileSafe {
   addresses: string | null
   roles: string[]
 }
+
+export interface updateProfile{
+  name:string
+  addresses:string
+}
