@@ -69,6 +69,7 @@ export class UserRoleForm implements OnInit {
                 // reset picklist for create mode
                 this.targetPermissions = [];
                 this.sourcePermissions = this.listPermissions?.slice() || [];
+                this.cdr.markForCheck();
             }
         });
     }
@@ -107,7 +108,6 @@ export class UserRoleForm implements OnInit {
             next: (res) => {
                 this.listPermissions = res.data?.rows || [];
                 this.sourcePermissions = this.listPermissions.slice();
-                console.log('Loaded permissions:', this.sourcePermissions);
 
                 // If we are currently editing a role, ensure target is synced using the freshly loaded list
                 const editId = this.userRoleService.dataEditItem()?.id;
@@ -128,6 +128,7 @@ export class UserRoleForm implements OnInit {
 
     submit() {
         if (this.form.valid) {
+            this.cdr.markForCheck();
             console.log(this.form.value);
 
             this.submitting = true;
@@ -161,6 +162,33 @@ export class UserRoleForm implements OnInit {
                 this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.message });
             }
         });
+    }
+
+    // Debug handlers for p-picklist events
+    onMoveToTarget(event: { items: Permission[] }) {
+      this.targetPermissions = [...this.targetPermissions];
+        // console.log('Moved to target:', event.items);
+        // console.log('Current sourcePermissions:', this.sourcePermissions);
+        // console.log('Current targetPermissions:', this.targetPermissions);
+    }
+
+    onMoveToSource(event: { items: Permission[] }) {
+     this.targetPermissions = [...this.targetPermissions];
+        console.log('Moved to source:', event.items);
+        console.log('Current sourcePermissions:', this.sourcePermissions);
+        console.log('Current targetPermissions:', this.targetPermissions);
+    }
+
+    onMoveAllToTarget(event: { items: Permission[] }) {
+        // console.log('Moved all to target:', event.items);
+        // console.log('Current sourcePermissions:', this.sourcePermissions);
+        // console.log('Current targetPermissions:', this.targetPermissions);
+    }
+
+    onMoveAllToSource(event: { items: Permission[] }) {
+        // console.log('Moved all to source:', event.items);
+        // console.log('Current sourcePermissions:', this.sourcePermissions);
+        // console.log('Current targetPermissions:', this.targetPermissions);
     }
 
     update() {
