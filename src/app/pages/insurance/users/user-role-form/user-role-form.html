@@ -1,0 +1,54 @@
+<p-drawer [visible]="userRoleService.isShowForm()" (visibleChange)="onVisibleChange($event)" position="right" styleClass="max-w-[750px] !w-[100%] !md:w-full" [header]="headerTitle">
+    <form [formGroup]="form" (ngSubmit)="submit()" class="py-3 space-y-6">
+        <p-floatlabel variant="in" class="!w-full">
+            <input pInputText id="key" formControlName="key" class="w-full" autocomplete="off" [invalid]="isInvalid('key')" />
+            <label for="key">Key (*)</label>
+        </p-floatlabel>
+
+        <p-floatlabel variant="in" class="!w-full">
+            <input pInputText id="name" formControlName="name" class="w-full" autocomplete="off" [invalid]="isInvalid('name')" />
+            <label for="name">Tên quyền hạn (*)</label>
+        </p-floatlabel>
+
+        <p-floatlabel variant="in">
+            <textarea pTextarea id="description" formControlName="description" rows="4" class="h-full w-full"></textarea>
+            <label for="description">Mô tả</label>
+        </p-floatlabel>
+
+        <p-picklist
+            [source]="sourcePermissions"
+            [target]="targetPermissions"
+            [dragdrop]="false"
+            [responsive]="true"
+            filterBy="name"
+            sourceFilterPlaceholder="Search by name"
+            targetFilterPlaceholder="Search by name"
+            breakpoint="750px"
+            scrollHeight="15rem"
+            dataKey="id"
+        >
+            <ng-template let-option let-selected="selected">
+                <div class="flex flex-wrap p-1 items-center gap-4 w-full">
+                    <div class="flex-1 flex flex-col">
+                        <span class="font-medium text-sm">{{ option.name }}</span>
+                        <span
+                            [ngClass]="{
+                            'text-surface-500': !selected,
+                            'dark:text-surface-400': !selected,
+                            'text-inherit': selected,
+                        }"
+                            >{{ option.category }}</span
+                        >
+                    </div>
+                </div>
+            </ng-template>
+        </p-picklist>
+    </form>
+
+    <ng-template #footer>
+        <button (click)="submit()" class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white">
+            <i class="pi mr-3" [ngClass]="userRoleService.isEditMode()? 'pi-pen-to-square':'pi-plus-circle' "></i>
+            @if (userRoleService.isEditMode()) { Cập nhật ngay } @else { Thêm mới }
+        </button>
+    </ng-template>
+</p-drawer>

@@ -1,0 +1,94 @@
+import { ApiResponse } from '@/interfaces/api-response.interface';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { environment } from 'src/environments/environment';
+
+export interface PostCategory {
+    id: number;
+    name: string;
+    slug: string;
+    description?: string | null;
+    parentId?: number | null;
+    active: boolean;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    createdBy?: number | null;
+    updatedBy?: number | null;
+    children?: PostCategory[];
+    parent?: PostCategory | null;
+    posts?: { id: number; title: string; slug: string }[];
+}
+
+export interface CreateCategoryDto {
+    name: string;
+    slug: string;
+    description?: string;
+    parentId?: number;
+}
+
+export interface UpdateCategoryDto {
+    name?: string;
+    slug?: string;
+    description?: string;
+    parentId?: number;
+    active?: boolean;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class PostCategoryService {
+    private http = inject(HttpClient);
+    private base = environment.apiUrl + '/post-categories';
+
+    getAll(query?: { page?: number; limit?: number; keyword?: string; active?: boolean; parentId?: number }): Observable<ApiResponse<{ rows: PostCategory[]; total: number }>> {
+        const params: any = {};
+        if (query?.page != null) params.page = query.page;
+        if (query?.limit != null) params.limit = query.limit;
+        if (query?.keyword) params.keyword = query.keyword;
+        if (query?.active != null) params.active = String(query.active);
+        if (query?.parentId != null) params.parentId = query.parentId;
+
+        return this.http.get<ApiResponse<{ rows: PostCategory[]; total: number }>>(`${this.base}`, { params });
+    }
+
+    getTree(): Observable<ApiResponse<PostCategory[]>> {
+        return this.http.get<ApiResponse<PostCategory[]>>(`${this.base}/tree`);
+    }
+
+    getRoots(): Observable<ApiResponse<PostCategory[]>> {
+        return this.http.get<ApiResponse<PostCategory[]>>(`${this.base}/roots`);
+    }
+
+    getBySlug(slug: string): Observable<ApiResponse<PostCategory>> {
+        return this.http.get<ApiResponse<PostCategory>>(`${this.base}/slug/${encodeURIComponent(slug)}`);
+    }
+
+    getById(id: number): Observable<ApiResponse<PostCategory>> {
+        return this.http.get<ApiResponse<PostCategory>>(`${this.base}/${id}`);
+    }
+
+    create(data: CreateCategoryDto): Observable<ApiResponse<PostCategory>> {
+        return this.http.post<ApiResponse<PostCategory>>(`${this.base}`, data);
+    }
+
+    update(id: number, data: UpdateCategoryDto): Observable<ApiResponse<PostCategory>> {
+        return this.http.put<ApiResponse<PostCategory>>(`${this.base}/${id}`, data);
+    }
+
+    delete(id: number, force?: boolean): Observable<ApiResponse> {
+        const params: Record<string, string> = {};
+        if (force != null) params['force'] = String(force);
+
+        return this.http.delete<ApiResponse>(`${this.base}/${id}`, { params, observe: 'body' as const });
+    }
+
+    batchDelete(ids: number[], force?: boolean): Observable<ApiResponse> {
+        return this.http.post<ApiResponse>(`${this.base}/batch/delete`, { ids, force });
+    }
+
+    batchActive(ids: number[], active: boolean): Observable<ApiResponse> {
+        return this.http.post<ApiResponse>(`${this.base}/batch/active`, { ids, active });
+    }
+}

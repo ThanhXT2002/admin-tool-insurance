@@ -1,1 +1,54 @@
-<p>user-roles works!</p>
+<p-table
+    #dt
+    [value]="userRoles()"
+    [rows]="limit"
+    [paginator]="true"
+    [lazy]="true"
+    (onLazyLoad)="onLazyLoad($event)"
+    [globalFilterFields]="['name']"
+    [tableStyle]="{ 'max-width': '100%' }"
+    [rowHover]="true"
+    dataKey="id"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} roles"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [totalRecords]="totalRecords"
+    [loading]="loading"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="!mb-0">Danh Mục Bài Viết</h5>
+            <div class="flex__end gap-x-2">
+                <p-iconfield>
+                    <p-inputicon class="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Tìm kiếm..." />
+                </p-iconfield>
+                <p-button label="Phân quyền" severity="secondary" (onClick)="openNew()" />
+                <p-button label="Mới" icon="pi pi-plus" severity="primary" (onClick)="openNew()" />
+            </div>
+        </div>
+    </ng-template>
+    <ng-template #header>
+        <tr>
+            <th>No</th>
+            <th>key</th>
+            <th>name</th>
+            <th>description</th>
+            <th>Thao tác</th>
+        </tr>
+    </ng-template>
+    <ng-template #body let-role let-ri="rowIndex">
+        <tr>
+            <td>{{ ri + 1 }}</td>
+            <td>{{ role.key }}</td>
+            <td>{{ role.name }}</td>
+            <td>{{ role.description }}</td>
+            <td>
+                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editUserRole(role)" />
+                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteUserRole(role.id)" />
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<app-user-role-form  ></app-user-role-form>
