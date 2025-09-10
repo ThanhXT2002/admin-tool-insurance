@@ -38,7 +38,7 @@ export class AppMenu {
                 label: 'Quản Lý Thành Viên',
                 // <i class="ri-newspaper-line"></i>
                 items: [
-                    { label: 'Quyền Hạn', icon: 'ri-user-add-line', routerLink: ['/insurance/userRoles'] },
+                    { label: 'Quyền Hạn', icon: 'ri-user-add-line', routerLink: ['/insurance/user-roles'] },
                     { label: 'Danh Sách Thành Viên', icon: 'ri-user-line', routerLink: ['/insurance/users'] }
                 ]
             },

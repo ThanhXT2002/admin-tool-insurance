@@ -5,9 +5,13 @@ import { Posts } from './posts/posts/posts';
 // import { Error } from './error';
 import { Post } from '../../../../../api-insurance/generated/prisma/index';
 import { PostCategories } from './posts/post-categories/post-categories';
+import { Users } from './users/users/users';
+import { UserRoles } from './users/user-roles/user-roles';
+
 
 export default [
     { path: 'post/categories', component:  PostCategories},
-    // { path: 'error', component: Error },
-    { path: 'posts', component: Posts }
+    { path: 'posts', component: Posts },
+    { path: 'users', component: Users },
+    { path: 'user-roles', component: UserRoles },
 ] as Routes;
