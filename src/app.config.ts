@@ -5,7 +5,7 @@ import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScroll
 import Aura from '@primeuix/themes/aura';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
-import { AuthStore } from './app/core/auth/auth.store';
+import { AuthStore } from './app/store/auth/auth.store';
 import { AuthService } from './app/pages/service/auth.service';
 import { MessageService } from 'primeng/api';
 import { authInterceptor } from '@/interceptors/auth.interceptor';

@@ -9,8 +9,8 @@ import { InputIcon } from 'primeng/inputicon';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { CommonModule } from '@angular/common';
-import { AuthStore } from '@/core/auth/auth.store';
-import { AuthApiService } from '@/core/auth/auth.api';
+import { AuthStore } from '@/store/auth/auth.store';
+import { AuthApiService } from '@/store/auth/auth.api';
 import { MessageService } from 'primeng/api';
 
 @Component({
@@ -223,10 +223,9 @@ export class AppAvatarProfile {
                 this.messageService.add({ severity: 'error', summary: 'Cập nhật thất bại', detail: err?.error?.message || 'Vui lòng thử lại' });
             },
             complete: () => {
-              this.uploading.set(false);
+                this.uploading.set(false);
             }
         });
-
     }
 
     async handleLogout(): Promise<void> {

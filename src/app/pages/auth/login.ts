@@ -9,7 +9,7 @@ import { RippleModule } from 'primeng/ripple';
 import { AppFloatingConfigurator } from '../../layout/component/app.floatingconfigurator';
 import { Logo } from '@/layout/component/app.logo';
 import { AuthService } from '../service/auth.service';
-import { AuthStore } from '../../core/auth/auth.store';
+import { AuthStore } from '../../store/auth/auth.store';
 import { MessageService } from 'primeng/api';
 import { LoadingService } from '@/layout/service/loading.service';
 

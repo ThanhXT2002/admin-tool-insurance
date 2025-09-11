@@ -7,7 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
 import { MessageService } from 'primeng/api';
-import { AuthStore } from '../../core/auth/auth.store';
+import { AuthStore } from '../../store/auth/auth.store';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

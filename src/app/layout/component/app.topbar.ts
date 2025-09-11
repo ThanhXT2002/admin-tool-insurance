@@ -5,9 +5,9 @@ import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '../service/layout.service';
-import { Logo } from "./app.logo";
-import { AuthStore } from '@/core/auth/auth.store';
-import { AppAvatarProfile } from "./app.avatat-profile";
+import { Logo } from './app.logo';
+import { AuthStore } from '@/store/auth/auth.store';
+import { AppAvatarProfile } from './app.avatat-profile';
 
 @Component({
     selector: 'app-topbar',
@@ -19,7 +19,7 @@ import { AppAvatarProfile } from "./app.avatat-profile";
                 <i class="pi pi-bars"></i>
             </button>
             <a class="layout-topbar-logo" routerLink="/">
-               <app-logo [isShowName]="true"/>
+                <app-logo [isShowName]="true" />
             </a>
         </div>
 
@@ -44,9 +44,7 @@ import { AppAvatarProfile } from "./app.avatat-profile";
                 </div>
             </div>
 
-            <app-avatar-profile/>
-
-            
+            <app-avatar-profile />
         </div>
     </div>`
 })
@@ -54,7 +52,6 @@ export class AppTopbar {
     items!: MenuItem[];
 
     authStore = inject(AuthStore);
-
 
     constructor(public layoutService: LayoutService) {}
 

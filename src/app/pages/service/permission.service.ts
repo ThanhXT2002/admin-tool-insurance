@@ -48,10 +48,4 @@ export class PermissionService {
     getUsersWithPermission(id: number): Observable<ApiResponse<any[]>> {
         return this.http.get<ApiResponse<any[]>>(`${this.base}/${id}/users`);
     }
-
-    // GET /api/permissions/check?userId=...&permission=...
-    checkPermission(userId: number, permissionKey: string): Observable<ApiResponse<{ hasPermission: boolean }>> {
-        const params = { userId: userId.toString(), permission: permissionKey };
-        return this.http.get<ApiResponse<{ hasPermission: boolean }>>(`${this.base}/check`, { params });
-    }
 }
