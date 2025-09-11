@@ -14,8 +14,8 @@
             <textarea pTextarea id="description" formControlName="description" rows="4" class="h-full w-full"></textarea>
             <label for="description">Mô tả</label>
         </p-floatlabel>
-
-        <p-picklist
+        <div class="relative">
+           <p-picklist
             [source]="sourcePermissions"
             [target]="targetPermissions"
             [dragdrop]="false"
@@ -37,10 +37,21 @@
                 </div>
             </ng-template>
         </p-picklist>
+
+        @if(loading){
+          <div class="absolute inset-0 flex items-center justify-center w-full h-full bg-gray-100/50">
+            <i class="pi pi-spinner-dotted !text-3xl animate-spin"></i>
+        </div>
+        }
+
+        </div>
+
     </form>
 
     <ng-template #footer>
-        <button (click)="submit()" class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white">
+        <button (click)="submit()"
+        [disabled]="loading"
+         class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white">
             <i class="pi mr-3" [ngClass]="userRoleService.isEditMode()? 'pi-pen-to-square':'pi-plus-circle' "></i>
             @if (userRoleService.isEditMode()) { Cập nhật ngay } @else { Thêm mới }
         </button>

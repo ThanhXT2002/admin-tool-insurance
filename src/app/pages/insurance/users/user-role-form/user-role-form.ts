@@ -45,7 +45,7 @@ export class UserRoleForm implements OnInit {
     roleId = signal(0);
 
     form!: FormGroup;
-    submitting = false;
+    loading = false;
     private waitingForResult = false;
 
     constructor(private cdr: ChangeDetectorRef) {
@@ -81,11 +81,12 @@ export class UserRoleForm implements OnInit {
             const error = this.facade.error();
             if (this.waitingForResult && !loading) {
                 this.waitingForResult = false;
-                this.submitting = false;
+                this.loading = false;
                 if (!error) {
                     this.userRoleService.isShowForm.set(false);
                     this.form.reset();
                     this.targetPermissions = [];
+                    this.sourcePermissions = this.listPermissions?.slice() || [];
                 } else {
                     // keep form open; NotificationEffects will show error
                 }
@@ -104,6 +105,7 @@ export class UserRoleForm implements OnInit {
     private loadRolePermissions(roleId: number) {
         // cancel previous
         this.permSub?.unsubscribe();
+        this.loading = true;
         this.permSub = this.userRoleService.getRolePermissions(roleId).subscribe({
             next: (res) => {
                 const returned = res.data || [];
@@ -118,6 +120,9 @@ export class UserRoleForm implements OnInit {
             },
             error: (err) => {
                 this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error.message });
+            },
+            complete: () => {
+                this.loading = false;
             }
         });
     }
@@ -150,7 +155,7 @@ export class UserRoleForm implements OnInit {
             this.cdr.markForCheck();
             console.log(this.form.value);
 
-            this.submitting = true;
+            this.loading = true;
             if (this.userRoleService.isEditMode()) {
                 this.update();
             } else {
@@ -174,7 +179,7 @@ export class UserRoleForm implements OnInit {
     update() {
         const id = this.userRoleService.dataEditItem()?.id;
         if (id == null) {
-            this.submitting = false;
+            this.loading = false;
             this.messageService.add({ severity: 'error', summary: 'Error', detail: 'ID không hợp lệ.' });
             return;
         }
