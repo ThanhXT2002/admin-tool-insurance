@@ -7,4 +7,4 @@ export const selectAllUsers = createSelector(selectUserState, (s) => s.rows);
 export const selectUsersTotal = createSelector(selectUserState, (s) => s.total);
 export const selectUsersLoading = createSelector(selectUserState, (s) => s.loading);
 export const selectUsersError = createSelector(selectUserState, (s) => s.error);
-export const selectUsersLastQueryParams = createSelector(selectUserState, (s) => s.lastQueryParams ?? { page: 1, limit: 10, keyword: null });
+export const selectUsersLastQueryParams = createSelector(selectUserState, (s) => s.lastQueryParams ?? { page: 1, limit: 10, keyword: null, active: undefined });

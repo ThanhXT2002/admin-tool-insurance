@@ -60,7 +60,6 @@ export interface UserUpdateDto {
     // For file upload use FormData instead of this DTO
 }
 
-
 @Injectable({
     providedIn: 'root'
 })
@@ -68,12 +67,15 @@ export class UserService {
     private http = inject(HttpClient);
     private base = environment.apiUrl + '/users';
 
-    getAll(query?: PaginationQuery): Observable<ApiResponse<{rows: User[];  total: number}>> {
+    getAll(query?: PaginationQuery): Observable<ApiResponse<{ rows: User[]; total: number }>> {
         const params: any = {};
         if (query?.page != null) params.page = query.page;
         if (query?.limit != null) params.limit = query.limit;
         if (query?.keyword) params.keyword = query.keyword;
-        return this.http.get<ApiResponse<{rows: User[];  total: number}>>(`${this.base}`, { params });
+        if (query?.active !== undefined && query?.active !== null) {
+            params.active = String(query.active);
+        }
+        return this.http.get<ApiResponse<{ rows: User[]; total: number }>>(`${this.base}`, { params });
     }
 
     getById(id: number): Observable<ApiResponse<User>> {

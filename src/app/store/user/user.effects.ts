@@ -66,7 +66,7 @@ export class UserEffects extends BaseCrudEffects {
                     const maxPage = Math.max(1, Math.ceil(remaining / (limit || 10)));
                     const targetPage = Math.min(page, maxPage);
 
-                    return UserActions.loadUsers({ page: targetPage, limit, keyword: lastQueryParams.keyword ?? undefined });
+                    return UserActions.loadUsers({ page: targetPage, limit, keyword: lastQueryParams.keyword ?? undefined, active: lastQueryParams.active });
                 })
             )
         );

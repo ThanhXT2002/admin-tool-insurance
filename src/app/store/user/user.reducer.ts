@@ -17,11 +17,16 @@ export const initialState: State = {
 
 export const reducer = createReducer(
     initialState,
-    on(UserActions.loadUsers, (state, { page, limit, keyword }) => ({
+    on(UserActions.loadUsers, (state, { page, limit, keyword, active }) => ({
         ...state,
         loading: true,
         error: null,
-        lastQueryParams: { page: page ?? state.lastQueryParams?.page, limit: limit ?? state.lastQueryParams?.limit, keyword: keyword ?? state.lastQueryParams?.keyword }
+        lastQueryParams: {
+            page: page ?? state.lastQueryParams?.page,
+            limit: limit ?? state.lastQueryParams?.limit,
+            keyword: keyword ?? state.lastQueryParams?.keyword,
+            active: active ?? state.lastQueryParams?.active
+        }
     })),
     on(UserActions.loadUsersSuccess, (state, { rows, total }) => ({ ...state, rows, total, loading: false })),
     on(UserActions.loadUsersFailure, (state, { error }) => ({ ...state, loading: false, error })),

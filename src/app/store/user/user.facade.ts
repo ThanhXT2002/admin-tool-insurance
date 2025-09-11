@@ -10,8 +10,8 @@ export interface IUserFacade {
     total: WritableSignal<number>;
     loading: WritableSignal<boolean>;
     error: WritableSignal<any | null>;
-    lastQueryParams: WritableSignal<{ page?: number; limit?: number; keyword?: string | null } | null>;
-    load(params?: { page?: number; limit?: number; keyword?: string }): void;
+    lastQueryParams: WritableSignal<{ page?: number; limit?: number; keyword?: string | null; active?: boolean } | null>;
+    load(params?: { page?: number; limit?: number; keyword?: string; active?: boolean }): void;
     create(data: any): void;
     update(id: number, data: any): void;
     delete(id: number): void;
@@ -26,7 +26,7 @@ export class UserFacade implements IUserFacade {
     total: WritableSignal<number> = signal<number>(0);
     loading: WritableSignal<boolean> = signal<boolean>(false);
     error: WritableSignal<any | null> = signal<any | null>(null);
-    lastQueryParams: WritableSignal<{ page?: number; limit?: number; keyword?: string | null } | null> = signal<{ page?: number; limit?: number; keyword?: string | null } | null>(null);
+    lastQueryParams: WritableSignal<{ page?: number; limit?: number; keyword?: string | null; active?: boolean } | null> = signal<{ page?: number; limit?: number; keyword?: string | null; active?: boolean } | null>(null);
 
     constructor(private store: Store) {
         this.subs.add(this.store.select(UserSelectors.selectAllUsers).subscribe((v: User[] | null | undefined) => this.users.set(v ?? [])));
@@ -40,7 +40,7 @@ export class UserFacade implements IUserFacade {
         this.subs.unsubscribe();
     }
 
-    load(params?: { page?: number; limit?: number; keyword?: string }) {
+    load(params?: { page?: number; limit?: number; keyword?: string; active?: boolean }) {
         this.store.dispatch(UserActions.loadUsers({ ...params }));
     }
 

@@ -4,5 +4,5 @@ export interface PaginatedState<T> {
     loading: boolean;
     error: any | null;
     // lastQueryParams có thể để chung hoặc move riêng nếu cần
-    lastQueryParams?: { page?: number; limit?: number; keyword?: string | null } | null;
+    lastQueryParams?: { page?: number; limit?: number; keyword?: string | null; active?: boolean } | null;
 }

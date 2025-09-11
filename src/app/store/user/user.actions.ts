@@ -2,7 +2,7 @@ import { createAction, props } from '@ngrx/store';
 import { User } from '@/pages/service/user.service';
 
 // Actions for user feature (danh sách người dùng) - pagination + CRUD
-export const loadUsers = createAction('[User] Load', props<{ page?: number; limit?: number; keyword?: string }>());
+export const loadUsers = createAction('[User] Load', props<{ page?: number; limit?: number; keyword?: string; active?: boolean }>());
 export const loadUsersSuccess = createAction('[User] Load Success', props<{ rows: User[]; total: number }>());
 export const loadUsersFailure = createAction('[User] Load Failure', props<{ error: any }>());
 
