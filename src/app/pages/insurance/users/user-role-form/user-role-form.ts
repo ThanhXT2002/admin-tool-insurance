@@ -8,6 +8,7 @@ import { Select } from 'primeng/select';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ButtonModule } from 'primeng/button';
 import { UserRoleService } from '@/pages/service/user-role.service';
+import { UserRoleFacade } from '@/store/user-role/user-role.facade';
 import { RefreshService } from '@/pages/service/refresh.service';
 import { MessageService } from 'primeng/api';
 import { NgClass } from '@angular/common';
@@ -24,8 +25,8 @@ import { Subscription } from 'rxjs';
 })
 export class UserRoleForm implements OnInit {
     userRoleService = inject(UserRoleService);
-    private refreshService = inject(RefreshService);
     private messageService = inject(MessageService);
+    private facade = inject(UserRoleFacade) as UserRoleFacade;
     private permissionService = inject(PermissionService);
 
     headerTitle!: string;
@@ -45,6 +46,7 @@ export class UserRoleForm implements OnInit {
 
     form!: FormGroup;
     submitting = false;
+    private waitingForResult = false;
 
     constructor(private cdr: ChangeDetectorRef) {
         this.roleId = signal(this.userRoleService.dataEditItem()?.id || 0);
@@ -70,6 +72,23 @@ export class UserRoleForm implements OnInit {
                 this.targetPermissions = [];
                 this.sourcePermissions = this.listPermissions?.slice() || [];
                 this.cdr.markForCheck();
+            }
+        });
+
+        // watch facade loading/error to close drawer only after success
+        effect(() => {
+            const loading = this.facade.loading();
+            const error = this.facade.error();
+            if (this.waitingForResult && !loading) {
+                this.waitingForResult = false;
+                this.submitting = false;
+                if (!error) {
+                    this.userRoleService.isShowForm.set(false);
+                    this.form.reset();
+                    this.targetPermissions = [];
+                } else {
+                    // keep form open; NotificationEffects will show error
+                }
             }
         });
     }
@@ -147,48 +166,9 @@ export class UserRoleForm implements OnInit {
             ...this.form.value,
             permissionIds: Array.isArray(this.targetPermissions) ? this.targetPermissions.map((p) => p.id) : []
         };
-
-        this.userRoleService.createRole(payload as any).subscribe({
-            next: () => {
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Tạo mới thành công!' });
-                this.submitting = false;
-                this.form.reset();
-                this.targetPermissions = [];
-                this.refreshService.triggerRefresh();
-                this.userRoleService.isShowForm.set(false);
-            },
-            error: (err) => {
-                this.submitting = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error.message });
-            }
-        });
-    }
-
-    // Debug handlers for p-picklist events
-    onMoveToTarget(event: { items: Permission[] }) {
-      this.targetPermissions = [...this.targetPermissions];
-        // console.log('Moved to target:', event.items);
-        // console.log('Current sourcePermissions:', this.sourcePermissions);
-        // console.log('Current targetPermissions:', this.targetPermissions);
-    }
-
-    onMoveToSource(event: { items: Permission[] }) {
-     this.targetPermissions = [...this.targetPermissions];
-        console.log('Moved to source:', event.items);
-        console.log('Current sourcePermissions:', this.sourcePermissions);
-        console.log('Current targetPermissions:', this.targetPermissions);
-    }
-
-    onMoveAllToTarget(event: { items: Permission[] }) {
-        // console.log('Moved all to target:', event.items);
-        // console.log('Current sourcePermissions:', this.sourcePermissions);
-        // console.log('Current targetPermissions:', this.targetPermissions);
-    }
-
-    onMoveAllToSource(event: { items: Permission[] }) {
-        // console.log('Moved all to source:', event.items);
-        // console.log('Current sourcePermissions:', this.sourcePermissions);
-        // console.log('Current targetPermissions:', this.targetPermissions);
+        // Dispatch via facade; effects will handle API call and notifications
+        this.facade.create(payload as any);
+        this.waitingForResult = true;
     }
 
     update() {
@@ -204,24 +184,39 @@ export class UserRoleForm implements OnInit {
             permissionIds: Array.isArray(this.targetPermissions) ? this.targetPermissions.map((p) => p.id) : undefined
         };
 
-        this.userRoleService.updateRole(id, payload as any).subscribe({
-            next: () => {
-                this.submitting = false;
-                this.form.reset();
-                this.targetPermissions = [];
-                this.refreshService.triggerRefresh();
-                this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Cập nhật thành công!' });
-                this.userRoleService.isShowForm.set(false);
-            },
-            error: (err) => {
-                this.submitting = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error.message });
-            }
-        });
+        this.facade.update(id, payload as any);
+        this.waitingForResult = true;
     }
 
     isInvalid(controlName: string) {
         const control = this.form.get(controlName);
         return control?.invalid && control.touched;
+    }
+
+    // Debug handlers for p-picklist events
+    onMoveToTarget(event: { items: Permission[] }) {
+        this.targetPermissions = [...this.targetPermissions];
+        // console.log('Moved to target:', event.items);
+        // console.log('Current sourcePermissions:', this.sourcePermissions);
+        // console.log('Current targetPermissions:', this.targetPermissions);
+    }
+
+    onMoveToSource(event: { items: Permission[] }) {
+        this.targetPermissions = [...this.targetPermissions];
+        console.log('Moved to source:', event.items);
+        console.log('Current sourcePermissions:', this.sourcePermissions);
+        console.log('Current targetPermissions:', this.targetPermissions);
+    }
+
+    onMoveAllToTarget(event: { items: Permission[] }) {
+        // console.log('Moved all to target:', event.items);
+        // console.log('Current sourcePermissions:', this.sourcePermissions);
+        // console.log('Current targetPermissions:', this.targetPermissions);
+    }
+
+    onMoveAllToSource(event: { items: Permission[] }) {
+        // console.log('Moved all to source:', event.items);
+        // console.log('Current sourcePermissions:', this.sourcePermissions);
+        // console.log('Current targetPermissions:', this.targetPermissions);
     }
 }

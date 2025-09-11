@@ -1,4 +1,5 @@
 import { ApiResponse } from '@/interfaces/api-response.interface';
+import { PaginationQuery } from '@/interfaces/paginate-query.interface';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -59,11 +60,6 @@ export interface UserUpdateDto {
     // For file upload use FormData instead of this DTO
 }
 
-export interface PaginationQuery {
-    page?: number;
-    limit?: number;
-    keyword?: string;
-}
 
 @Injectable({
     providedIn: 'root'
@@ -72,12 +68,12 @@ export class UserService {
     private http = inject(HttpClient);
     private base = environment.apiUrl + '/users';
 
-    getAll(query?: PaginationQuery): Observable<ApiResponse<User[]>> {
+    getAll(query?: PaginationQuery): Observable<ApiResponse<{rows: User[];  total: number}>> {
         const params: any = {};
         if (query?.page != null) params.page = query.page;
         if (query?.limit != null) params.limit = query.limit;
         if (query?.keyword) params.keyword = query.keyword;
-        return this.http.get<ApiResponse<User[]>>(`${this.base}`, { params });
+        return this.http.get<ApiResponse<{rows: User[];  total: number}>>(`${this.base}`, { params });
     }
 
     getById(id: number): Observable<ApiResponse<User>> {

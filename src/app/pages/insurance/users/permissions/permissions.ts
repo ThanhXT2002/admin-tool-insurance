@@ -11,10 +11,11 @@ import { PermissionService } from '@/pages/service/permission.service';
 import { Permission } from '@/interfaces/permission.interface';
 import { ActivatedRoute, Router } from '@angular/router';
 import { PermissionsFacade } from '@/store/permissions/permissions.facade';
+import { PermissionForm } from '../permission-form/permission-form';
 
 @Component({
     selector: 'app-permissions',
-    imports: [Button, TableModule, IconField, InputIcon, InputTextModule, ConfirmDialog],
+    imports: [Button, TableModule, IconField, InputIcon, InputTextModule, ConfirmDialog, PermissionForm],
     templateUrl: './permissions.html',
     styleUrl: './permissions.scss',
     providers: [ConfirmationService]
@@ -33,6 +34,10 @@ export class Permissions implements OnInit, OnDestroy {
     permissions = signal<Permission[]>([]);
     totalRecords = 0;
     loading = false;
+    // control permission form drawer
+    isPermissionFormOpen = false;
+    isEditing = false;
+    selectedPermission: Permission | null = null;
     // sync facade signals to local UI state in an injection context
     private _sync = effect(() => {
         const rows = this.facade.permissions();
@@ -143,15 +148,21 @@ export class Permissions implements OnInit, OnDestroy {
     }
 
     openNew() {
-        // this.permissionService.isShowForm.set(true);
-        // this.permissionService.isEditMode.set(false);
-        // this.permissionService.dataEditItem.set(null);
+        // Open the permission form in create mode
+        this.selectedPermission = null;
+        this.isEditing = false;
+        this.isPermissionFormOpen = true;
     }
 
     editPermission(item: Permission) {
-        // this.permissionService.dataEditItem.set(item);
-        // this.permissionService.isEditMode.set(true);
-        // this.permissionService.isShowForm.set(true);
+        // Open the permission form in edit mode with a cloned item
+        this.selectedPermission = item ? ({ ...item } as Permission) : null;
+        this.isEditing = true;
+        this.isPermissionFormOpen = true;
+    }
+
+    onPermissionSaved(saved?: unknown) {
+        this.isPermissionFormOpen = false;
     }
 
     deletePermission(item: Permission) {

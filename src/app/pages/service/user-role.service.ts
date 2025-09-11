@@ -1,4 +1,5 @@
 import { ApiResponse } from '@/interfaces/api-response.interface';
+import { PaginationQuery } from '@/interfaces/paginate-query.interface';
 import { Permission } from '@/interfaces/permission.interface';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
@@ -14,8 +15,6 @@ export interface userRole {
     permissionIds?: number[];
 }
 
-
-
 @Injectable({
     providedIn: 'root'
 })
@@ -30,7 +29,7 @@ export class UserRoleService {
     isShowForm = signal(false);
 
     // Query params: page, limit, keyword
-    getAll(query?: { page?: number; limit?: number; keyword?: string }): Observable<ApiResponse<{ rows: userRole[]; total: number }>> {
+    getAll(query?: PaginationQuery): Observable<ApiResponse<{ rows: userRole[]; total: number }>> {
         const params: any = {};
         if (query?.page != null) params.page = query.page;
         if (query?.limit != null) params.limit = query.limit;

@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal, ViewChild, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, signal, ViewChild, OnDestroy, effect } from '@angular/core';
 import { Button } from 'primeng/button';
 import { Table, TableModule } from 'primeng/table';
 import { userRole, UserRoleService } from '@/pages/service/user-role.service';
+import { UserRoleFacade } from '@/store/user-role/user-role.facade';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
@@ -15,10 +16,11 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
     imports: [Button, TableModule, IconField, InputIcon, InputTextModule, UserRoleForm, ConfirmDialog],
     templateUrl: './user-roles.html',
     styleUrl: './user-roles.scss',
-    providers: [ConfirmationService, MessageService]
+    providers: [ConfirmationService]
 })
 export class UserRoles implements OnInit, OnDestroy {
     userRoleService = inject(UserRoleService);
+    facade = inject(UserRoleFacade) as UserRoleFacade;
     private refreshService = inject(RefreshService);
     private messageService = inject(MessageService);
 
@@ -28,6 +30,15 @@ export class UserRoles implements OnInit, OnDestroy {
     userRoles = signal<userRole[]>([]);
     totalRecords = 0;
     loading = false;
+    // sync facade signals to local UI state in an injection context
+    private _sync = effect(() => {
+        const rows = this.facade.roles();
+        const total = this.facade.total();
+        const loading = this.facade.loading();
+        this.userRoles.set(rows || []);
+        this.totalRecords = total || 0;
+        this.loading = !!loading;
+    });
     page = 1;
     limit = 10;
     @ViewChild('dt') dt!: Table;
@@ -65,21 +76,7 @@ export class UserRoles implements OnInit, OnDestroy {
 
     loadData(keyword?: string) {
         this.loading = true;
-        this.userRoleService.getAll({ page: this.page, limit: this.limit, keyword }).subscribe({
-            next: (res) => {
-                const rows = res.data?.rows || [];
-                const total = res.data?.total || 0;
-                this.userRoles.set(rows);
-                this.totalRecords = total;
-                this.loading = false;
-            },
-            error: (error) => {
-                console.error('Error loading user roles', error);
-                this.userRoles.set([]);
-                this.totalRecords = 0;
-                this.loading = false;
-            }
-        });
+        this.facade.load({ page: this.page, limit: this.limit, keyword });
     }
 
     // PrimeNG lazy load event handler
@@ -121,16 +118,8 @@ export class UserRoles implements OnInit, OnDestroy {
             },
 
             accept: () => {
-                // Gọi endpoint xóa
-                this.userRoleService.deleteRole(role.id).subscribe({
-                    next: () => {
-                        this.messageService.add({ severity: 'success', summary: 'Thành công', detail: 'Xóa vai trò thành công' });
-                        this.loadData();
-                    },
-                    error: (err) => {
-                        this.messageService.add({ severity: 'error', summary: 'Lỗi', detail: err?.error.message || 'Không thể xóa vai trò' });
-                    }
-                });
+                // Dispatch delete via facade; effect will handle API call and notifications
+                this.facade.delete(role.id);
             },
             reject: () => {
                 this.messageService.add({ severity: 'warn', summary: 'Đã hủy', detail: 'Bạn đã hủy thao tác' });

@@ -52,3 +52,9 @@
     </ng-template>
 </p-table>
  <p-confirmdialog />
+<app-permission-form
+  [(isShow)]="isPermissionFormOpen"
+  [isEditMode]="isEditing"
+  [dataEdit]="selectedPermission"
+  (saved)="onPermissionSaved($event)">
+</app-permission-form>

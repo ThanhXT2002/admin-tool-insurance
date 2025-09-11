@@ -8,6 +8,10 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
 import * as fromPermissions from './app/store/permissions/permissions.reducer';
 import { PermissionsEffects } from './app/store/permissions/permissions.effects';
 import { NotificationEffects } from './app/store/notifications/notifications.effects';
+import * as fromUserRole from './app/store/user-role/user-role.reducer';
+import { UserRoleEffects } from './app/store/user-role/user-role.effects';
+import * as fromUser from './app/store/user/user.reducer';
+import { UserEffects } from './app/store/user/user.effects';
 import Aura from '@primeuix/themes/aura';
 import { environment } from 'src/environments/environment';
 import { providePrimeNG } from 'primeng/config';
@@ -23,9 +27,11 @@ export const appConfig: ApplicationConfig = {
         provideStore({}),
         provideEffects([]),
         provideStoreDevtools({ maxAge: 25, logOnly: environment.production }),
-        // register permissions feature
+        // register feature states and effects
         provideState(fromPermissions.permissionsFeatureKey, fromPermissions.reducer),
-        provideEffects([PermissionsEffects, NotificationEffects]),
+        provideState(fromUserRole.userRoleFeatureKey, fromUserRole.reducer),
+        provideState(fromUser.userFeatureKey, fromUser.reducer),
+        provideEffects([PermissionsEffects, UserRoleEffects, UserEffects, NotificationEffects]),
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
         provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
         provideAnimationsAsync(),
