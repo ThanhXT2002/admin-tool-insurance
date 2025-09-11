@@ -174,13 +174,13 @@ export class AppAvatarProfile {
                         } else {
                             // revert preview
                             this.previewAvatar.set(null);
-                            this.messageService.add({ severity: 'error', summary: 'Cập nhật avatar thất bại' });
+                            this.messageService.add({ severity: 'error', summary: 'Cập nhật avatar thất bại', detail: res?.message || 'Vui lòng thử lại' });
                         }
                     },
                     error: (err) => {
                         this.uploading.set(false);
                         this.previewAvatar.set(null);
-                        this.messageService.add({ severity: 'error', summary: 'Cập nhật avatar thất bại' });
+                        this.messageService.add({ severity: 'error', summary: 'Cập nhật avatar thất bại', detail: err?.error?.message || 'Vui lòng thử lại' });
                     }
                 });
             };
@@ -220,7 +220,7 @@ export class AppAvatarProfile {
                 }
             },
             error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Cập nhật thất bại' });
+                this.messageService.add({ severity: 'error', summary: 'Cập nhật thất bại', detail: err?.error?.message || 'Vui lòng thử lại' });
             },
             complete: () => {
               this.uploading.set(false);

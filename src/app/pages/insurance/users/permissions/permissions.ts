@@ -16,7 +16,7 @@ import { ActivatedRoute, Router } from '@angular/router';
     imports: [Button, TableModule, IconField, InputIcon, InputTextModule, ConfirmDialog],
     templateUrl: './permissions.html',
     styleUrl: './permissions.scss',
-    providers: [ConfirmationService, MessageService]
+    providers: [ConfirmationService]
 })
 export class Permissions implements OnInit, OnDestroy {
     permissionService = inject(PermissionService);
@@ -175,7 +175,7 @@ export class Permissions implements OnInit, OnDestroy {
             accept: () => {
                 // Gọi endpoint xóa
                 this.permissionService.delete(item.id).subscribe({
-                    next: () => {
+                    next: (res) => {
                         this.messageService.add({ severity: 'success', summary: 'Thành công', detail: 'Xóa quyền thành công' });
                         // Reload with current URL params
                         const currentParams = this.route.snapshot.queryParams;
@@ -183,7 +183,8 @@ export class Permissions implements OnInit, OnDestroy {
                         this.loadData(keyword);
                     },
                     error: (err) => {
-                        this.messageService.add({ severity: 'error', summary: 'Lỗi', detail: err?.message || 'Không thể xóa quyền' });
+                      console.log(err);
+                        this.messageService.add({ severity: 'error', summary: 'Lỗi', detail: err?.error.message || 'Không thể xóa quyền' });
                     }
                 });
             },

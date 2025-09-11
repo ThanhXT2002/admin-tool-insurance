@@ -128,7 +128,7 @@ export class UserRoles implements OnInit, OnDestroy {
                         this.loadData();
                     },
                     error: (err) => {
-                        this.messageService.add({ severity: 'error', summary: 'Lỗi', detail: err?.message || 'Không thể xóa vai trò' });
+                        this.messageService.add({ severity: 'error', summary: 'Lỗi', detail: err?.error.message || 'Không thể xóa vai trò' });
                     }
                 });
             },

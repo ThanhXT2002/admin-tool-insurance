@@ -98,7 +98,7 @@ export class UserRoleForm implements OnInit {
                 this.cdr.markForCheck();
             },
             error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.message });
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error.message });
             }
         });
     }
@@ -120,7 +120,7 @@ export class UserRoleForm implements OnInit {
                 this.cdr.markForCheck();
             },
             error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.message });
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error.message });
             }
         });
         // this.targetPermissions = [];
@@ -159,7 +159,7 @@ export class UserRoleForm implements OnInit {
             },
             error: (err) => {
                 this.submitting = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.message });
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error.message });
             }
         });
     }
@@ -215,7 +215,7 @@ export class UserRoleForm implements OnInit {
             },
             error: (err) => {
                 this.submitting = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.message });
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error.message });
             }
         });
     }
