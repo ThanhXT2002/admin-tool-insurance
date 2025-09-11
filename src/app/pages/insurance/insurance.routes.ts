@@ -7,6 +7,7 @@ import { Post } from '../../../../../api-insurance/generated/prisma/index';
 import { PostCategories } from './posts/post-categories/post-categories';
 import { Users } from './users/users/users';
 import { UserRoles } from './users/user-roles/user-roles';
+import { Permissions } from './users/permissions/permissions';
 
 
 export default [
@@ -14,4 +15,5 @@ export default [
     { path: 'posts', component: Posts },
     { path: 'users', component: Users },
     { path: 'user-roles', component: UserRoles },
+    { path: 'permissions', component: Permissions },
 ] as Routes;

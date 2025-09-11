@@ -103,17 +103,8 @@ export class UserRoles implements OnInit, OnDestroy {
         this.userRoleService.isEditMode.set(true);
         this.userRoleService.isShowForm.set(true);
     }
-    deleteUserRole(role: userRole) {
-        // this.userRoleService.deleteRole(role.id).subscribe({
-        //     next: () => {
-        //         this.messageService.add({ severity: 'success', summary: 'Success', detail: 'Role deleted successfully' });
-        //         this.loadData();
-        //     },
-        //     error: (err) => {
-        //         this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.message });
-        //     }
-        // });
 
+    deleteUserRole(role: userRole) {
         this.confirmationService.confirm({
             message: 'Bạn có chắc muốn xóa bản ghi này không?',
             header: 'Xóa vai trò',
