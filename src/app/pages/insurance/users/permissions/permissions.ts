@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, ViewChild, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, signal, ViewChild, OnDestroy, effect } from '@angular/core';
 import { Button } from 'primeng/button';
 import { Table, TableModule } from 'primeng/table';
 import { IconField } from 'primeng/iconfield';
@@ -10,6 +10,7 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
 import { PermissionService } from '@/pages/service/permission.service';
 import { Permission } from '@/interfaces/permission.interface';
 import { ActivatedRoute, Router } from '@angular/router';
+import { PermissionsFacade } from '@/store/permissions/permissions.facade';
 
 @Component({
     selector: 'app-permissions',
@@ -20,6 +21,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 })
 export class Permissions implements OnInit, OnDestroy {
     permissionService = inject(PermissionService);
+    facade = inject(PermissionsFacade) as PermissionsFacade;
     private refreshService = inject(RefreshService);
     private messageService = inject(MessageService);
     private route = inject(ActivatedRoute);
@@ -31,6 +33,15 @@ export class Permissions implements OnInit, OnDestroy {
     permissions = signal<Permission[]>([]);
     totalRecords = 0;
     loading = false;
+    // sync facade signals to local UI state in an injection context
+    private _sync = effect(() => {
+        const rows = this.facade.permissions();
+        const total = this.facade.total();
+        const loading = this.facade.loading();
+        this.permissions.set(rows || []);
+        this.totalRecords = total || 0;
+        this.loading = !!loading;
+    });
     page = 1;
     limit = 10;
     currentKeyword: string | undefined = undefined;
@@ -68,8 +79,8 @@ export class Permissions implements OnInit, OnDestroy {
         this.limit = Number(queryParams['limit']) || 10;
         this.currentKeyword = queryParams['keyword'] || undefined;
 
-        // Load data with initial params
-        this.loadData(this.currentKeyword);
+        // Load data with initial params via facade
+        this.facade.load({ page: this.page, limit: this.limit, keyword: this.currentKeyword });
 
         // Subscribe to query param changes
         this.route.queryParams.subscribe((params) => {
@@ -108,21 +119,8 @@ export class Permissions implements OnInit, OnDestroy {
 
     loadData(keyword?: string) {
         this.loading = true;
-        this.permissionService.getAll({ page: this.page, limit: this.limit, keyword }).subscribe({
-            next: (res) => {
-                const rows = res.data?.rows || [];
-                const total = res.data?.total || 0;
-                this.permissions.set(rows);
-                this.totalRecords = total;
-                this.loading = false;
-            },
-            error: (error) => {
-                console.error('Error loading user items', error);
-                this.permissions.set([]);
-                this.totalRecords = 0;
-                this.loading = false;
-            }
-        });
+        // trigger load via facade
+        this.facade.load({ page: this.page, limit: this.limit, keyword });
     }
 
     // PrimeNG lazy load event handler
@@ -173,20 +171,8 @@ export class Permissions implements OnInit, OnDestroy {
             },
 
             accept: () => {
-                // Gọi endpoint xóa
-                this.permissionService.delete(item.id).subscribe({
-                    next: (res) => {
-                        this.messageService.add({ severity: 'success', summary: 'Thành công', detail: 'Xóa quyền thành công' });
-                        // Reload with current URL params
-                        const currentParams = this.route.snapshot.queryParams;
-                        const keyword = currentParams['keyword'] || undefined;
-                        this.loadData(keyword);
-                    },
-                    error: (err) => {
-                      console.log(err);
-                        this.messageService.add({ severity: 'error', summary: 'Lỗi', detail: err?.error.message || 'Không thể xóa quyền' });
-                    }
-                });
+                // dispatch delete through facade (effect will handle API call and messages)
+                this.facade.delete(item.id);
             },
             reject: () => {
                 this.messageService.add({ severity: 'warn', summary: 'Đã hủy', detail: 'Bạn đã hủy thao tác' });

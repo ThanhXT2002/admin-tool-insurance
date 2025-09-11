@@ -2,7 +2,13 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { ApplicationConfig, provideAppInitializer, inject } from '@angular/core';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScrolling } from '@angular/router';
+import { provideStore, provideState } from '@ngrx/store';
+import { provideEffects } from '@ngrx/effects';
+import { provideStoreDevtools } from '@ngrx/store-devtools';
+import * as fromPermissions from './app/store/permissions/permissions.reducer';
+import { PermissionsEffects } from './app/store/permissions/permissions.effects';
 import Aura from '@primeuix/themes/aura';
+import { environment } from 'src/environments/environment';
 import { providePrimeNG } from 'primeng/config';
 import { appRoutes } from './app.routes';
 import { AuthStore } from './app/store/auth/auth.store';
@@ -12,6 +18,13 @@ import { authInterceptor } from '@/interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
     providers: [
+        // NgRx standalone providers (root store + devtools + feature state/effects)
+        provideStore({}),
+        provideEffects([]),
+        provideStoreDevtools({ maxAge: 25, logOnly: environment.production }),
+        // register permissions feature
+        provideState(fromPermissions.permissionsFeatureKey, fromPermissions.reducer),
+        provideEffects([PermissionsEffects]),
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
         provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
         provideAnimationsAsync(),
