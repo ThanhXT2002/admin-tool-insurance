@@ -1,16 +1,11 @@
 import { createReducer, on } from '@ngrx/store';
 import * as PermissionsActions from './permissions.actions';
 import { Permission } from '@/interfaces/permission.interface';
+import { PaginatedState } from '@/interfaces/paginated-state.interface';
 
 export const permissionsFeatureKey = 'permissions';
 
-export interface State {
-    rows: Permission[];
-    total: number;
-    loading: boolean;
-    error: any | null;
-    lastQueryParams?: { page?: number; limit?: number; keyword?: string | null } | null;
-}
+export type State = PaginatedState<Permission>;
 
 export const initialState: State = {
     rows: [],

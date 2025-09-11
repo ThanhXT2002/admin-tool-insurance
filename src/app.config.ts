@@ -7,6 +7,7 @@ import { provideEffects } from '@ngrx/effects';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import * as fromPermissions from './app/store/permissions/permissions.reducer';
 import { PermissionsEffects } from './app/store/permissions/permissions.effects';
+import { NotificationEffects } from './app/store/notifications/notifications.effects';
 import Aura from '@primeuix/themes/aura';
 import { environment } from 'src/environments/environment';
 import { providePrimeNG } from 'primeng/config';
@@ -24,7 +25,7 @@ export const appConfig: ApplicationConfig = {
         provideStoreDevtools({ maxAge: 25, logOnly: environment.production }),
         // register permissions feature
         provideState(fromPermissions.permissionsFeatureKey, fromPermissions.reducer),
-        provideEffects([PermissionsEffects]),
+        provideEffects([PermissionsEffects, NotificationEffects]),
         provideRouter(appRoutes, withInMemoryScrolling({ anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled' }), withEnabledBlockingInitialNavigation()),
         provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
         provideAnimationsAsync(),

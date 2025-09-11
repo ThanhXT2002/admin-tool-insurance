@@ -2,25 +2,29 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as PermissionsActions from './permissions.actions';
 import { PermissionService } from 'src/app/pages/service/permission.service';
-import { catchError, map, switchMap, of, tap, withLatestFrom } from 'rxjs';
-import { MessageService } from 'primeng/api';
+import { catchError, map, switchMap, of, withLatestFrom } from 'rxjs';
 import { Store } from '@ngrx/store';
 import * as PermissionsSelectors from './permissions.selectors';
+import { BaseCrudEffects } from '@/store/_base/base-crud-effects';
 
 @Injectable()
-export class PermissionsEffects {
+export class PermissionsEffects extends BaseCrudEffects {
     load$: any;
     create$: any;
     update$: any;
     delete$: any;
     deleteSuccessReload$: any;
+    // Đã xoá các effect thông báo riêng, vì BaseCrudEffects đã tự động phát thông báo.
+    // Khi gọi makeCreateEffect/makeUpdateEffect/makeDeleteEffect, thông báo thành công/thất bại sẽ tự động được phát ra.
+    // Không cần viết effect thông báo cho từng action nữa.
+    // Nếu muốn tuỳ chỉnh nội dung hoặc tắt thông báo, truyền options vào hàm helper.
 
     constructor(
-        private actions$: Actions,
+        actions$: Actions,
         private permissionService: PermissionService,
-        private messageService: MessageService,
         private store: Store
     ) {
+        super(actions$);
         this.load$ = createEffect(() =>
             this.actions$.pipe(
                 ofType(PermissionsActions.loadPermissions),
@@ -33,47 +37,28 @@ export class PermissionsEffects {
             )
         );
 
-        this.create$ = createEffect(() =>
-            this.actions$.pipe(
-                ofType(PermissionsActions.createPermission),
-                switchMap(({ data }) =>
-                    this.permissionService.create(data).pipe(
-                        map((res: any) => PermissionsActions.createPermissionSuccess({ item: res.data })),
-                        catchError((error) => of(PermissionsActions.createPermissionFailure({ error })))
-                    )
-                )
-            )
+        this.create$ = this.makeCreateEffect(
+            PermissionsActions.createPermission,
+            (p: any) => PermissionsActions.createPermissionSuccess(p),
+            (p: any) => PermissionsActions.createPermissionFailure(p),
+            (data: any) => this.permissionService.create(data)
         );
 
-        this.update$ = createEffect(() =>
-            this.actions$.pipe(
-                ofType(PermissionsActions.updatePermission),
-                switchMap(({ id, data }) =>
-                    this.permissionService.update(id, data).pipe(
-                        map((res: any) => PermissionsActions.updatePermissionSuccess({ item: res.data })),
-                        catchError((error) => of(PermissionsActions.updatePermissionFailure({ error })))
-                    )
-                )
-            )
+        this.update$ = this.makeUpdateEffect(
+            PermissionsActions.updatePermission,
+            (p: any) => PermissionsActions.updatePermissionSuccess(p),
+            (p: any) => PermissionsActions.updatePermissionFailure(p),
+            (id: number, data: any) => this.permissionService.update(id, data)
         );
-        this.delete$ = createEffect(() =>
-            this.actions$.pipe(
-                ofType(PermissionsActions.deletePermission),
-                switchMap(({ id }) =>
-                    this.permissionService.delete(id).pipe(
-                        map(() => PermissionsActions.deletePermissionSuccess({ id })),
-                        tap(() => this.messageService.add({ severity: 'success', summary: 'Thành công', detail: 'Xóa quyền thành công' })),
-                        catchError((error) => {
-                            this.messageService.add({ severity: 'error', summary: 'Lỗi', detail: error?.error?.message || 'Không thể xóa quyền' });
-                            return of(PermissionsActions.deletePermissionFailure({ error }));
-                        })
-                    )
-                )
-            )
+        this.delete$ = this.makeDeleteEffect(
+            PermissionsActions.deletePermission,
+            (p: any) => PermissionsActions.deletePermissionSuccess(p),
+            (p: any) => PermissionsActions.deletePermissionFailure(p),
+            (id: number) => this.permissionService.delete(id)
         );
 
-        // After a successful delete, reload current page using lastQueryParams from store.
-        // If the current page becomes empty after deletion, decrement page to the last available page.
+        // Sau khi xoá thành công, sẽ tự động reload lại trang hiện tại dựa vào lastQueryParams trong store.
+        // Nếu trang hiện tại bị trống sau khi xoá, sẽ tự động giảm về trang cuối cùng còn dữ liệu.
         this.deleteSuccessReload$ = createEffect(() =>
             this.actions$.pipe(
                 ofType(PermissionsActions.deletePermissionSuccess),
@@ -85,6 +70,8 @@ export class PermissionsEffects {
                     const maxPage = Math.max(1, Math.ceil(remaining / (limit || 10)));
                     const targetPage = Math.min(page, maxPage);
 
+                    // Thông báo thành công đã được xử lý tự động bởi BaseCrudEffects.
+                    // Việc reload lại dữ liệu sẽ được thực hiện ở đây.
                     return PermissionsActions.loadPermissions({ page: targetPage, limit, keyword: lastQueryParams.keyword ?? undefined });
                 })
             )
