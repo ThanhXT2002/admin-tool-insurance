@@ -33,6 +33,7 @@ export class Permissions implements OnInit, OnDestroy {
     loading = false;
     page = 1;
     limit = 10;
+    currentKeyword: string | undefined = undefined;
     @ViewChild('dt') dt!: Table;
 
     onGlobalFilter(table: Table, event: Event) {
@@ -65,10 +66,10 @@ export class Permissions implements OnInit, OnDestroy {
         const queryParams = this.route.snapshot.queryParams;
         this.page = Number(queryParams['page']) || 1;
         this.limit = Number(queryParams['limit']) || 10;
-        const initialKeyword = queryParams['keyword'] || undefined;
+        this.currentKeyword = queryParams['keyword'] || undefined;
 
         // Load data with initial params
-        this.loadData(initialKeyword);
+        this.loadData(this.currentKeyword);
 
         // Subscribe to query param changes
         this.route.queryParams.subscribe((params) => {
@@ -76,10 +77,15 @@ export class Permissions implements OnInit, OnDestroy {
             const newLimit = Number(params['limit']) || 10;
             const newKeyword = params['keyword'] || undefined;
 
-            // Only reload if params actually changed
-            if (this.page !== newPage || this.limit !== newLimit) {
+            // Check if any params changed
+            const pageChanged = this.page !== newPage;
+            const limitChanged = this.limit !== newLimit;
+            const keywordChanged = this.currentKeyword !== newKeyword;
+
+            if (pageChanged || limitChanged || keywordChanged) {
                 this.page = newPage;
                 this.limit = newLimit;
+                this.currentKeyword = newKeyword;
                 this.loadData(newKeyword);
             }
         });
