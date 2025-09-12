@@ -108,15 +108,4 @@ export class UserService {
     activeMultiple(ids: number[], active: boolean): Observable<ApiResponse> {
         return this.http.post<ApiResponse>(`${this.base}/active-multiple`, { ids, active });
     }
-
-    // Alias to match backend alias route
-    getUserByIdAlias(id: number): Observable<ApiResponse<User>> {
-        return this.http.get<ApiResponse<User>>(`${this.base}/getUserById/${id}`);
-    }
-
-    // Return roles assigned to user (if such route exists /users/:id/roles or similar)
-    getUserWithRoles(id: number): Observable<ApiResponse<Role[] | User[]>> {
-        // Backend provides routes to get user with roles in different shapes; try full-details first
-        return this.http.get<ApiResponse<Role[] | User[]>>(`${this.base}/${id}/full-details`);
-    }
 }
