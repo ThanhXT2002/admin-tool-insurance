@@ -5,14 +5,15 @@ import { User } from '@/pages/service/user.service';
 
 export const userFeatureKey = 'user';
 
-export type State = PaginatedState<User>;
+export type State = PaginatedState<User> & { selected?: User | null };
 
 export const initialState: State = {
     rows: [],
     total: 0,
     loading: false,
     error: null,
-    lastQueryParams: null
+    lastQueryParams: null,
+    selected: null
 };
 
 export const reducer = createReducer(
@@ -41,5 +42,8 @@ export const reducer = createReducer(
 
     on(UserActions.deleteUser, (state) => ({ ...state, loading: true })),
     on(UserActions.deleteUserSuccess, (state, { id }) => ({ ...state, rows: state.rows.filter((r) => r.id !== id), total: Math.max(0, state.total - 1), loading: false })),
-    on(UserActions.deleteUserFailure, (state, { error }) => ({ ...state, loading: false, error }))
+    on(UserActions.deleteUserFailure, (state, { error }) => ({ ...state, loading: false, error })),
+    on(UserActions.loadUserSuccess, (state, { item }) => ({ ...state, selected: item })),
+    on(UserActions.deleteUsersSuccess, (state, { ids }) => ({ ...state, rows: state.rows.filter((r) => !ids.includes(r.id)), total: Math.max(0, state.total - ids.length), loading: false })),
+    on(UserActions.activeUsersSuccess, (state, { ids, active }) => ({ ...state, rows: state.rows.map((r) => (ids.includes(r.id) ? { ...r, active } : r)) }))
 );

@@ -17,3 +17,17 @@ export const updateUserFailure = createAction('[User] Update Failure', props<{ e
 export const deleteUser = createAction('[User] Delete', props<{ id: number }>());
 export const deleteUserSuccess = createAction('[User] Delete Success', props<{ id: number; message?: string }>());
 export const deleteUserFailure = createAction('[User] Delete Failure', props<{ error: any }>());
+
+// Single user fetch
+export const loadUser = createAction('[User] Load By Id', props<{ id: number }>());
+export const loadUserSuccess = createAction('[User] Load By Id Success', props<{ item: User }>());
+export const loadUserFailure = createAction('[User] Load By Id Failure', props<{ error: any }>());
+
+// Bulk operations
+export const deleteUsers = createAction('[User] Delete Multiple', props<{ ids: number[] }>());
+export const deleteUsersSuccess = createAction('[User] Delete Multiple Success', props<{ ids: number[]; message?: string }>());
+export const deleteUsersFailure = createAction('[User] Delete Multiple Failure', props<{ error: any }>());
+
+export const activeUsers = createAction('[User] Active Multiple', props<{ ids: number[]; active: boolean }>());
+export const activeUsersSuccess = createAction('[User] Active Multiple Success', props<{ ids: number[]; active: boolean; message?: string }>());
+export const activeUsersFailure = createAction('[User] Active Multiple Failure', props<{ error: any }>());

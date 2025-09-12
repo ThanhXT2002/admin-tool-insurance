@@ -27,6 +27,7 @@ export class UserFacade implements IUserFacade {
     loading: WritableSignal<boolean> = signal<boolean>(false);
     error: WritableSignal<any | null> = signal<any | null>(null);
     lastQueryParams: WritableSignal<{ page?: number; limit?: number; keyword?: string | null; active?: boolean } | null> = signal<{ page?: number; limit?: number; keyword?: string | null; active?: boolean } | null>(null);
+    selected: WritableSignal<User | null> = signal<User | null>(null);
 
     constructor(private store: Store) {
         this.subs.add(this.store.select(UserSelectors.selectAllUsers).subscribe((v: User[] | null | undefined) => this.users.set(v ?? [])));
@@ -34,6 +35,7 @@ export class UserFacade implements IUserFacade {
         this.subs.add(this.store.select(UserSelectors.selectUsersLoading).subscribe((v: boolean | null | undefined) => this.loading.set(!!v)));
         this.subs.add(this.store.select(UserSelectors.selectUsersError).subscribe((v: any) => this.error.set(v ?? null)));
         this.subs.add(this.store.select(UserSelectors.selectUsersLastQueryParams).subscribe((v: any) => this.lastQueryParams.set(v ?? null)));
+        this.subs.add(this.store.select(UserSelectors.selectSelectedUser).subscribe((v: User | null | undefined) => this.selected.set(v ?? null)));
     }
 
     destroy() {
@@ -54,5 +56,17 @@ export class UserFacade implements IUserFacade {
 
     delete(id: number) {
         this.store.dispatch(UserActions.deleteUser({ id }));
+    }
+
+    loadById(id: number) {
+        this.store.dispatch(UserActions.loadUser({ id }));
+    }
+
+    deleteMultiple(ids: number[]) {
+        this.store.dispatch(UserActions.deleteUsers({ ids }));
+    }
+
+    activeMultiple(ids: number[], active: boolean) {
+        this.store.dispatch(UserActions.activeUsers({ ids, active }));
     }
 }

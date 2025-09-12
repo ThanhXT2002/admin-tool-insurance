@@ -82,10 +82,6 @@ export class UserService {
         return this.http.get<ApiResponse<User>>(`${this.base}/${id}`);
     }
 
-    getFullDetails(id: number): Observable<ApiResponse<User>> {
-        return this.http.get<ApiResponse<User>>(`${this.base}/${id}/full-details`);
-    }
-
     // Accept either FormData (for avatar upload) or plain DTO
     create(data: UserCreateDto | FormData): Observable<ApiResponse<User>> {
         return this.http.post<ApiResponse<User>>(`${this.base}`, data as any);
