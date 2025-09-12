@@ -15,7 +15,6 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
     selector: 'app-user-roles',
     imports: [Button, TableModule, IconField, InputIcon, InputTextModule, UserRoleForm, ConfirmDialog],
     templateUrl: './user-roles.html',
-    styleUrl: './user-roles.scss',
     providers: [ConfirmationService]
 })
 export class UserRoles implements OnInit, OnDestroy {

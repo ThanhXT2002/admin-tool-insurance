@@ -20,8 +20,7 @@ import { Subscription } from 'rxjs';
 @Component({
     selector: 'app-user-role-form',
     imports: [DrawerModule, ReactiveFormsModule, InputTextModule, FloatLabelModule, TextareaModule, PickListModule, ToggleSwitchModule, ButtonModule, NgClass],
-    templateUrl: './user-role-form.html',
-    styleUrl: './user-role-form.scss'
+    templateUrl: './user-role-form.html'
 })
 export class UserRoleForm implements OnInit {
     userRoleService = inject(UserRoleService);

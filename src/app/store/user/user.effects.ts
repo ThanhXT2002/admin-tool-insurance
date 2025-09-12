@@ -50,7 +50,7 @@ export class UserEffects extends BaseCrudEffects {
             UserActions.updateUser,
             (p: any) => UserActions.updateUserSuccess(p),
             (p: any) => UserActions.updateUserFailure(p),
-            (id: number, data: any) => this.service.update(data)
+            (id: number, data: any) => this.service.update(id, data)
         );
 
         this.delete$ = this.makeDeleteEffect(

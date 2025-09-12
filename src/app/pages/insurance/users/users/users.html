@@ -1,1 +1,65 @@
-<p>users works!</p>
+<p-table
+    #dt
+    [value]="users()"
+    [rows]="limit"
+    [paginator]="true"
+    [lazy]="true"
+    (onLazyLoad)="onLazyLoad($event)"
+    [globalFilterFields]="['email','name','phoneNumber']"
+    [tableStyle]="{ 'max-width': '100%' }"
+    [(selection)]="selectedUsers"
+    [rowHover]="true"
+    dataKey="id"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} users"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [totalRecords]="totalRecords"
+    [loading]="loading"
+>
+    <ng-template #caption>
+        <div class="flex items-center justify-between">
+            <h5 class="!mb-0">Danh sách Người dùng</h5>
+            <div class="flex__end gap-x-2">
+                <p-iconfield>
+                    <p-inputicon class="pi pi-search" />
+                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Tìm kiếm email hoặc tên..." />
+                </p-iconfield>
+                <p-button severity="danger" label="Delete" icon="pi pi-trash" outlined (onClick)="deleteMultipleUser()" [disabled]="!selectedUsers || !selectedUsers.length" />
+                <p-button label="Mới" icon="pi pi-plus" severity="primary" (onClick)="openNew()" />
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #header>
+        <tr>
+            <th >
+                <p-tableHeaderCheckbox />
+            </th>
+            <th>No</th>
+            <th>Tên</th>
+            <th>Email</th>
+
+            <th>Số điện thoại</th>
+            <th class="flex__middle">Thao tác</th>
+        </tr>
+    </ng-template>
+
+    <ng-template #body let-user let-ri="rowIndex">
+        <tr>
+           <td class="w-0">
+                <p-tableCheckbox [value]="user" />
+            </td>
+            <td>{{ ri + 1 }}</td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.phoneNumber }}</td>
+            <td>
+                <div class="flex__middle">
+                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editUser(user)" />
+                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteUser(user)" />
+                </div>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+<p-confirmdialog />

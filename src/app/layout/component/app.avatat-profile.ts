@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 import { AuthStore } from '@/store/auth/auth.store';
 import { AuthApiService } from '@/store/auth/auth.api';
 import { MessageService } from 'primeng/api';
+import { AuthService } from '@/pages/service/auth.service';
 
 @Component({
     selector: 'app-avatar-profile',
@@ -57,6 +58,14 @@ import { MessageService } from 'primeng/api';
                                     <label for="name">Tên mới</label>
                                 </p-floatlabel>
 
+                                <p-floatlabel variant="in" class="mb-5">
+                                    <p-iconfield>
+                                        <p-inputicon class="pi pi-user-edit" />
+                                        <input pInputText id="phoneNumber" formControlName="phoneNumber" autocomplete="off" pSize="small" class="w-full" />
+                                    </p-iconfield>
+                                    <label for="phoneNumber">Số điện thoại</label>
+                                </p-floatlabel>
+
                                 <p-floatlabel variant="in">
                                     <p-iconfield>
                                         <p-inputicon class="pi pi-building-columns" />
@@ -99,6 +108,7 @@ import { MessageService } from 'primeng/api';
 export class AppAvatarProfile {
     authStore = inject(AuthStore);
     authApiService = inject(AuthApiService);
+    authService = inject(AuthService);
     private messageService = inject(MessageService);
 
     // Preview / optimistic UI signals
@@ -125,7 +135,8 @@ export class AppAvatarProfile {
     constructor() {
         this.updateForm = this.fb.group({
             name: ['', [Validators.required]],
-            addresses: ['assets/images/avatar-default.webp']
+            phoneNumber: ['', [Validators.required]],
+            addresses: ['']
         });
 
         effect(() => {
@@ -133,6 +144,7 @@ export class AppAvatarProfile {
             if (user) {
                 this.updateForm.patchValue({
                     name: user.name ?? '',
+                    phoneNumber: user.phoneNumber ?? '',
                     addresses: user.addresses
                 });
                 if (user.avatarUrl) {
@@ -229,7 +241,7 @@ export class AppAvatarProfile {
     }
 
     async handleLogout(): Promise<void> {
-        // await this.authService.logout();
+        await this.authService.logout();
         this.handleShowProfile();
     }
 

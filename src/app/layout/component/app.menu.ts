@@ -38,9 +38,9 @@ export class AppMenu {
                 label: 'Quản Lý Thành Viên',
                 //<i class="ri-user-community-line"></i>
                 items: [
-                    { label: 'Quyền', icon: 'ri-shield-flash-line', routerLink: ['/insurance/permissions'] },
-                    { label: 'Quyền Hạn', icon: 'ri-user-community-line', routerLink: ['/insurance/user-roles'] },
-                    { label: 'Danh Sách Thành Viên', icon: 'ri-user-line', routerLink: ['/insurance/users'] }
+                    { label: 'QL Quyền Hạn', icon: 'ri-shield-flash-line', routerLink: ['/insurance/permissions'] },
+                    { label: 'QL Nhóm Quyền', icon: 'ri-user-community-line', routerLink: ['/insurance/user-roles'] },
+                    { label: 'QL Danh Sách Thành Viên', icon: 'ri-user-line', routerLink: ['/insurance/users'] }
 
                 ]
             },

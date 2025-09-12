@@ -17,7 +17,6 @@ import { PermissionForm } from '../permission-form/permission-form';
     selector: 'app-permissions',
     imports: [Button, TableModule, IconField, InputIcon, InputTextModule, ConfirmDialog, PermissionForm],
     templateUrl: './permissions.html',
-    styleUrl: './permissions.scss',
     providers: [ConfirmationService]
 })
 export class Permissions implements OnInit, OnDestroy {
