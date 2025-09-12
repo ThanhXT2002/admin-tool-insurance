@@ -278,6 +278,7 @@ export class Users implements OnInit, OnDestroy {
 
     openNew() {
         this.selectedUser = null;
+        this.isEditing = false;
         this.showForm = true;
     }
 
@@ -285,6 +286,11 @@ export class Users implements OnInit, OnDestroy {
         this.selectedUser = user;
         this.isEditing = true;
         this.showForm = true;
+    }
+
+    onUserSaved(saved?: unknown) {
+        this.showForm = false;
+        this.isEditing = false;
     }
 
     closeForm(saved?: boolean) {
@@ -323,8 +329,6 @@ export class Users implements OnInit, OnDestroy {
             }
         });
     }
-
-    onUserSaved(saved?: unknown) {}
 
     changeStatus() {
         // Update active state from selectedStatus
