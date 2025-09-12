@@ -22,44 +22,135 @@
             <div class="flex__end gap-x-2">
                 <p-iconfield>
                     <p-inputicon class="pi pi-search" />
-                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Tìm kiếm email hoặc tên..." />
+                    <input
+                        pInputText
+                        type="text"
+                        (input)="onGlobalFilter(dt, $event)"
+                        placeholder="Tìm kiếm email hoặc tên..."
+                    />
                 </p-iconfield>
-                <p-button severity="danger" label="Delete" icon="pi pi-trash" outlined (onClick)="deleteMultipleUser()" [disabled]="!selectedUsers || !selectedUsers.length" />
-                <p-button label="Mới" icon="pi pi-plus" severity="primary" (onClick)="openNew()" />
+
+                <p-select
+                    [options]="statusOptions"
+                    [(ngModel)]="selectedStatus"
+                    optionLabel="name"
+                    placeholder="Select a Status"
+                    class="w-48"
+                    (ngModelChange)="changeStatus()"
+                />
+
+                <p-button
+                    severity="success"
+                    label="Kích hoạt"
+                    icon="pi pi-check"
+                    outlined
+                    class="cursor-pointer"
+                    (onClick)="activeMultipleUser()"
+                    [disabled]="!selectedUsers || !selectedUsers.length"
+                />
+                <p-button
+                    severity="secondary"
+                    label="Vô hiệu hóa"
+                    icon="pi pi-times"
+                    outlined
+                    class="cursor-pointer"
+                    (onClick)="inactiveMultipleUser()"
+                    [disabled]="!selectedUsers || !selectedUsers.length"
+                />
+                <p-button
+                    severity="danger"
+                    label="Xóa nhiều"
+                    icon="pi pi-trash"
+                    outlined
+                    class="cursor-pointer"
+                    (onClick)="deleteMultipleUser()"
+                    [disabled]="!selectedUsers || !selectedUsers.length"
+                />
+                <p-button
+                    label="Mới"
+                    icon="pi pi-plus"
+                    severity="primary"
+                    (onClick)="openNew()"
+                />
             </div>
         </div>
     </ng-template>
 
     <ng-template #header>
         <tr>
-            <th >
+            <th>
                 <p-tableHeaderCheckbox />
             </th>
-            <th>No</th>
+            <th>
+                <p class="text-center">No</p>
+            </th>
+            <th>
+                <p class="text-center">Ảnh</p>
+            </th>
             <th>Tên</th>
             <th>Email</th>
 
-            <th>Số điện thoại</th>
-            <th class="flex__middle">Thao tác</th>
+            <th>
+                <p class="text-center">Trạng thái</p>
+            </th>
+            <th><p class="text-center">Số điện thoại</p></th>
+            <th>
+                <p class="text-center">Thao tác</p>
+            </th>
         </tr>
     </ng-template>
 
     <ng-template #body let-user let-ri="rowIndex">
         <tr>
-           <td class="w-0">
+            <td class="w-0">
                 <p-tableCheckbox [value]="user" />
             </td>
-            <td>{{ ri + 1 }}</td>
+            <td><p class="text-center">{{ ri + 1 }}</p></td>
+            <td class="">
+                <div class="flex__middle">
+                    <img
+                        [src]="user.avatarUrl"
+                        class="w-12 h-12 rounded-full object-cover"
+                        alt="{{ user.name }}"
+                    />
+                </div>
+            </td>
             <td>{{ user.name }}</td>
             <td>{{ user.email }}</td>
-            <td>{{ user.phoneNumber }}</td>
             <td>
                 <div class="flex__middle">
-                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editUser(user)" />
-                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteUser(user)" />
+                    <p-toggleswitch
+                        [ngModel]="user.active"
+                        (onChange)="toggleChangeStatusUser(user)"
+                    />
+                </div>
+            </td>
+            <td><p class="text-center">{{ user.phoneNumber }}</p></td>
+            <td>
+                <div class="flex__middle">
+                    <p-button
+                        icon="pi pi-pencil"
+                        class="mr-2"
+                        [rounded]="true"
+                        [outlined]="true"
+                        (click)="editUser(user)"
+                    />
+                    <p-button
+                        icon="pi pi-trash"
+                        severity="danger"
+                        [rounded]="true"
+                        [outlined]="true"
+                        (click)="deleteUser(user)"
+                    />
                 </div>
             </td>
         </tr>
     </ng-template>
 </p-table>
 <p-confirmdialog />
+<app-user-form
+    [(isShow)]="showForm"
+    [isEditMode]="isEditing"
+    [dataEdit]="selectedUser"
+    (saved)="onUserSaved($event)"
+></app-user-form>

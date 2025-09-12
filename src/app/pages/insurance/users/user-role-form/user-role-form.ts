@@ -207,9 +207,9 @@ export class UserRoleForm implements OnInit {
 
     onMoveToSource(event: { items: Permission[] }) {
         this.targetPermissions = [...this.targetPermissions];
-        console.log('Moved to source:', event.items);
-        console.log('Current sourcePermissions:', this.sourcePermissions);
-        console.log('Current targetPermissions:', this.targetPermissions);
+        // console.log('Moved to source:', event.items);
+        // console.log('Current sourcePermissions:', this.sourcePermissions);
+        // console.log('Current targetPermissions:', this.targetPermissions);
     }
 
     onMoveAllToTarget(event: { items: Permission[] }) {

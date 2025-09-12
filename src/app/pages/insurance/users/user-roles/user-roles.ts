@@ -19,7 +19,7 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
 })
 export class UserRoles implements OnInit, OnDestroy {
     userRoleService = inject(UserRoleService);
-    facade = inject(UserRoleFacade) as UserRoleFacade;
+    facade = inject(UserRoleFacade);
     private refreshService = inject(RefreshService);
     private messageService = inject(MessageService);
 

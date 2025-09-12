@@ -1,4 +1,12 @@
-import { Component, inject, OnInit, signal, ViewChild, OnDestroy, effect } from '@angular/core';
+import {
+    Component,
+    inject,
+    OnInit,
+    signal,
+    ViewChild,
+    OnDestroy,
+    effect
+} from '@angular/core';
 import { Button } from 'primeng/button';
 import { Table, TableModule } from 'primeng/table';
 import { IconField } from 'primeng/iconfield';
@@ -9,13 +17,23 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { PermissionService } from '@/pages/service/permission.service';
 import { Permission } from '@/interfaces/permission.interface';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil, filter } from 'rxjs/operators';
 import { PermissionsFacade } from '@/store/permissions/permissions.facade';
 import { PermissionForm } from '../permission-form/permission-form';
 
 @Component({
     selector: 'app-permissions',
-    imports: [Button, TableModule, IconField, InputIcon, InputTextModule, ConfirmDialog, PermissionForm],
+    imports: [
+        Button,
+        TableModule,
+        IconField,
+        InputIcon,
+        InputTextModule,
+        ConfirmDialog,
+        PermissionForm
+    ],
     templateUrl: './permissions.html',
     providers: [ConfirmationService]
 })
@@ -29,7 +47,6 @@ export class Permissions implements OnInit, OnDestroy {
 
     constructor(private confirmationService: ConfirmationService) {}
 
-    selectedPermissions: any[] = [];
     permissions = signal<Permission[]>([]);
     totalRecords = 0;
     loading = false;
@@ -61,20 +78,63 @@ export class Permissions implements OnInit, OnDestroy {
     triggerSearch(keyword: string) {
         clearTimeout(this.searchTimeout);
         this.searchTimeout = setTimeout(() => {
-            // Navigate with new search keyword and reset to page 1
+            // Get current params from URL to preserve page if keyword unchanged
+            const currentParams = this.route.snapshot.queryParams;
+            const currentKeyword = currentParams['keyword'] || '';
+            const currentPage = Number(currentParams['page']) || 1;
+
+            // Only reset to page 1 if keyword actually changed
+            const shouldResetPage = currentKeyword !== keyword;
+            const targetPage = shouldResetPage ? 1 : currentPage;
+
+            // Navigate with search keyword and appropriate page
             this.router.navigate([], {
                 relativeTo: this.route,
                 queryParams: {
-                    page: 1,
+                    page: targetPage,
                     limit: this.limit,
                     keyword: keyword || null
                 },
-                queryParamsHandling: 'merge'
+                queryParamsHandling: 'merge',
+                replaceUrl: true
             });
         }, 350);
     }
 
-    private refreshSub: any;
+    // Use a destroy$ Subject to signal unsubscription for multiple streams
+    private destroy$ = new Subject<void>();
+    // When params are applied from the URL we may want to ignore the next table lazy-load which
+    // can race and overwrite those params. Set this flag briefly when applying params.
+    private skipNextLazyLoad = false;
+
+    // Centralized param application to avoid duplicated logic and race conditions
+    private applyParams(params: any) {
+        // cancel pending search debounce so manual URL edits are not overridden
+        clearTimeout(this.searchTimeout);
+
+        const newPage = Number(params['page']) || 1;
+        const newLimit = Number(params['limit']) || 10;
+        const newKeyword = params['keyword'] || undefined;
+
+        const pageChanged = this.page !== newPage;
+        const limitChanged = this.limit !== newLimit;
+        const keywordChanged = this.currentKeyword !== newKeyword;
+
+        // Always update local state to match URL
+        this.page = newPage;
+        this.limit = newLimit;
+        this.currentKeyword = newKeyword;
+
+        // Load data if any param changed
+        if (pageChanged || limitChanged || keywordChanged) {
+            // Mark to skip the immediate table lazy-load that may follow
+            this.skipNextLazyLoad = true;
+            // reset flag shortly after to allow normal lazy-loads
+            setTimeout(() => (this.skipNextLazyLoad = false), 250);
+
+            this.loadData(newKeyword);
+        }
+    }
 
     ngOnInit() {
         // Read initial query params
@@ -84,40 +144,35 @@ export class Permissions implements OnInit, OnDestroy {
         this.currentKeyword = queryParams['keyword'] || undefined;
 
         // Load data with initial params via facade
-        this.facade.load({ page: this.page, limit: this.limit, keyword: this.currentKeyword });
-
-        // Subscribe to query param changes
-        this.route.queryParams.subscribe((params) => {
-            const newPage = Number(params['page']) || 1;
-            const newLimit = Number(params['limit']) || 10;
-            const newKeyword = params['keyword'] || undefined;
-
-            // Check if any params changed
-            const pageChanged = this.page !== newPage;
-            const limitChanged = this.limit !== newLimit;
-            const keywordChanged = this.currentKeyword !== newKeyword;
-
-            if (pageChanged || limitChanged || keywordChanged) {
-                this.page = newPage;
-                this.limit = newLimit;
-                this.currentKeyword = newKeyword;
-                this.loadData(newKeyword);
-            }
+        this.facade.load({
+            page: this.page,
+            limit: this.limit,
+            keyword: this.currentKeyword
         });
 
-        this.refreshSub = this.refreshService.refresh$.subscribe(() => {
-            // Reload with current URL params
-            const currentParams = this.route.snapshot.queryParams;
-            const keyword = currentParams['keyword'] || undefined;
-            this.loadData(keyword);
-        });
+        // Subscribe to query param changes (auto-unsubscribe via takeUntil)
+        // This handles both programmatic navigation and manual URL changes
+        this.route.queryParams
+            .pipe(takeUntil(this.destroy$))
+            .subscribe((params) => {
+                this.applyParams(params);
+            });
+
+        // refresh$ subscription also cleaned up by takeUntil
+        this.refreshService.refresh$
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(() => {
+                // Reload with current URL params
+                const currentParams = this.route.snapshot.queryParams;
+                const keyword = currentParams['keyword'] || undefined;
+                this.loadData(keyword);
+            });
     }
 
     ngOnDestroy() {
-        // cleanup subscription and debounce timer
-        if (this.refreshSub && typeof this.refreshSub.unsubscribe === 'function') {
-            this.refreshSub.unsubscribe();
-        }
+        // signal subscriptions to complete and cleanup debounce timer
+        this.destroy$.next();
+        this.destroy$.complete();
         clearTimeout(this.searchTimeout);
     }
 
@@ -129,12 +184,26 @@ export class Permissions implements OnInit, OnDestroy {
 
     // PrimeNG lazy load event handler
     onLazyLoad(event: any) {
-        // event.first = index of first row (0-based), event.rows = rows per page
-        const newPage = Math.floor((event.first || 0) / (event.rows || this.limit)) + 1;
-        const newLimit = event.rows || this.limit;
-        const keyword = event?.globalFilter || this.route.snapshot.queryParams['keyword'] || null;
+        // Skip if we just applied params from URL to avoid race conditions
+        if (this.skipNextLazyLoad) {
+            return;
+        }
 
-        // Navigate with new pagination params
+        // event.first = index of first row (0-based), event.rows = rows per page
+        const newPage =
+            Math.floor((event.first || 0) / (event.rows || this.limit)) + 1;
+        const newLimit = event.rows || this.limit;
+
+        // Get current keyword from URL params to preserve it
+        const currentParams = this.route.snapshot.queryParams;
+        const keyword = currentParams['keyword'] || null;
+
+        // If the table emitted a lazy-load that matches the current URL/state, don't navigate
+        if (newPage === this.page && newLimit === this.limit) {
+            return;
+        }
+
+        // Navigate with new pagination params while preserving keyword
         this.router.navigate([], {
             relativeTo: this.route,
             queryParams: {
@@ -142,7 +211,8 @@ export class Permissions implements OnInit, OnDestroy {
                 limit: newLimit,
                 keyword: keyword
             },
-            queryParamsHandling: 'merge'
+            queryParamsHandling: 'merge',
+            replaceUrl: true
         });
     }
 
@@ -185,7 +255,11 @@ export class Permissions implements OnInit, OnDestroy {
                 this.facade.delete(item.id);
             },
             reject: () => {
-                this.messageService.add({ severity: 'warn', summary: 'Đã hủy', detail: 'Bạn đã hủy thao tác' });
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Đã hủy',
+                    detail: 'Bạn đã hủy thao tác'
+                });
             }
         });
     }

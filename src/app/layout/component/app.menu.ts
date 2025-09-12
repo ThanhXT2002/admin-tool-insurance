@@ -39,7 +39,7 @@ export class AppMenu {
                 //<i class="ri-user-community-line"></i>
                 items: [
                     { label: 'QL Quyền Hạn', icon: 'ri-shield-flash-line', routerLink: ['/insurance/permissions'] },
-                    { label: 'QL Nhóm Quyền', icon: 'ri-user-community-line', routerLink: ['/insurance/user-roles'] },
+                    { label: 'QL Nhóm Thành Viên', icon: 'ri-user-community-line', routerLink: ['/insurance/user-roles'] },
                     { label: 'QL Danh Sách Thành Viên', icon: 'ri-user-line', routerLink: ['/insurance/users'] }
 
                 ]

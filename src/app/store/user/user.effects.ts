@@ -18,7 +18,6 @@ export class UserEffects extends BaseCrudEffects {
     deleteMultiple$: any;
     deleteMultipleSuccessReload$: any;
     activeMultiple$: any;
-    activeMultipleSuccess$: any;
 
     constructor(
         actions$: Actions,
@@ -32,8 +31,15 @@ export class UserEffects extends BaseCrudEffects {
                 ofType(UserActions.loadUsers),
                 switchMap((action) =>
                     this.service.getAll(action as any).pipe(
-                        map((res: any) => UserActions.loadUsersSuccess({ rows: res.data.rows || [], total: res.data.total || 0 })),
-                        catchError((error) => of(UserActions.loadUsersFailure({ error })))
+                        map((res: any) =>
+                            UserActions.loadUsersSuccess({
+                                rows: res.data.rows || [],
+                                total: res.data.total || 0
+                            })
+                        ),
+                        catchError((error) =>
+                            of(UserActions.loadUsersFailure({ error }))
+                        )
                     )
                 )
             )
@@ -66,8 +72,12 @@ export class UserEffects extends BaseCrudEffects {
                 ofType(UserActions.loadUser),
                 switchMap(({ id }) =>
                     this.service.getById(id).pipe(
-                        map((res: any) => UserActions.loadUserSuccess({ item: res.data })),
-                        catchError((error) => of(UserActions.loadUserFailure({ error })))
+                        map((res: any) =>
+                            UserActions.loadUserSuccess({ item: res.data })
+                        ),
+                        catchError((error) =>
+                            of(UserActions.loadUserFailure({ error }))
+                        )
                     )
                 )
             )
@@ -79,8 +89,15 @@ export class UserEffects extends BaseCrudEffects {
                 ofType(UserActions.deleteUsers),
                 switchMap(({ ids }) =>
                     this.service.deleteMultiple(ids).pipe(
-                        map((res: any) => UserActions.deleteUsersSuccess({ ids: ids, message: res?.message })),
-                        catchError((error) => of(UserActions.deleteUsersFailure({ error })))
+                        map((res: any) =>
+                            UserActions.deleteUsersSuccess({
+                                ids: ids,
+                                message: res?.message
+                            })
+                        ),
+                        catchError((error) =>
+                            of(UserActions.deleteUsersFailure({ error }))
+                        )
                     )
                 )
             )
@@ -90,15 +107,26 @@ export class UserEffects extends BaseCrudEffects {
         this.deleteMultipleSuccessReload$ = createEffect(() =>
             this.actions$.pipe(
                 ofType(UserActions.deleteUsersSuccess),
-                withLatestFrom(this.store.select(UserSelectors.selectUsersLastQueryParams), this.store.select(UserSelectors.selectUsersTotal)),
+                withLatestFrom(
+                    this.store.select(UserSelectors.selectUsersLastQueryParams),
+                    this.store.select(UserSelectors.selectUsersTotal)
+                ),
                 map(([action, lastQueryParams, total]) => {
                     const limit = lastQueryParams.limit ?? 10;
                     const page = lastQueryParams.page ?? 1;
                     const remaining = Math.max(0, total ?? 0);
-                    const maxPage = Math.max(1, Math.ceil(remaining / (limit || 10)));
+                    const maxPage = Math.max(
+                        1,
+                        Math.ceil(remaining / (limit || 10))
+                    );
                     const targetPage = Math.min(page, maxPage);
 
-                    return UserActions.loadUsers({ page: targetPage, limit, keyword: lastQueryParams.keyword ?? undefined, active: lastQueryParams.active });
+                    return UserActions.loadUsers({
+                        page: targetPage,
+                        limit,
+                        keyword: lastQueryParams.keyword ?? undefined,
+                        active: lastQueryParams.active
+                    });
                 })
             )
         );
@@ -109,36 +137,44 @@ export class UserEffects extends BaseCrudEffects {
                 ofType(UserActions.activeUsers),
                 switchMap(({ ids, active }) =>
                     this.service.activeMultiple(ids, active).pipe(
-                        map((res: any) => UserActions.activeUsersSuccess({ ids, active, message: res?.message })),
-                        catchError((error) => of(UserActions.activeUsersFailure({ error })))
+                        map((res: any) =>
+                            UserActions.activeUsersSuccess({
+                                ids,
+                                active,
+                                message: res?.message
+                            })
+                        ),
+                        catchError((error) =>
+                            of(UserActions.activeUsersFailure({ error }))
+                        )
                     )
                 )
-            )
-        );
-
-        // On activeUsersSuccess update the store rows' active flags
-        this.activeMultipleSuccess$ = createEffect(() =>
-            this.actions$.pipe(
-                ofType(UserActions.activeUsersSuccess),
-                map(({ ids, active }) => {
-                    // We dispatch a load to refresh current page (could also update rows optimistically)
-                    return UserActions.loadUsers({});
-                })
             )
         );
 
         this.deleteSuccessReload$ = createEffect(() =>
             this.actions$.pipe(
                 ofType(UserActions.deleteUserSuccess),
-                withLatestFrom(this.store.select(UserSelectors.selectUsersLastQueryParams), this.store.select(UserSelectors.selectUsersTotal)),
+                withLatestFrom(
+                    this.store.select(UserSelectors.selectUsersLastQueryParams),
+                    this.store.select(UserSelectors.selectUsersTotal)
+                ),
                 map(([action, lastQueryParams, total]) => {
                     const limit = lastQueryParams.limit ?? 10;
                     const page = lastQueryParams.page ?? 1;
                     const remaining = Math.max(0, total ?? 0);
-                    const maxPage = Math.max(1, Math.ceil(remaining / (limit || 10)));
+                    const maxPage = Math.max(
+                        1,
+                        Math.ceil(remaining / (limit || 10))
+                    );
                     const targetPage = Math.min(page, maxPage);
 
-                    return UserActions.loadUsers({ page: targetPage, limit, keyword: lastQueryParams.keyword ?? undefined, active: lastQueryParams.active });
+                    return UserActions.loadUsers({
+                        page: targetPage,
+                        limit,
+                        keyword: lastQueryParams.keyword ?? undefined,
+                        active: lastQueryParams.active
+                    });
                 })
             )
         );
