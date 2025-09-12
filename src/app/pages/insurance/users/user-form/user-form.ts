@@ -35,6 +35,7 @@ import { UserRoleFacade } from '@/store/user-role/user-role.facade';
 import { userRole } from '@/pages/service/user-role.service';
 import { MultiSelect } from 'primeng/multiselect';
 import { PickList } from 'primeng/picklist';
+import { UserFacade } from '@/store/user/user.facade';
 @Component({
     selector: 'app-user-form',
     imports: [
@@ -121,7 +122,7 @@ export class UserForm {
 
     constructor(
         private cdr: ChangeDetectorRef,
-        private facade: PermissionsFacade
+        private facade: UserFacade
     ) {
         effect(() => {
             // read signals so effect re-runs when loading/error change
