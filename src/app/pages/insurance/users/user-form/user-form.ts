@@ -114,7 +114,11 @@ export class UserForm implements OnInit {
         effect(() => {
             const perms = this.permissionFacade.permissions();
             this.listPermissions = perms ?? [];
-            this.setupPermissions();
+
+            // Sau khi load permissions, setup lại picklist nếu đang ở edit mode
+            if (this.listPermissions.length > 0) {
+                this.setupPermissions();
+            }
         });
     }
 
@@ -137,6 +141,7 @@ export class UserForm implements OnInit {
             this.resetForm();
             this.setupFormForMode();
             this.fillDataIfEdit();
+            // Setup permissions sẽ được gọi trong fillDataIfEdit hoặc effect
         }
     }
 
@@ -297,35 +302,43 @@ export class UserForm implements OnInit {
             roleKeys: this.dataEdit.roleKeys || [],
             active: this.dataEdit.active || false
         });
+
+        // Setup permissions sau khi fill data
+        this.setupPermissions();
     }
 
     /**
      * Setup permissions list
      */
     private setupPermissions(): void {
+        // Nếu chưa có listPermissions thì chưa setup được
+        if (!this.listPermissions || this.listPermissions.length === 0) {
+            return;
+        }
+
+        // Mặc định: tất cả permissions ở source
         this.sourcePermissions = [...this.listPermissions];
+        this.targetPermissions = [];
 
         if (this.isEditMode && this.dataEdit?.permissionKeys?.length) {
-            const editKeys = this.dataEdit.permissionKeys;
+            const editPermissionKeys = this.dataEdit.permissionKeys;
 
-            this.targetPermissions = editKeys
+            // Map permission keys thành Permission objects
+            this.targetPermissions = editPermissionKeys
                 .map((key) => {
-                    if (typeof key === 'number') {
-                        return this.listPermissions.find((p) => p.id === key);
-                    } else {
-                        return this.listPermissions.find(
-                            (p) => (p as any).key === key
-                        );
-                    }
+                    // Tìm permission theo key (string)
+                    const found = this.listPermissions.find(
+                        (p) => (p as any).key === key
+                    );
+                    return found;
                 })
                 .filter(Boolean) as Permission[];
 
+            // Loại bỏ permissions đã chọn khỏi source
             const targetIds = new Set(this.targetPermissions.map((p) => p.id));
             this.sourcePermissions = this.listPermissions.filter(
                 (p) => !targetIds.has(p.id)
             );
-        } else {
-            this.targetPermissions = [];
         }
 
         this.cdr.markForCheck();
@@ -335,20 +348,7 @@ export class UserForm implements OnInit {
      * Xây dựng payload để gửi API
      */
     private buildPayload(): any {
-        console.log('🔍 DEBUG Frontend - form.value:', this.form.value);
-        console.log(
-            '🔍 DEBUG Frontend - form.value.addresses:',
-            this.form.value.addresses
-        );
-
         const payload = { ...this.form.value };
-
-        console.log('🔍 DEBUG Frontend - payload before processing:', payload);
-        console.log(
-            '🔍 DEBUG Frontend - payload.addresses:',
-            payload.addresses
-        );
-
         // Xóa confirm password
         delete payload.confirmPassword;
 
@@ -377,13 +377,6 @@ export class UserForm implements OnInit {
         if (this.selectedAvatarFile) {
             payload.avatar = this.selectedAvatarFile;
         }
-
-        console.log('🔍 DEBUG Frontend - final payload:', payload);
-        console.log(
-            '🔍 DEBUG Frontend - final payload.addresses:',
-            payload.addresses
-        );
-
         return payload;
     }
 
