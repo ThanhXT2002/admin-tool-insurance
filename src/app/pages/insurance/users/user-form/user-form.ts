@@ -12,6 +12,7 @@ import {
 import {
     FormBuilder,
     FormGroup,
+    FormsModule,
     ReactiveFormsModule,
     Validators
 } from '@angular/forms';
@@ -48,7 +49,8 @@ import { UserFacade } from '@/store/user/user.facade';
         IconFieldModule,
         DividerModule,
         MultiSelect,
-        PickList
+        PickList,
+        FormsModule
     ],
     templateUrl: './user-form.html',
     styleUrl: './user-form.scss'
@@ -84,6 +86,10 @@ export class UserForm implements OnInit {
     // === Avatar Properties ===
     private selectedAvatarFile?: File | null = null;
     private avatarPreview?: string;
+
+    // edit mode fields
+    createdAt?: string | null = null;
+    updatedAt?: string | null = null;
 
     // === Constructor ===
     constructor() {
@@ -293,6 +299,11 @@ export class UserForm implements OnInit {
      */
     private fillDataIfEdit(): void {
         if (!this.isEditMode || !this.dataEdit) return;
+
+        this.createdAt = this.dataEdit.createdAt;
+        this.updatedAt = this.dataEdit.updatedAt;
+        console.log('CreatedAt:', this.createdAt);
+        console.log('UpdatedAt:', this.updatedAt);
 
         this.form.patchValue({
             email: this.dataEdit.email,

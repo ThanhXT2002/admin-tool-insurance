@@ -200,6 +200,7 @@
                         <label for="roleKeys">Nhóm thành viên (*)</label>
                     </p-floatlabel>
                 </div>
+
                 <p-floatlabel variant="in" class="!w-full">
                     <p-iconfield class="!w-full">
                         <p-inputicon class="pi pi-map" />
@@ -214,6 +215,38 @@
                         <label for="addresses">Địa chỉ</label>
                     </p-iconfield>
                 </p-floatlabel>
+                @if(isEditMode){
+                <div class="flex__middle w-full gap-4">
+                    <p-floatlabel variant="in" class="!w-full">
+                        <p-iconfield class="!w-full">
+                            <p-inputicon class="pi pi-calendar-clock" />
+                            <input
+                                pInputText
+                                id="createdAt"
+                                disabled
+                                [value]="createdAt ? (createdAt | date:'HH:mm dd/MM/yyyy':'Asia/Ho_Chi_Minh') : ''"
+                                class="w-full"
+                                autocomplete="off"
+                            />
+                            <label for="createdAt">Ngày tạo</label>
+                        </p-iconfield>
+                    </p-floatlabel>
+                    <p-floatlabel variant="in" class="!w-full">
+                        <p-iconfield class="!w-full">
+                            <p-inputicon class="pi pi-calendar-clock" />
+                            <input
+                                pInputText
+                                id="updatedAt"
+                                disabled
+                                [value]="updatedAt ? (updatedAt | date:'HH:mm dd/MM/yyyy':'Asia/Ho_Chi_Minh') : ''"
+                                class="w-full"
+                                autocomplete="off"
+                            />
+                            <label for="updatedAt">Cập nhật mới nhất</label>
+                        </p-iconfield>
+                    </p-floatlabel>
+                </div>
+                }
             </div>
         </div>
         <div class="relative">
