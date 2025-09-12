@@ -34,11 +34,9 @@
                         <p-iconfield class="!w-full">
                             <p-inputicon class="pi pi-envelope" />
                             <input
-                                #emailInput
                                 pInputText
                                 id="email"
                                 formControlName="email"
-                                [attr.readonly]="isEditMode ? true : null"
                                 class="w-full"
                                 autocomplete="off"
                                 [invalid]="isInvalid('email')"

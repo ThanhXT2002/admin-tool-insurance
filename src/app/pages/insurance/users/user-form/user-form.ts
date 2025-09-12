@@ -30,7 +30,6 @@ import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { DividerModule } from 'primeng/divider';
-import { Select } from 'primeng/select';
 import { UserRoleFacade } from '@/store/user-role/user-role.facade';
 import { userRole } from '@/pages/service/user-role.service';
 import { MultiSelect } from 'primeng/multiselect';
