@@ -413,4 +413,20 @@ export class Users implements OnInit, OnDestroy {
         // Call API to update user status - the store will handle updating the UI
         this.facade.activeMultiple([user.id], newStatus);
     }
+
+    /**
+     * Image error handler used in the template. Sets a fallback image when
+     * the original avatar fails to load. Protects against infinite loop by
+     * checking the current src before setting the fallback.
+     */
+    errorImg(event: Event) {
+        const target = event?.target as HTMLImageElement | null;
+        if (!target) return;
+
+        const fallback = 'assets/images/avatar-default.webp';
+        // Only replace if it's not already the fallback to avoid infinite loops
+        if (target.src && !target.src.endsWith(fallback)) {
+            target.src = fallback;
+        }
+    }
 }

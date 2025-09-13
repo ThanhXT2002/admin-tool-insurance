@@ -12,9 +12,9 @@ export const authGuard: CanActivateFn = async (route, state) => {
     const profile = authStore.profile();
     if (profile) return true;
 
-    // Fallback: check for an active session/token (use getAccessToken which reads session)
-    const token = await authService.getAccessToken();
-    if (token) {
+    // Fallback to Supabase user check (preserve existing behavior and refresh token)
+    const user = await authService.getUser();
+    if (user) {
         // trigger forced refresh of profile in background to ensure store is populated
         authStore.loadProfile(true).catch(() => {});
         return true;
@@ -35,8 +35,8 @@ export const loginGuard: CanActivateFn = async (route, state) => {
         return false;
     }
 
-    const token = await authService.getAccessToken();
-    if (token) {
+    const user = await authService.getUser();
+    if (user) {
         router.navigate(['/']);
         // load profile in background
         authStore.loadProfile().catch(() => {});

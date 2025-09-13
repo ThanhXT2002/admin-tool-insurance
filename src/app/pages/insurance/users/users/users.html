@@ -122,14 +122,15 @@
             <td class="">
                 <div class="flex__middle">
                     <img
-                        [src]="user.avatarUrl"
+                        [src]="user.avatarUrl || 'assets/images/avatar-default.webp'"
+                        (error)="errorImg($event)"
                         class="w-12 h-12 rounded-full object-cover"
                         alt="{{ user.name }}"
                     />
                 </div>
             </td>
-            <td><p class="text-nowrap">{{ user.name }}</p></td>
-            <td>{{ user.email }}</td>
+            <td><p class="text-nowrap">{{ user.name ? user.name : 'N/A' }}</p></td>
+            <td>{{ user.email ? user.email : 'N/A' }}</td>
             <td>
                 <div class="flex__middle">
                     <p-toggleswitch
@@ -138,7 +139,7 @@
                     />
                 </div>
             </td>
-            <td><p class="text-center">{{ user.phoneNumber }}</p></td>
+            <td><p class="text-center">{{ user.phoneNumber ? user.phoneNumber : 'N/A' }}</p></td>
             <td>
                 <div class="flex__middle">
                     <p-button
