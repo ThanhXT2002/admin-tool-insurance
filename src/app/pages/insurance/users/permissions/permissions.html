@@ -16,12 +16,12 @@
     [loading]="loading"
 >
     <ng-template #caption>
-        <div class="flex items-center justify-between">
-            <h5 class="!mb-0">Danh Sách Quyền Hạn</h5>
-            <div class="flex__end gap-x-2">
-                <p-iconfield>
+       <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+           <h5 class="!mb-0 text-nowrap">Danh Sách Quyền Hạn</h5>
+           <div class="flex__end w-full md:w-auto gap-x-2">
+               <p-iconfield class="w-full md:w-auto">
                     <p-inputicon class="pi pi-search" />
-                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Tìm kiếm..." />
+                    <input pInputText type="text" class="w-full md:w-auto" (input)="onGlobalFilter(dt, $event)" placeholder="Tìm kiếm..." />
                 </p-iconfield>
                 <p-button label="Mới" icon="pi pi-plus" severity="primary" (onClick)="openNew()" />
             </div>
@@ -30,9 +30,9 @@
     <ng-template #header>
         <tr>
             <th>No</th>
-            <th>key</th>
-            <th>name</th>
-            <th>description</th>
+            <th>Khóa</th>
+            <th>Tên</th>
+            <th>Mô tả</th>
             <th class="flex__middle ">Thao tác</th>
         </tr>
     </ng-template>
@@ -40,8 +40,8 @@
         <tr>
             <td>{{ ri + 1 }}</td>
             <td>{{ item.key }}</td>
-            <td>{{ item.name }}</td>
-            <td>{{ item.description }}</td>
+            <td><p class="text-nowrap">{{ item.name }}</p></td>
+            <td><p class="text-nowrap">{{ item.description }}</p></td>
             <td>
                 <div class="flex__middle">
                   <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editPermission(item)" />

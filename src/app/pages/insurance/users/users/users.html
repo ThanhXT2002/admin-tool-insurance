@@ -17,12 +17,23 @@
     [loading]="loading"
 >
     <ng-template #caption>
-        <div class="flex items-center justify-between">
-            <h5 class="!mb-0">Danh sách Người dùng</h5>
-            <div class="flex__end gap-x-2">
-                <p-iconfield>
+        <div class="flex__between flex-col lg:flex-row gap-2">
+            <div class="flex__between w-full lg:w-auto">
+                <h5 class="!mb-0 text-nowrap">Danh sách Người dùng</h5>
+                <div class="lg:hidden">
+                    <p-button
+                        label="Mới"
+                        icon="pi pi-plus"
+                        severity="primary"
+                        (onClick)="openNew()"
+                    />
+                </div>
+            </div>
+            <div class="flex__end flex-wrap gap-2">
+                <p-iconfield class="w-full md:w-auto">
                     <p-inputicon class="pi pi-search" />
                     <input
+                        class="w-full"
                         pInputText
                         type="text"
                         (input)="onGlobalFilter(dt, $event)"
@@ -35,7 +46,7 @@
                     [(ngModel)]="selectedStatus"
                     optionLabel="name"
                     placeholder="Select a Status"
-                    class="w-48"
+                    class="w-full md:w-48"
                     (ngModelChange)="changeStatus()"
                 />
 
@@ -66,7 +77,9 @@
                     (onClick)="deleteMultipleUser()"
                     [disabled]="!selectedUsers || !selectedUsers.length"
                 />
+
                 <p-button
+                    class="hidden lg:block"
                     label="Mới"
                     icon="pi pi-plus"
                     severity="primary"
@@ -91,7 +104,7 @@
             <th>Email</th>
 
             <th>
-                <p class="text-center">Trạng thái</p>
+                <p class="text-center text-nowrap">Trạng thái</p>
             </th>
             <th><p class="text-center">Số điện thoại</p></th>
             <th>
@@ -115,7 +128,7 @@
                     />
                 </div>
             </td>
-            <td>{{ user.name }}</td>
+            <td><p class="text-nowrap">{{ user.name }}</p></td>
             <td>{{ user.email }}</td>
             <td>
                 <div class="flex__middle">
