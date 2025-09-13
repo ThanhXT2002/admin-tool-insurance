@@ -6,7 +6,13 @@ import { ButtonModule } from 'primeng/button';
 import { FloatLabel, FloatLabelModule } from 'primeng/floatlabel';
 import { IconField, IconFieldModule } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+    FormBuilder,
+    FormGroup,
+    FormsModule,
+    ReactiveFormsModule,
+    Validators
+} from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { CommonModule } from '@angular/common';
 import { AuthStore } from '@/store/auth/auth.store';
@@ -16,16 +22,49 @@ import { AuthService } from '@/pages/service/auth.service';
 
 @Component({
     selector: 'app-avatar-profile',
-    imports: [AvatarModule, DrawerModule, ButtonModule, FloatLabel, IconField, InputIcon, ReactiveFormsModule, IconFieldModule, InputTextModule, FormsModule, FloatLabelModule, CommonModule],
+    imports: [
+        AvatarModule,
+        DrawerModule,
+        ButtonModule,
+        FloatLabel,
+        IconField,
+        InputIcon,
+        ReactiveFormsModule,
+        IconFieldModule,
+        InputTextModule,
+        FormsModule,
+        FloatLabelModule,
+        CommonModule
+    ],
     template: `
-        <button type="button" class="layout-topbar-action" (click)="handleShowProfile()">
-            <img [src]="avatarUrl" class="!h-10 !w-10 object-cover rounded-full" size="large" alt="" (error)="handleImageError()" />
+        <button
+            type="button"
+            class="layout-topbar-action"
+            (click)="handleShowProfile()"
+        >
+            <img
+                [src]="avatarUrl"
+                class="!h-10 !w-10 object-cover rounded-full"
+                size="large"
+                alt=""
+                (error)="handleImageError()"
+            />
         </button>
 
-        <p-drawer [(visible)]="isShowProfile" [blockScroll]="true" position="right">
+        <p-drawer
+            [(visible)]="isShowProfile"
+            [blockScroll]="true"
+            position="right"
+        >
             <ng-template #header>
                 <div class="flex flex-col gap-2">
-                    <img [src]="avatarUrl" class="!h-12 !w-12 object-cover rounded-full" size="large" alt="" (error)="handleImageError()" />
+                    <img
+                        [src]="avatarUrl"
+                        class="!h-12 !w-12 object-cover rounded-full"
+                        size="large"
+                        alt=""
+                        (error)="handleImageError()"
+                    />
                     <div>
                         @if (authStore.profile()?.name) {
                             <p class="!mb-0">{{ authStore.profile()?.name }}</p>
@@ -42,18 +81,37 @@ import { AuthService } from '@/pages/service/auth.service';
             <ng-template #footer>
                 <div class="flex flex-col items-center gap-2">
                     @if (isBoxUpdateInfo) {
-                        <div @slideUpDown class="w-full border border-gray-400/80 py-5 px-2 rounded-md relative">
-                            <button (click)="handleShowBoxUpdateInfo()" class="absolute top-0 right-0 w-8 h-8 rounded-full hover:bg-gray-100 flex__middle">
+                        <div
+                            @slideUpDown
+                            class="w-full border border-gray-400/80 py-5 px-2 rounded-md relative"
+                        >
+                            <button
+                                (click)="handleShowBoxUpdateInfo()"
+                                class="absolute top-0 right-0 w-8 h-8 rounded-full hover:bg-gray-100 flex__middle"
+                            >
                                 <i class="pi pi-times"></i>
                             </button>
                             <div class="flex__middle mb-5">
-                                <img [src]="displayAvatar" class="w-36 h-36 rounded-full overflow-hidden object-cover cursor-pointer" [alt]="authStore.profile()?.email" (click)="onAvatarClick()" (error)="handleImageError()" />
+                                <img
+                                    [src]="displayAvatar"
+                                    class="w-36 h-36 rounded-full overflow-hidden object-cover cursor-pointer"
+                                    [alt]="authStore.profile()?.email"
+                                    (click)="onAvatarClick()"
+                                    (error)="handleImageError()"
+                                />
                             </div>
                             <form [formGroup]="updateForm">
                                 <p-floatlabel variant="in" class="mb-5">
                                     <p-iconfield>
                                         <p-inputicon class="pi pi-user-edit" />
-                                        <input pInputText id="name" formControlName="name" autocomplete="off" pSize="small" class="w-full" />
+                                        <input
+                                            pInputText
+                                            id="name"
+                                            formControlName="name"
+                                            autocomplete="off"
+                                            pSize="small"
+                                            class="w-full"
+                                        />
                                     </p-iconfield>
                                     <label for="name">Tên mới</label>
                                 </p-floatlabel>
@@ -61,15 +119,33 @@ import { AuthService } from '@/pages/service/auth.service';
                                 <p-floatlabel variant="in" class="mb-5">
                                     <p-iconfield>
                                         <p-inputicon class="pi pi-user-edit" />
-                                        <input pInputText id="phoneNumber" formControlName="phoneNumber" autocomplete="off" pSize="small" class="w-full" />
+                                        <input
+                                            pInputText
+                                            id="phoneNumber"
+                                            formControlName="phoneNumber"
+                                            autocomplete="off"
+                                            pSize="small"
+                                            class="w-full"
+                                        />
                                     </p-iconfield>
-                                    <label for="phoneNumber">Số điện thoại</label>
+                                    <label for="phoneNumber"
+                                        >Số điện thoại</label
+                                    >
                                 </p-floatlabel>
 
                                 <p-floatlabel variant="in">
                                     <p-iconfield>
-                                        <p-inputicon class="pi pi-building-columns" />
-                                        <input pInputText id="addresses" formControlName="addresses" autocomplete="off" pSize="small" class="w-full" />
+                                        <p-inputicon
+                                            class="pi pi-building-columns"
+                                        />
+                                        <input
+                                            pInputText
+                                            id="addresses"
+                                            formControlName="addresses"
+                                            autocomplete="off"
+                                            pSize="small"
+                                            class="w-full"
+                                        />
                                     </p-iconfield>
                                     <label for="addresses">Địa chỉ</label>
                                 </p-floatlabel>
@@ -77,7 +153,10 @@ import { AuthService } from '@/pages/service/auth.service';
                         </div>
                     }
 
-                    <button (click)="handleUpdateNow()" class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white">
+                    <button
+                        (click)="handleUpdateNow()"
+                        class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white"
+                    >
                         <i class="pi pi-pen-to-square mr-3"></i>
                         @if (isBoxUpdateInfo) {
                             Cập nhật ngay
@@ -85,7 +164,10 @@ import { AuthService } from '@/pages/service/auth.service';
                             Cập nhật thông tin
                         }
                     </button>
-                    <button (click)="handleLogout()" class="rounded-md w-full py-2 border border-red-500 text-red-500 hover:bg-red-200/50">
+                    <button
+                        (click)="handleLogout()"
+                        class="rounded-md w-full py-2 border border-red-500 text-red-500 hover:bg-red-200/50"
+                    >
                         <i class="pi pi-sign-out mr-3"></i>
                         Đăng xuất
                     </button>
@@ -100,8 +182,19 @@ import { AuthService } from '@/pages/service/auth.service';
     `,
     animations: [
         trigger('slideUpDown', [
-            transition(':enter', [style({ opacity: 0, transform: 'translateY(32px)' }), animate('350ms cubic-bezier(0.4,0,0.2,1)', style({ opacity: 1, transform: 'translateY(0)' }))]),
-            transition(':leave', [animate('250ms cubic-bezier(0.4,0,0.2,1)', style({ opacity: 0, transform: 'translateY(32px)' }))])
+            transition(':enter', [
+                style({ opacity: 0, transform: 'translateY(32px)' }),
+                animate(
+                    '350ms cubic-bezier(0.4,0,0.2,1)',
+                    style({ opacity: 1, transform: 'translateY(0)' })
+                )
+            ]),
+            transition(':leave', [
+                animate(
+                    '250ms cubic-bezier(0.4,0,0.2,1)',
+                    style({ opacity: 0, transform: 'translateY(32px)' })
+                )
+            ])
         ])
     ]
 })
@@ -182,17 +275,28 @@ export class AppAvatarProfile {
                             this.authStore.setProfile(res.data);
                             // clear preview so displayAvatar reads from store
                             this.previewAvatar.set(null);
-                            this.messageService.add({ severity: 'success', summary: 'Cập nhật avatar thành công' });
+                            this.messageService.add({
+                                severity: 'success',
+                                summary: 'Cập nhật avatar thành công'
+                            });
                         } else {
                             // revert preview
                             this.previewAvatar.set(null);
-                            this.messageService.add({ severity: 'error', summary: 'Cập nhật avatar thất bại', detail: res?.message || 'Vui lòng thử lại' });
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Cập nhật avatar thất bại',
+                                detail: res?.message || 'Vui lòng thử lại'
+                            });
                         }
                     },
                     error: (err) => {
                         this.uploading.set(false);
                         this.previewAvatar.set(null);
-                        this.messageService.add({ severity: 'error', summary: 'Cập nhật avatar thất bại', detail: err?.error?.message || 'Vui lòng thử lại' });
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Cập nhật avatar thất bại',
+                            detail: err?.error?.message || 'Vui lòng thử lại'
+                        });
                     }
                 });
             };
@@ -227,12 +331,19 @@ export class AppAvatarProfile {
             next: (res) => {
                 if (res.status && res.data) {
                     this.authStore.setProfile(res.data);
-                    this.messageService.add({ severity: 'success', summary: 'Cập nhật thành công' });
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Cập nhật thành công'
+                    });
                     this.isBoxUpdateInfo = false; // Đóng box sau khi cập nhật
                 }
             },
             error: (err) => {
-                this.messageService.add({ severity: 'error', summary: 'Cập nhật thất bại', detail: err?.error?.message || 'Vui lòng thử lại' });
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Cập nhật thất bại',
+                    detail: err?.error?.message || 'Vui lòng thử lại'
+                });
             },
             complete: () => {
                 this.uploading.set(false);
