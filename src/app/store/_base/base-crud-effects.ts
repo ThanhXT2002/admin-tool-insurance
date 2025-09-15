@@ -37,13 +37,23 @@ export abstract class BaseCrudEffects {
                 switchMap(({ data }: any) =>
                     serviceCall(data).pipe(
                         mergeMap((res: any) => {
-                            const success = successActionCreator({ item: res.data, message: res?.message });
+                            const success = successActionCreator({
+                                item: res.data,
+                                message: res?.message
+                            });
                             if (notifyOnSuccess) {
-                                const note = NotificationActions.showNotification({
-                                    severity: options?.successSeverity ?? 'success',
-                                    summary: options?.summary ?? 'Thành công',
-                                    detail: res?.message ?? options?.successFallback ?? 'Thực hiện thành công'
-                                });
+                                const note =
+                                    NotificationActions.showNotification({
+                                        severity:
+                                            options?.successSeverity ??
+                                            'success',
+                                        summary:
+                                            options?.summary ?? 'Thành công',
+                                        detail:
+                                            res?.message ??
+                                            options?.successFallback ??
+                                            'Thực hiện thành công'
+                                    });
                                 return of(success, note);
                             }
                             return of(success);
@@ -51,11 +61,19 @@ export abstract class BaseCrudEffects {
                         catchError((error: any) => {
                             const failure = failureActionCreator({ error });
                             if (notifyOnFailure) {
-                                const note = NotificationActions.showNotification({
-                                    severity: options?.failureSeverity ?? 'error',
-                                    summary: 'Lỗi',
-                                    detail: error?.error?.message ?? options?.failureFallback ?? 'Có lỗi xảy ra'
-                                });
+                                const serverDetail =
+                                    error?.error?.errors ??
+                                    error?.error?.message;
+                                const note =
+                                    NotificationActions.showNotification({
+                                        severity:
+                                            options?.failureSeverity ?? 'error',
+                                        summary: 'Lỗi',
+                                        detail:
+                                            serverDetail ??
+                                            options?.failureFallback ??
+                                            'Có lỗi xảy ra'
+                                    });
                                 return of(failure, note);
                             }
                             return of(failure);
@@ -89,13 +107,23 @@ export abstract class BaseCrudEffects {
                 switchMap(({ id, data }: any) =>
                     serviceCall(id, data).pipe(
                         mergeMap((res: any) => {
-                            const success = successActionCreator({ item: res.data, message: res?.message });
+                            const success = successActionCreator({
+                                item: res.data,
+                                message: res?.message
+                            });
                             if (notifyOnSuccess) {
-                                const note = NotificationActions.showNotification({
-                                    severity: options?.successSeverity ?? 'success',
-                                    summary: options?.summary ?? 'Thành công',
-                                    detail: res?.message ?? options?.successFallback ?? 'Thực hiện thành công'
-                                });
+                                const note =
+                                    NotificationActions.showNotification({
+                                        severity:
+                                            options?.successSeverity ??
+                                            'success',
+                                        summary:
+                                            options?.summary ?? 'Thành công',
+                                        detail:
+                                            res?.message ??
+                                            options?.successFallback ??
+                                            'Thực hiện thành công'
+                                    });
                                 return of(success, note);
                             }
                             return of(success);
@@ -103,11 +131,19 @@ export abstract class BaseCrudEffects {
                         catchError((error: any) => {
                             const failure = failureActionCreator({ error });
                             if (notifyOnFailure) {
-                                const note = NotificationActions.showNotification({
-                                    severity: options?.failureSeverity ?? 'error',
-                                    summary: 'Lỗi',
-                                    detail: error?.error?.message ?? options?.failureFallback ?? 'Có lỗi xảy ra'
-                                });
+                                const serverDetail =
+                                    error?.error?.errors ??
+                                    error?.error?.message;
+                                const note =
+                                    NotificationActions.showNotification({
+                                        severity:
+                                            options?.failureSeverity ?? 'error',
+                                        summary: 'Lỗi',
+                                        detail:
+                                            serverDetail ??
+                                            options?.failureFallback ??
+                                            'Có lỗi xảy ra'
+                                    });
                                 return of(failure, note);
                             }
                             return of(failure);
@@ -141,13 +177,23 @@ export abstract class BaseCrudEffects {
                 switchMap(({ id }: any) =>
                     serviceCall(id).pipe(
                         mergeMap((res: any) => {
-                            const success = successActionCreator({ id, message: res?.message });
+                            const success = successActionCreator({
+                                id,
+                                message: res?.message
+                            });
                             if (notifyOnSuccess) {
-                                const note = NotificationActions.showNotification({
-                                    severity: options?.successSeverity ?? 'success',
-                                    summary: options?.summary ?? 'Thành công',
-                                    detail: res?.message ?? options?.successFallback ?? 'Thực hiện thành công'
-                                });
+                                const note =
+                                    NotificationActions.showNotification({
+                                        severity:
+                                            options?.successSeverity ??
+                                            'success',
+                                        summary:
+                                            options?.summary ?? 'Thành công',
+                                        detail:
+                                            res?.message ??
+                                            options?.successFallback ??
+                                            'Thực hiện thành công'
+                                    });
                                 return of(success, note);
                             }
                             return of(success);
@@ -155,11 +201,19 @@ export abstract class BaseCrudEffects {
                         catchError((error: any) => {
                             const failure = failureActionCreator({ error });
                             if (notifyOnFailure) {
-                                const note = NotificationActions.showNotification({
-                                    severity: options?.failureSeverity ?? 'error',
-                                    summary: 'Lỗi',
-                                    detail: error?.error?.message ?? options?.failureFallback ?? 'Có lỗi xảy ra'
-                                });
+                                const serverDetail =
+                                    error?.error?.errors ??
+                                    error?.error?.message;
+                                const note =
+                                    NotificationActions.showNotification({
+                                        severity:
+                                            options?.failureSeverity ?? 'error',
+                                        summary: 'Lỗi',
+                                        detail:
+                                            serverDetail ??
+                                            options?.failureFallback ??
+                                            'Có lỗi xảy ra'
+                                    });
                                 return of(failure, note);
                             }
                             return of(failure);

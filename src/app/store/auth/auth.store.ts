@@ -22,10 +22,16 @@ export class AuthStore {
         const authService = this.injector.get(AuthService);
         const messageService = this.injector.get(MessageService);
         const router = this.injector.get(Router);
-        if (!force && this.status() === 'loaded' && this.profile()) return this.profile();
+        if (!force && this.status() === 'loaded' && this.profile())
+            return this.profile();
 
         const now = Date.now();
-        if (!force && this.lastFetchedAt && now - this.lastFetchedAt < PROFILE_TTL_MS && this.profile()) {
+        if (
+            !force &&
+            this.lastFetchedAt &&
+            now - this.lastFetchedAt < PROFILE_TTL_MS &&
+            this.profile()
+        ) {
             return this.profile();
         }
 
@@ -37,6 +43,23 @@ export class AuthStore {
         this.pendingPromise = this.api
             .getProfile()
             .then((p) => {
+                const hasOnlyUserRole =
+                    Array.isArray(p?.roles) &&
+                    p.roles.length === 1 &&
+                    p.roles[0] === 'user';
+                if (hasOnlyUserRole) {
+                    try {
+                        messageService.add({
+                            severity: 'error',
+                            summary: 'Tài khoản không đủ quyền truy cập'
+                        });
+                    } catch {}
+                    authService.signOut().finally(() => {
+                        this.clear();
+                        router.navigate(['/auth/login']);
+                    });
+                    return null;
+                }
                 this.profile.set(p);
                 this.status.set('loaded');
                 this.lastFetchedAt = Date.now();
@@ -44,10 +67,14 @@ export class AuthStore {
             })
             .catch((err: any) => {
                 // Nếu server trả 401/403 => token không hợp lệ hoặc tài khoản bị khoá
-                const status = err?.status ?? err?.statusCode ?? err?.response?.status;
+                const status =
+                    err?.status ?? err?.statusCode ?? err?.response?.status;
                 if (status === 401 || status === 403) {
                     try {
-                        const msg = status === 403 ? 'Tài khoản của bạn đã bị khóa hoặc đang gặp vấn đề nghiêm trọng' : 'Phiên đăng nhập hết hạn. Đăng xuất...';
+                        const msg =
+                            status === 403
+                                ? 'Tài khoản của bạn đã bị khóa hoặc đang gặp vấn đề nghiêm trọng'
+                                : 'Phiên đăng nhập hết hạn. Đăng xuất...';
                         messageService.add({ severity: 'error', summary: msg });
                     } catch {
                         /* ignore if messageService unavailable */
