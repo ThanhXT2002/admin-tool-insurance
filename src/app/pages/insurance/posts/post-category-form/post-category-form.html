@@ -1,30 +1,108 @@
-<p-drawer [visible]="isShow()" (visibleChange)="isShow.set($event)" position="right" styleClass="max-w-[350px] !w-[90%] !md:w-full" [header]="headerTitle">
-    <form [formGroup]="form" (ngSubmit)="submit()" class="py-3 space-y-6">
-        <p-floatlabel variant="in" class="!w-full">
-            <input pInputText id="name" formControlName="name" class="w-full" autocomplete="off" [invalid]="isInvalid('name')" />
-            <label for="name">Tên danh mục (*)</label>
-        </p-floatlabel>
+<div class="card !p-5 flex__between !sticky top-16 lg:top-24 left-0 right-0  !z-50 shadow-md transition-all ease-in-out duration-300 ">
+    <div class="font-bold text-xl">{{headerTitle}}</div>
+    <p-button label="Lưu" severity="primary" (onClick)="submit()" />
+</div>
 
-        <p-floatlabel class="w-full" variant="in">
-            <!-- [options]="cities" optionLabel="name" -->
-            <p-select inputId="parentId" class="w-full" variant="filled" formControlName="parentId" />
-            <label for="parentId">Chọn danh mục cha (Bỏ qua nếu là danh mục cha)</label>
-        </p-floatlabel>
+<form [formGroup]="form" (ngSubmit)="submit()" class="space-y-8">
+    <div class="card">
+        <div class="font-semibold text-xl mb-4">Thông tin cơ bản</div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-1">
+                <div class="mb-4 text-gray-700">
+                    <ul class="list-disc pl-5 space-y-3">
+                        <li>
+                            <strong>Tên danh mục (*)</strong>: Bắt buộc. Nhập
+                            tên rõ ràng, 3–100 ký tự; tránh trùng lặp với danh
+                            mục hiện có.
+                        </li>
+                        <li>
+                            <strong>Danh mục cha</strong>: Chọn nếu đây là danh
+                            mục con; để trống nếu là danh mục cấp cao.
+                        </li>
+                        <li>
+                            <strong>Trạng thái</strong>: Bật để danh mục hiển
+                            thị công khai trên website, tắt để tạm ẩn.
+                        </li>
+                        <li>
+                            <strong>Mô tả</strong>: Mô tả ngắn gọn, rõ ràng về
+                            nội dung của danh mục (gợi ý 1–300 ký tự)
+                        </li>
+                    </ul>
+                    <div class="mt-2 text-sm text-red-500">
+                        Lưu ý: Sau khi lưu, một số trường liên quan (ví dụ
+                        slug/đường dẫn) có thể được tạo tự động từ "Tên danh
+                        mục". Kiểm tra lại trước khi xuất bản.
+                    </div>
+                </div>
+            </div>
 
-        <div class="w-full flex__between gap-3">
-            <label for="active">Trạng thái</label>
-            <p-toggleSwitch inputId="active" formControlName="active"></p-toggleSwitch>
+            <div class="lg:col-span-2 space-y-8">
+                <p-floatlabel variant="in" class="!w-full">
+                    <input
+                        pInputText
+                        id="name"
+                        formControlName="name"
+                        class="w-full"
+                        autocomplete="off"
+                        [invalid]="isInvalid('name')"
+                    />
+                    <label for="name">Tên danh mục (*)</label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <!-- [options]="cities" optionLabel="name" -->
+                    <p-select
+                        inputId="parentId"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="parentId"
+                    />
+                    <label for="parentId"
+                        >Chọn danh mục cha (Bỏ qua nếu là danh mục cha)</label
+                    >
+                </p-floatlabel>
+
+                <div class="flex__between gap-8">
+                    <p-floatlabel class="w-full" variant="in">
+                        <input
+                            pInputText
+                            id="order"
+                            formControlName="order"
+                            type="number"
+                            class="w-full"
+                            autocomplete="off"
+                            [invalid]="isInvalid('order')"
+                        />
+                        <label for="order">Vị trí </label>
+                    </p-floatlabel>
+
+                    <div class="w-full flex__between gap-3">
+                        <label for="active">Trạng thái</label>
+                        <p-toggleSwitch
+                            inputId="active"
+                            formControlName="active"
+                        ></p-toggleSwitch>
+                    </div>
+                </div>
+
+                <p-floatlabel variant="in">
+                    <textarea
+                        pTextarea
+                        id="description"
+                        formControlName="description"
+                        rows="7"
+                        class="h-full w-full"
+                    ></textarea>
+                    <label for="description">Mô tả</label>
+                </p-floatlabel>
+            </div>
         </div>
-
-        <p-floatlabel variant="in">
-            <textarea pTextarea id="description" formControlName="description" rows="7" class="h-full w-full"></textarea>
-            <label for="description">Mô tả</label>
-        </p-floatlabel>
-    </form>
-
-    <ng-template #footer>
-        <div class="flex items-center gap-2">
-            <p-button label="Primary" variant="outlined" (onClick)="submit()" />
-        </div>
-    </ng-template>
-</p-drawer>
+    </div>
+    <div>
+        <app-seo
+            [initialValue]="seoData"
+            (valueChange)="seoData = $event"
+            (statusChange)="seoStatus = $event"
+        ></app-seo>
+    </div>
+</form>

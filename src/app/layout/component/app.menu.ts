@@ -31,7 +31,7 @@ export class AppMenu {
                 // <i class="ri-newspaper-line"></i>
                 items: [
                     { label: 'Bài Viết', icon: 'ri-news-line ', routerLink: ['/insurance/posts'] },
-                    { label: 'Danh Mục Bài Viết', icon: 'ri-newspaper-line', routerLink: ['/insurance/post/categories'] }
+                    { label: 'Danh Mục Bài Viết', icon: 'ri-newspaper-line', routerLink: ['/insurance/post-categories'] }
                 ]
             },
             {

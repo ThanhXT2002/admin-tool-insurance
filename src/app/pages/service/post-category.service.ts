@@ -1,4 +1,5 @@
 import { ApiResponse } from '@/interfaces/api-response.interface';
+import { Seo } from '@/interfaces/seo.interface';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -18,22 +19,19 @@ export interface PostCategory {
     children?: PostCategory[];
     parent?: PostCategory | null;
     posts?: { id: number; title: string; slug: string }[];
+    seoMeta?: Seo
 }
 
-export interface CreateCategoryDto {
+export interface PostCategoryDto {
     name: string;
-    slug: string;
     description?: string;
     parentId?: number;
+    order: number;
+    active?: boolean;
+    seoMeta?: Seo
 }
 
-export interface UpdateCategoryDto {
-    name?: string;
-    slug?: string;
-    description?: string;
-    parentId?: number;
-    active?: boolean;
-}
+
 
 @Injectable({
     providedIn: 'root'
@@ -69,11 +67,11 @@ export class PostCategoryService {
         return this.http.get<ApiResponse<PostCategory>>(`${this.base}/${id}`);
     }
 
-    create(data: CreateCategoryDto): Observable<ApiResponse<PostCategory>> {
+    create(data: PostCategoryDto): Observable<ApiResponse<PostCategory>> {
         return this.http.post<ApiResponse<PostCategory>>(`${this.base}`, data);
     }
 
-    update(id: number, data: UpdateCategoryDto): Observable<ApiResponse<PostCategory>> {
+    update(id: number, data: PostCategoryDto): Observable<ApiResponse<PostCategory>> {
         return this.http.put<ApiResponse<PostCategory>>(`${this.base}/${id}`, data);
     }
 

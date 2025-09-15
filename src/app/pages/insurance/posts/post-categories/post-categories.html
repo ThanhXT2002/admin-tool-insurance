@@ -1,155 +1,149 @@
-<p-toolbar styleClass="mb-6">
-    <ng-template #start>
-        <p-button label="Xuất CSV" icon="pi pi-upload" severity="secondary" class="mr-2" (onClick)="exportCSV()" />
-
-        <p-button severity="secondary" label="Xóa nhiều" icon="pi pi-trash" outlined (onClick)="deleteSelectedProducts()" [disabled]="!selectedProducts || !selectedProducts.length" />
-    </ng-template>
-
-    <ng-template #end>
-        <p-button label="Mới" icon="pi pi-plus" severity="secondary"  (onClick)="openNew()" />
-    </ng-template>
-</p-toolbar>
-
 <p-table
     #dt
-    [value]="products()"
-    [rows]="10"
-    [columns]="cols"
+    [value]="items()"
+    [rows]="limit"
     [paginator]="true"
-    [globalFilterFields]="['name', 'country.name', 'representative.name', 'status']"
-    [tableStyle]="{ 'min-width': '75rem' }"
-    [(selection)]="selectedProducts"
+    [lazy]="true"
+    (onLazyLoad)="onLazyLoad($event)"
+    [globalFilterFields]="['name','slug','description']"
+    [tableStyle]="{ 'max-width': '100%' }"
+    [(selection)]="selectedItems"
     [rowHover]="true"
     dataKey="id"
-    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} categories"
     [showCurrentPageReport]="true"
     [rowsPerPageOptions]="[10, 20, 30]"
+    [totalRecords]="totalRecords"
+    [loading]="loading"
 >
     <ng-template #caption>
-        <div class="flex items-center justify-between">
-            <h5 class="m-0">Danh Mục Bài Viết</h5>
-            <p-iconfield>
-                <p-inputicon styleClass="pi pi-search" />
-                <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Search..." />
-            </p-iconfield>
+        <div class="flex__between flex-col lg:flex-row gap-2">
+            <div class="flex__between w-full lg:w-auto">
+                <h5 class="!mb-0 text-nowrap">Danh sách Danh mục</h5>
+                <div class="lg:hidden">
+                    <p-button
+                        label="Mới"
+                        icon="pi pi-plus"
+                        severity="primary"
+                        (onClick)="openNew()"
+                    />
+                </div>
+            </div>
+            <div class="flex__end flex-wrap gap-2">
+                <p-iconfield class="w-full md:w-auto">
+                    <p-inputicon class="pi pi-search" />
+                    <input
+                        class="w-full"
+                        pInputText
+                        type="text"
+                        (input)="onGlobalFilter(dt, $event)"
+                        placeholder="Tìm kiếm tên hoặc slug..."
+                    />
+                </p-iconfield>
+
+                <p-select
+                    [options]="statusOptions"
+                    [(ngModel)]="selectedStatus"
+                    optionLabel="name"
+                    placeholder="Select a Status"
+                    class="w-full md:w-48"
+                    (ngModelChange)="changeStatus()"
+                />
+
+                <p-button
+                    severity="success"
+                    label="Kích hoạt"
+                    icon="pi pi-check"
+                    outlined
+                    class="cursor-pointer"
+                    (onClick)="activeMultiple()"
+                    [disabled]="!selectedItems || !selectedItems.length"
+                />
+                <p-button
+                    severity="secondary"
+                    label="Vô hiệu hóa"
+                    icon="pi pi-times"
+                    outlined
+                    class="cursor-pointer"
+                    (onClick)="inactiveMultiple()"
+                    [disabled]="!selectedItems || !selectedItems.length"
+                />
+                <p-button
+                    severity="danger"
+                    label="Xóa nhiều"
+                    icon="pi pi-trash"
+                    outlined
+                    class="cursor-pointer"
+                    (onClick)="deleteMultiple()"
+                    [disabled]="!selectedItems || !selectedItems.length"
+                />
+
+                <p-button
+                    class="hidden lg:block"
+                    label="Mới"
+                    icon="pi pi-plus"
+                    severity="primary"
+                    (onClick)="openNew()"
+                />
+            </div>
         </div>
     </ng-template>
+
     <ng-template #header>
         <tr>
-            <th style="width: 3rem">
+            <th>
                 <p-tableHeaderCheckbox />
             </th>
-            <th style="min-width: 16rem">Code</th>
-            <th pSortableColumn="name" style="min-width: 16rem">
-                Name
-                <p-sortIcon field="name" />
+            <th>
+                <p class="text-center">No</p>
             </th>
-            <th>Image</th>
-            <th pSortableColumn="price" style="min-width: 8rem">
-                Price
-                <p-sortIcon field="price" />
+            <th>Tên</th>
+            <th>Mô tả</th>
+            <th>
+                <p class="text-center text-nowrap">Trạng thái</p>
             </th>
-            <th pSortableColumn="category" style="min-width: 10rem">
-                Category
-                <p-sortIcon field="category" />
+            <th>
+                <p class="text-center">Thao tác</p>
             </th>
-            <th pSortableColumn="rating" style="min-width: 12rem">
-                Reviews
-                <p-sortIcon field="rating" />
-            </th>
-            <th pSortableColumn="inventoryStatus" style="min-width: 12rem">
-                Status
-                <p-sortIcon field="inventoryStatus" />
-            </th>
-            <th style="min-width: 12rem"></th>
         </tr>
     </ng-template>
-    <ng-template #body let-product>
+
+    <ng-template #body let-item let-ri="rowIndex">
         <tr>
-            <td style="width: 3rem">
-                <p-tableCheckbox [value]="product" />
+            <td class="w-0">
+                <p-tableCheckbox [value]="item" />
             </td>
-            <td style="min-width: 12rem">{{ product.code }}</td>
-            <td style="min-width: 16rem">{{ product.name }}</td>
+            <td><p class="text-center">{{ ri + 1 }}</p></td>
+            <td><p class="text-nowrap">{{ item.name || 'N/A' }}</p></td>
+            <td>{{ item.description || '-' }}</td>
             <td>
-                <img [src]="'https://primefaces.org/cdn/primeng/images/demo/product/' + product.image" [alt]="product.name" style="width: 64px" class="rounded" />
-            </td>
-            <td>{{ product.price | currency: 'USD' }}</td>
-            <td>{{ product.category }}</td>
-            <td>
-                <p-rating [(ngModel)]="product.rating" [readonly]="true" />
-            </td>
-            <td>
-                <p-tag [value]="product.inventoryStatus" [severity]="getSeverity(product.inventoryStatus)" />
+                <div class="flex__middle">
+                    <p-toggleswitch
+                        [ngModel]="item.active"
+                        (onChange)="toggleChangeStatus(item)"
+                    />
+                </div>
             </td>
             <td>
-                <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editProduct(product)" />
-                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteProduct(product)" />
+                <div class="flex__middle">
+                    <p-button
+                        icon="pi pi-pencil"
+                        class="mr-2"
+                        [rounded]="true"
+                        [outlined]="true"
+                        (click)="editItem(item)"
+                    />
+                    <p-button
+                        icon="pi pi-trash"
+                        severity="danger"
+                        [rounded]="true"
+                        [outlined]="true"
+                        (click)="deleteItem(item)"
+                    />
+                </div>
             </td>
         </tr>
     </ng-template>
 </p-table>
+<p-confirmdialog />
 
-<p-dialog [(visible)]="productDialog" [style]="{ width: '450px' }" header="Product Details" [modal]="true">
-    <ng-template #content>
-        <div class="flex flex-col gap-6">
-            <img [src]="'https://primefaces.org/cdn/primeng/images/demo/product/' + product.image" [alt]="product.image" class="block m-auto pb-4" *ngIf="product.image" />
-            <div>
-                <label for="name" class="block font-bold mb-3">Name</label>
-                <input type="text" pInputText id="name" [(ngModel)]="product.name" required autofocus fluid />
-                <small class="text-red-500" *ngIf="submitted && !product.name">Name is required.</small>
-            </div>
-            <div>
-                <label for="description" class="block font-bold mb-3">Description</label>
-                <textarea id="description" pTextarea [(ngModel)]="product.description" required rows="3" cols="20" fluid></textarea>
-            </div>
-
-            <div>
-                <label for="inventoryStatus" class="block font-bold mb-3">Inventory Status</label>
-                <p-select [(ngModel)]="product.inventoryStatus" inputId="inventoryStatus" [options]="statuses" optionLabel="label" optionValue="label" placeholder="Select a Status" fluid />
-            </div>
-
-            <div>
-                <span class="block font-bold mb-4">Category</span>
-                <div class="grid grid-cols-12 gap-4">
-                    <div class="flex items-center gap-2 col-span-6">
-                        <p-radiobutton id="category1" name="category" value="Accessories" [(ngModel)]="product.category" />
-                        <label for="category1">Accessories</label>
-                    </div>
-                    <div class="flex items-center gap-2 col-span-6">
-                        <p-radiobutton id="category2" name="category" value="Clothing" [(ngModel)]="product.category" />
-                        <label for="category2">Clothing</label>
-                    </div>
-                    <div class="flex items-center gap-2 col-span-6">
-                        <p-radiobutton id="category3" name="category" value="Electronics" [(ngModel)]="product.category" />
-                        <label for="category3">Electronics</label>
-                    </div>
-                    <div class="flex items-center gap-2 col-span-6">
-                        <p-radiobutton id="category4" name="category" value="Fitness" [(ngModel)]="product.category" />
-                        <label for="category4">Fitness</label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-12 gap-4">
-                <div class="col-span-6">
-                    <label for="price" class="block font-bold mb-3">Price</label>
-                    <p-inputnumber id="price" [(ngModel)]="product.price" mode="currency" currency="USD" locale="en-US" fluid />
-                </div>
-                <div class="col-span-6">
-                    <label for="quantity" class="block font-bold mb-3">Quantity</label>
-                    <p-inputnumber id="quantity" [(ngModel)]="product.quantity" fluid />
-                </div>
-            </div>
-        </div>
-    </ng-template>
-
-    <ng-template #footer>
-        <p-button label="Cancel" icon="pi pi-times" text (click)="hideDialog()" />
-        <p-button label="Save" icon="pi pi-check" (click)="saveProduct()" />
-    </ng-template>
-</p-dialog>
-
-<p-confirmdialog [style]="{ width: '450px' }" />
-
-<app-post-category-form  [isShow]="isShowForm"></app-post-category-form>
