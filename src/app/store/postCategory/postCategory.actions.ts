@@ -77,20 +77,6 @@ export const loadPostCategoryFailure = createAction(
     props<{ error: any }>()
 );
 
-// Load a single PostCategory to be used as an option (does not overwrite selected)
-export const loadPostCategoryOption = createAction(
-    '[PostCategory] Load Option By Id',
-    props<{ id: number }>()
-);
-export const loadPostCategoryOptionSuccess = createAction(
-    '[PostCategory] Load Option By Id Success',
-    props<{ item: PostCategory }>()
-);
-export const loadPostCategoryOptionFailure = createAction(
-    '[PostCategory] Load Option By Id Failure',
-    props<{ error: any }>()
-);
-
 // Bulk operations
 export const deletePostCategories = createAction(
     '[PostCategory] Delete Multiple',

@@ -151,45 +151,11 @@ export class PostCategoryForm {
                         { emitEvent: false }
                     );
                 }
-
-                // Nếu service trả seoMeta, lưu vào biến trung gian để truyền
-                // xuống child SEO component via [initialValue]
                 this.seoData = sel.seoMeta ?? null;
-
-                // Nếu có parentId nhưng options chưa có parent tương ứng,
-                // cố gắng thêm parent cục bộ hoặc yêu cầu store load parent như
-                // một option; facade.loadOptionById sẽ upsert vào rows.
-                const parentId = sel.parentId;
-                if (parentId != null) {
-                    const has = (this.items() || []).some(
-                        (i: any) => i && i.id === parentId
-                    );
-                    if (!has) {
-                        if (sel.parent && sel.parent.id === parentId) {
-                            this._addExtraParent(sel.parent);
-                        } else {
-                            this.facade.loadOptionById(parentId);
-                        }
-                    }
-                }
             }
         });
     }
 
-    private _addExtraParent(p: PostCategory) {
-        if (!p) return;
-        const curId = this.currentId();
-        // Do not add the current editing record as a possible parent
-        if (curId != null && p.id === curId) return;
-
-        if (!this._extraParents.some((x) => x.id === p.id)) {
-            this._extraParents.push(p);
-        }
-        const cur = this.items() || [];
-        if (!cur.some((x) => x.id === p.id)) {
-            this.items.set([p, ...cur]);
-        }
-    }
 
     ngOnInit() {
         this.facade.load({

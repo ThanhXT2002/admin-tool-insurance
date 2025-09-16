@@ -22,7 +22,6 @@ export class PostCategoryEffects extends BaseCrudEffects {
     delete$: any;
     deleteSuccessReload$: any;
     loadPostCategory$: any;
-    loadPostCategoryOption$: any;
     deleteMultiple$: any;
     deleteMultipleSuccessReload$: any;
     activeMultiple$: any;
@@ -73,11 +72,9 @@ export class PostCategoryEffects extends BaseCrudEffects {
                     ofType(PostCategoryActions.createPostCategorySuccess),
                     tap(() => {
                         // ensure global loading is hidden (defensive)
-                        try{
-                          this.loadingService.hide();
-                        }catch (err){
-
-                        }
+                        try {
+                            this.loadingService.hide();
+                        } catch (err) {}
                         // navigate to list
                         try {
                             this.router.navigate([
@@ -142,31 +139,6 @@ export class PostCategoryEffects extends BaseCrudEffects {
                                 PostCategoryActions.loadPostCategoryFailure({
                                     error
                                 })
-                            )
-                        )
-                    )
-                )
-            )
-        );
-
-        // Load a single post category for options/upsert into rows (does not change selected)
-        this.loadPostCategoryOption$ = createEffect(() =>
-            this.actions$.pipe(
-                ofType(PostCategoryActions.loadPostCategoryOption),
-                switchMap(({ id }) =>
-                    this.service.getById(id).pipe(
-                        map((res: any) =>
-                            PostCategoryActions.loadPostCategoryOptionSuccess({
-                                item: res.data
-                            })
-                        ),
-                        catchError((error) =>
-                            of(
-                                PostCategoryActions.loadPostCategoryOptionFailure(
-                                    {
-                                        error
-                                    }
-                                )
                             )
                         )
                     )
