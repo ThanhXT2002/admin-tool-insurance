@@ -3,21 +3,26 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as PostCategoryActions from './postCategory.actions';
 import {
     PostCategoryService,
-   PostCategoryDto
+    PostCategoryDto
 } from '@/pages/service/post-category.service';
-import { catchError, map, switchMap, of, withLatestFrom } from 'rxjs';
+import { catchError, map, switchMap, of, withLatestFrom, tap } from 'rxjs';
 import { Store } from '@ngrx/store';
 import * as PostCategorySelectors from './postCategory.selectors';
 import { BaseCrudEffects } from '@/store/_base/base-crud-effects';
+import { Router } from '@angular/router';
+import { LoadingService } from '@/layout/service/loading.service';
 
 @Injectable()
 export class PostCategoryEffects extends BaseCrudEffects {
     load$: any;
     create$: any;
+    createComplete$: any;
+    updateComplete$: any;
     update$: any;
     delete$: any;
     deleteSuccessReload$: any;
     loadPostCategory$: any;
+    loadPostCategoryOption$: any;
     deleteMultiple$: any;
     deleteMultipleSuccessReload$: any;
     activeMultiple$: any;
@@ -25,7 +30,9 @@ export class PostCategoryEffects extends BaseCrudEffects {
     constructor(
         actions$: Actions,
         private service: PostCategoryService,
-        private store: Store
+        private store: Store,
+        private router: Router,
+        private loadingService: LoadingService
     ) {
         super(actions$);
 
@@ -59,12 +66,57 @@ export class PostCategoryEffects extends BaseCrudEffects {
             (data: PostCategoryDto) => this.service.create(data)
         );
 
+        // Non-dispatching side-effect: hide global loading and navigate after create success
+        this.createComplete$ = createEffect(
+            () =>
+                this.actions$.pipe(
+                    ofType(PostCategoryActions.createPostCategorySuccess),
+                    tap(() => {
+                        // ensure global loading is hidden (defensive)
+                        try{
+                          this.loadingService.hide();
+                        }catch (err){
+
+                        }
+                        // navigate to list
+                        try {
+                            this.router.navigate([
+                                '/insurance/post-categories'
+                            ]);
+                        } catch (err) {
+                            // ignore
+                        }
+                    })
+                ),
+            { dispatch: false }
+        );
+
         this.update$ = this.makeUpdateEffect(
             PostCategoryActions.updatePostCategory,
             (p: any) => PostCategoryActions.updatePostCategorySuccess(p),
             (p: any) => PostCategoryActions.updatePostCategoryFailure(p),
-            (id: number, data: PostCategoryDto) =>
-                this.service.update(id, data)
+            (id: number, data: PostCategoryDto) => this.service.update(id, data)
+        );
+
+        // Non-dispatching side-effect: hide global loading and navigate after update success
+        this.updateComplete$ = createEffect(
+            () =>
+                this.actions$.pipe(
+                    ofType(PostCategoryActions.updatePostCategorySuccess),
+                    tap(() => {
+                        // ensure global loading is hidden (defensive)
+                        this.loadingService.hide();
+                        // navigate to list
+                        try {
+                            this.router.navigate([
+                                '/insurance/post-categories'
+                            ]);
+                        } catch (err) {
+                            // ignore
+                        }
+                    })
+                ),
+            { dispatch: false }
         );
 
         this.delete$ = this.makeDeleteEffect(
@@ -90,6 +142,31 @@ export class PostCategoryEffects extends BaseCrudEffects {
                                 PostCategoryActions.loadPostCategoryFailure({
                                     error
                                 })
+                            )
+                        )
+                    )
+                )
+            )
+        );
+
+        // Load a single post category for options/upsert into rows (does not change selected)
+        this.loadPostCategoryOption$ = createEffect(() =>
+            this.actions$.pipe(
+                ofType(PostCategoryActions.loadPostCategoryOption),
+                switchMap(({ id }) =>
+                    this.service.getById(id).pipe(
+                        map((res: any) =>
+                            PostCategoryActions.loadPostCategoryOptionSuccess({
+                                item: res.data
+                            })
+                        ),
+                        catchError((error) =>
+                            of(
+                                PostCategoryActions.loadPostCategoryOptionFailure(
+                                    {
+                                        error
+                                    }
+                                )
                             )
                         )
                     )

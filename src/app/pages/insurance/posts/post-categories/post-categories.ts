@@ -34,7 +34,6 @@ import { takeUntil } from 'rxjs/operators';
         InputIcon,
         InputTextModule,
         ConfirmDialog,
-        PostCategoryForm,
         FormsModule,
         ToggleSwitch,
         Select
@@ -140,6 +139,7 @@ export class PostCategories implements OnInit, OnDestroy {
             this.statusOptions.find((opt) => opt.code === this.active) ||
             this.statusOptions[0];
 
+        // Always load from server on init so we get fresh data (slug, server-generated fields)
         this.facade.load({
             page: this.page,
             limit: this.limit,
@@ -237,13 +237,11 @@ export class PostCategories implements OnInit, OnDestroy {
     }
 
     openNew() {
-      this.router.navigate(['/insurance/post-category/create']);
+        this.router.navigate(['/insurance/post-category/create']);
     }
 
-    editItem(item: PostCategory) {
-        this.selectedItem = item;
-        this.isEditing = true;
-        this.showForm = true;
+    editItem(id: number) {
+        this.router.navigate(['/insurance/post-category/update', id]);
     }
 
     onSaved(saved?: unknown) {

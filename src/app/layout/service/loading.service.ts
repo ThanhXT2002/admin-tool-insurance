@@ -25,6 +25,10 @@ export class LoadingService {
     this.loadingSignal.update((v) => !v);
   }
 
+  setLoading(value: boolean): void {
+    this.loadingSignal.set(value);
+  }
+
   // Truy cập trạng thái hiện tại
   isLoading(): boolean {
     return this.loadingSignal();

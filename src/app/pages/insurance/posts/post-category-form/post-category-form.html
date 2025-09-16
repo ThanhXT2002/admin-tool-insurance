@@ -1,4 +1,4 @@
-<div class="card !p-5 flex__between !sticky top-16 lg:top-24 left-0 right-0  !z-50 shadow-md transition-all ease-in-out duration-300 ">
+<div class="card !p-5 flex__between sticky top-16 left-0 right-0 z-50">
     <div class="font-bold text-xl">{{headerTitle}}</div>
     <p-button label="Lưu" severity="primary" (onClick)="submit()" />
 </div>
@@ -53,6 +53,11 @@
                     <!-- [options]="cities" optionLabel="name" -->
                     <p-select
                         inputId="parentId"
+                        [options]="items()"
+                        [filter]="true"
+                        filterBy="name"
+                        optionLabel="name"
+                        optionValue="id"
                         class="w-full"
                         variant="filled"
                         formControlName="parentId"
@@ -101,6 +106,9 @@
     <div>
         <app-seo
             [initialValue]="seoData"
+            [parentName]="form.get('name')?.value"
+            [segment]="'post-category'"
+            [createMode]="!isEditMode()"
             (valueChange)="seoData = $event"
             (statusChange)="seoStatus = $event"
         ></app-seo>

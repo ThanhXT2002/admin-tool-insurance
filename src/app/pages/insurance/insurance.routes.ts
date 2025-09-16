@@ -10,6 +10,7 @@ import { PostCategoryForm } from './posts/post-category-form/post-category-form'
 export default [
     { path: 'post-categories', component:  PostCategories},
     { path: 'post-category/create', component:  PostCategoryForm},
+    { path: 'post-category/update/:id', component:  PostCategoryForm},
     { path: 'posts', component: Posts },
     { path: 'users', component: Users },
     { path: 'user-roles', component: UserRoles },

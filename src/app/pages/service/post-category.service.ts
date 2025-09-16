@@ -11,6 +11,7 @@ export interface PostCategory {
     slug: string;
     description?: string | null;
     parentId?: number | null;
+    order?: number;
     active: boolean;
     createdAt?: string | null;
     updatedAt?: string | null;

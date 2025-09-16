@@ -1,9 +1,11 @@
 import {
     Component,
+    effect,
     EventEmitter,
     inject,
     Input,
     Output,
+    signal,
     ViewChild
 } from '@angular/core';
 import {
@@ -21,6 +23,11 @@ import { Select } from 'primeng/select';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ButtonModule } from 'primeng/button';
 import { Seo } from '../../components/seo/seo';
+import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
+import { PostCategoryService } from '@/pages/service/post-category.service';
+import { ActivatedRoute, Router } from '@angular/router';
+import { LoadingService } from '@/layout/service/loading.service';
+import { PostCategory } from '@/pages/service/post-category.service';
 
 @Component({
     selector: 'app-post-category-form',
@@ -39,20 +46,36 @@ import { Seo } from '../../components/seo/seo';
     styleUrl: './post-category-form.scss'
 })
 export class PostCategoryForm {
+    // Tiêu đề header hiển thị trên form (thay đổi theo create / update)
     headerTitle: string = 'Thêm Danh Mục Bài Viết';
-
     private fb = inject(FormBuilder);
+    private facade = inject(PostCategoryFacade);
+    private loadingService = inject(LoadingService);
+    private postCategoryService = inject(PostCategoryService);
+    // Danh sách options cho select (dẫn từ facade.items() nhưng có thể được
+    // mở rộng tại chỗ nếu parent cần hiển thị nhưng chưa có trong items())
+    items = signal<PostCategory[]>([]);
+    // Route và id hiện tại (nếu đang edit sẽ lưu id để lọc ra khỏi options)
+    private route = inject(ActivatedRoute);
+    currentId = signal<number | undefined>(undefined);
 
-    isEditMode = false;
+    // Signal boolean biểu thị form đang ở chế độ chỉnh sửa hay tạo mới
+    isEditMode = signal(false);
 
+    // FormGroup chính của component
     form!: FormGroup;
+    // Cờ khi submit đang tiến hành (chỉ dùng để disable UI/hiển thị loader)
     submitting = false;
-    // SEO data and status coming from child component
+    // SEO data và trạng thái được nhận từ child component `<app-seo>`
     seoData: any = null;
     seoStatus: 'VALID' | 'INVALID' | 'PENDING' = 'PENDING';
 
+    // Tham chiếu tới component SEO child để gọi validate()
     @ViewChild(Seo) seoComp?: Seo;
-    // isEditMode handled via @Input
+
+    // Dự trữ các parent được thêm cục bộ (nếu items không chứa parent cần hiển thị)
+    postParent: PostCategory[] = [];
+    private _extraParents: PostCategory[] = [];
 
     constructor() {
         this.form = this.fb.group({
@@ -62,11 +85,130 @@ export class PostCategoryForm {
             active: [true],
             description: ['']
         });
-        this.headerTitle = this.isEditMode
-            ? 'Cập Nhật Danh Mục Bài Viết'
-            : 'Thêm Danh Mục Bài Viết';
+
+        // Effect: cập nhật tiêu đề header khi chế độ edit/create thay đổi
+        effect(() => {
+            this.headerTitle = this.isEditMode()
+                ? 'Cập Nhật Danh Mục Bài Viết'
+                : 'Thêm Danh Mục Bài Viết';
+        });
+
+        // Effect: đồng bộ `items` từ facade, nhưng:
+        // - Khi ở chế độ edit, sẽ loại bỏ bản ghi hiện tại khỏi danh sách
+        //   options (không cho phép chọn chính nó làm parent).
+        // - Nếu có các parent cục bộ (`_extraParents`) chưa có trong rows,
+        //   ghép chúng vào trước để select có thể hiển thị label cho parent
+        //   đã được chọn nhưng không nằm trong `rows`.
+        effect(() => {
+            const rows = this.facade.items() || [];
+            // Lọc ra bản ghi hiện tại khi edit
+            const curId = this.currentId();
+            const baseRows =
+                this.isEditMode() && curId != null
+                    ? rows.filter((r) => r.id !== curId)
+                    : rows;
+
+            // Lọc các extra parents không có trong baseRows và không phải là curId
+            const extras = this._extraParents.filter(
+                (ep) => !baseRows.some((r) => r.id === ep.id) && ep.id !== curId
+            );
+            if (extras.length > 0) {
+                this.items.set([...extras, ...baseRows]);
+            } else {
+                this.items.set(baseRows);
+            }
+        });
+
+        // Effect: khi `facade.selected()` trả về item (ví dụ khi loadById hoàn tất),
+        // patch giá trị vào form. Đồng thời đảm bảo parent option tồn tại
+        // trong `items` để p-select hiển thị nhãn.
+        // Lưu ý: effect này được tạo trong constructor để có injection context
+        effect(() => {
+            const sel = this.facade.selected();
+            const id = this.currentId();
+            if (sel && id && sel.id === id) {
+                // Only patch the form if incoming values differ from current form
+                // to avoid re-patch loops when effects/streams emit repeatedly.
+                const cur = this.form.value || {};
+                const needPatch =
+                    cur.name !== sel.name ||
+                    (cur.parentId ?? null) !== (sel.parentId ?? null) ||
+                    cur.order !== sel.order ||
+                    !!cur.active !== !!sel.active ||
+                    (cur.description ?? '') !== (sel.description ?? '');
+
+                if (needPatch) {
+                    // Use emitEvent:false to avoid triggering valueChange subscriptions
+                    // that might feed back into effects.
+                    this.form.patchValue(
+                        {
+                            name: sel.name,
+                            parentId: sel.parentId,
+                            order: sel.order,
+                            active: !!sel.active,
+                            description: sel.description
+                        },
+                        { emitEvent: false }
+                    );
+                }
+
+                // Nếu service trả seoMeta, lưu vào biến trung gian để truyền
+                // xuống child SEO component via [initialValue]
+                this.seoData = sel.seoMeta ?? null;
+
+                // Nếu có parentId nhưng options chưa có parent tương ứng,
+                // cố gắng thêm parent cục bộ hoặc yêu cầu store load parent như
+                // một option; facade.loadOptionById sẽ upsert vào rows.
+                const parentId = sel.parentId;
+                if (parentId != null) {
+                    const has = (this.items() || []).some(
+                        (i: any) => i && i.id === parentId
+                    );
+                    if (!has) {
+                        if (sel.parent && sel.parent.id === parentId) {
+                            this._addExtraParent(sel.parent);
+                        } else {
+                            this.facade.loadOptionById(parentId);
+                        }
+                    }
+                }
+            }
+        });
     }
 
+    private _addExtraParent(p: PostCategory) {
+        if (!p) return;
+        const curId = this.currentId();
+        // Do not add the current editing record as a possible parent
+        if (curId != null && p.id === curId) return;
+
+        if (!this._extraParents.some((x) => x.id === p.id)) {
+            this._extraParents.push(p);
+        }
+        const cur = this.items() || [];
+        if (!cur.some((x) => x.id === p.id)) {
+            this.items.set([p, ...cur]);
+        }
+    }
+
+    ngOnInit() {
+        this.facade.load({
+            page: undefined,
+            limit: 1000,
+            keyword: '',
+            active: true
+        });
+
+        const idParam = Number(this.route.snapshot.paramMap.get('id'));
+        if (idParam) {
+            this.isEditMode.set(true);
+            this.currentId.set(idParam);
+            // dispatch load single item
+            this.facade.loadById(idParam);
+            // The effect that patches the form runs in the constructor and
+            // will react when facade.selected() becomes available and matches currentId.
+        }
+    }
 
     submit() {
         // mark parent controls
@@ -77,42 +219,31 @@ export class PostCategoryForm {
             ? this.seoComp.validate()
             : this.seoStatus === 'VALID';
 
+        // debug logs removed
+
         if (this.form.valid && childValid) {
+            // continuing to create/update
             const payload = {
                 ...this.form.value,
-                metaSeo: this.seoData
+                seoMeta: this.seoData
             };
-            console.log(payload);
 
+            // flip submitting/loading flags and show global loader;
+            // createComplete$ / updateComplete$ effects will hide loader and navigate on success
             this.submitting = true;
-            if (this.isEditMode) {
-                // this.update(payload);
+            this.loadingService.show();
+
+            // Call facade update or create depending on mode
+            if (this.isEditMode() && this.currentId()) {
+                const id = this.currentId() as number;
+                this.facade.update(id, payload);
             } else {
-                // this.create(payload);
+                this.facade.create(payload);
             }
             // this.saved.emit();
         } else {
             this.form.markAllAsTouched();
         }
-    }
-
-    create() {
-        // this.statusService.createStatus(this.form.value).subscribe({
-        //   next: () => {
-        //     this.toastrService.success(this.translateService.instant('toast.create_success'), '', {
-        //       positionClass: 'toast-top-left',
-        //     });
-        //     this.submitting = false;
-        //     this.form.reset();
-        //     this.refreshService.triggerRefresh();
-        //   },
-        //   error: (err) => {
-        //     this.submitting = false;
-        //     this.toastrService.error(this.translateService.instant('toast.create_failed'), '', {
-        //       positionClass: 'toast-top-left',
-        //     });
-        //   },
-        // });
     }
 
     isInvalid(controlName: string) {

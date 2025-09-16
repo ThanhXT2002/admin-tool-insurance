@@ -132,6 +132,11 @@ export class PostCategoryFacade implements IPostCategoryFacade {
         this.store.dispatch(PostCategoryActions.loadPostCategory({ id }));
     }
 
+    // Load a single post category to be used as an option (upsert into rows)
+    loadOptionById(id: number) {
+        this.store.dispatch(PostCategoryActions.loadPostCategoryOption({ id }));
+    }
+
     deleteMultiple(ids: number[]) {
         this.store.dispatch(PostCategoryActions.deletePostCategories({ ids }));
     }

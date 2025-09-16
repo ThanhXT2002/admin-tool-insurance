@@ -97,6 +97,14 @@ export const reducer = createReducer(
         ...state,
         selected: item
     })),
+    // Khi load một option riêng lẻ (ví dụ để hiển thị label cho select),
+    // chúng ta upsert item vào rows nếu chưa có
+    on(PostCategoryActions.loadPostCategoryOptionSuccess, (state, { item }) => {
+        const exists = state.rows.some((r) => r.id === item.id);
+        return exists
+            ? state
+            : { ...state, rows: [item, ...state.rows], total: state.total + 1 };
+    }),
     on(PostCategoryActions.deletePostCategoriesSuccess, (state, { ids }) => ({
         ...state,
         rows: state.rows.filter((r) => !ids.includes(r.id)),

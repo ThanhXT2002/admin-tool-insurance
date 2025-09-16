@@ -2,79 +2,115 @@
     <div class="font-semibold text-xl mb-4">Thông tin SEO</div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-1">
-            <p class="text-sm">
+            <p>
                 Form này dùng để nhập và quản lý các thông tin tối ưu hoá SEO
                 cho trang/bài viết, bao gồm tiêu đề, mô tả, URL chuẩn, từ khoá
                 chính, kiểu OG và các tuỳ chọn liên quan.
-                <span class="font-medium text-red-500">*</span> Các trường có
-                dấu * là bắt buộc.
+                <span class="font-medium text-red-500"></span> Các trường có dấu
+                (*) là bắt buộc.
             </p>
         </div>
         <form [formGroup]="form" class="seo-block lg:col-span-2 space-y-8">
-            <p-floatlabel variant="in" class="!w-full">
+            <div>
+                <div class="flex flex__between items-center">
+                    <label for="seoTitle">Tiêu đề SEO (*)</label>
+                    <p class="text-primary">
+                        {{ form.get('seoTitle')?.value.length || 0 }}/120 kí tự
+                    </p>
+                </div>
                 <input
                     pInputText
                     id="seoTitle"
+                    maxlength="120"
                     formControlName="seoTitle"
-                    class="w-full"
+                    class="w-full mt-2"
                     autocomplete="off"
+                    pSize="large"
                     [invalid]="isInvalid('seoTitle')"
                 />
-                <label for="seoTitle">tiêu đề (*)</label>
-            </p-floatlabel>
+            </div>
 
-            <p-floatlabel variant="in">
-                <input
-                    pInputText
-                    id="canonicalUrl"
-                    formControlName="canonicalUrl"
-                    class="w-full"
-                    autocomplete="off"
-                    [invalid]="isInvalid('canonicalUrl')"
-                />
-                <label for="canonicalUrl">URL (*)</label>
-            </p-floatlabel>
+            <div>
+                <div class="flex flex__between items-center mb-2">
+                    <label for="canonicalUrl">Canonical URL (*)</label>
+                </div>
 
-            <p-floatlabel variant="in">
+                <p-inputgroup>
+                    <p-inputgroup-addon class="!hidden md:!block"
+                        >{{domainFe()}}</p-inputgroup-addon
+                    >
+                    <input
+                        pInputText
+                        id="canonicalUrl"
+                        readonly
+                        formControlName="canonicalUrl"
+                        class="w-full mt-2 !rounded-l-md md:!rounded-l-none"
+                        autocomplete="off"
+                        pSize="large"
+                        [invalid]="isInvalid('canonicalUrl')"
+                    />
+                </p-inputgroup>
+            </div>
+
+            <div>
+                <div class="flex flex__between items-center">
+                    <label for="metaDescription">Mô tả SEO (*)</label>
+                    <p class="text-primary">
+                        {{ form.get('metaDescription')?.value.length || 0 }}/255
+                        kí tự
+                    </p>
+                </div>
                 <textarea
                     pTextarea
                     id="metaDescription"
+                    maxlength="255"
                     formControlName="metaDescription"
+                    class="w-full mt-2"
+                    autocomplete="off"
+                    pSize="large"
                     rows="7"
-                    class="h-full w-full"
                     [invalid]="isInvalid('metaDescription')"
                 ></textarea>
-                <label for="metaDescription">Mô tả seo (*)</label>
-            </p-floatlabel>
+            </div>
 
-            <p-floatlabel variant="in">
+            <div>
+                <div class="flex flex__between items-center">
+                    <label for="focusKeyword">Từ khóa SEO(*)</label>
+                    <p class="text-primary">
+                        {{ form.get('focusKeyword')?.value.length || 0 }}/100 kí
+                        tự
+                    </p>
+                </div>
                 <input
                     pInputText
                     id="focusKeyword"
+                    maxlength="100"
                     formControlName="focusKeyword"
-                    class="w-full"
+                    class="w-full mt-2"
                     autocomplete="off"
+                    pSize="large"
                     [invalid]="isInvalid('focusKeyword')"
                 />
-                <label for="focusKeyword">Từ khóa (*)</label>
-            </p-floatlabel>
+            </div>
 
-            <p-floatlabel class="w-full" variant="in">
-                <!-- [options]="cities" optionLabel="name" -->
+            <div class="flex flex-col">
+                <label for="ogType">Thể loại SEO</label>
                 <p-select
                     inputId="ogType"
                     class="w-full"
                     variant="filled"
+                    class="mt-2"
                     [invalid]="isInvalid('ogType')"
                     [options]="ogTypeOptions"
                     optionLabel="label"
+                    optionValue="value"
+                    placeholder="Chọn thể loại SEO"
+                    size="large"
                     formControlName="ogType"
                 />
-                <label for="ogType">Thể loại (Dành cho các mạng xã hội) (*)</label>
-            </p-floatlabel>
+            </div>
 
             <div class="flex__between gap-4 lg:gap-8">
-
                 <div class="w-full flex items-center gap-3">
                     <label for="noindex">NoIndex:</label>
                     <p-toggleSwitch
