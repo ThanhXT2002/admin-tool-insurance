@@ -6,6 +6,7 @@ import {
     PostCategoryDto
 } from '@/pages/service/post-category.service';
 import { catchError, map, switchMap, of, withLatestFrom, tap } from 'rxjs';
+import * as NotificationActions from '@/store/notifications/notifications.actions';
 import { Store } from '@ngrx/store';
 import * as PostCategorySelectors from './postCategory.selectors';
 import { BaseCrudEffects } from '@/store/_base/base-crud-effects';
@@ -192,13 +193,22 @@ export class PostCategoryEffects extends BaseCrudEffects {
                                 message: res?.message
                             })
                         ),
-                        catchError((error) =>
-                            of(
+                        catchError((error) => {
+                            const serverDetail =
+                                error?.error?.errors ??
+                                error?.error?.message ??
+                                error?.message;
+                            return of(
                                 PostCategoryActions.deletePostCategoriesFailure(
                                     { error }
-                                )
-                            )
-                        )
+                                ),
+                                NotificationActions.showNotification({
+                                    severity: 'error',
+                                    summary: 'Lỗi',
+                                    detail: serverDetail ?? 'Có lỗi xảy ra'
+                                })
+                            );
+                        })
                     )
                 )
             )

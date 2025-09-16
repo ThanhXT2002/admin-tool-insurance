@@ -54,6 +54,31 @@ export class PostCategories implements OnInit, OnDestroy {
     totalRecords = 0;
     loading = false;
     selectedItems!: PostCategory[] | null;
+    // Local flag to indicate we're waiting for deleteMultiple result
+    private _expectingDeleteMultiple = false;
+
+    // Watcher: when we're expecting a deleteMultiple result, surface server errors as toast
+    private _deleteMultipleWatcher = effect(() => {
+        const err = this.facade.error();
+        if (!err) return;
+        if (this._expectingDeleteMultiple) {
+            const serverDetail =
+                err?.error?.errors ??
+                err?.error?.message ??
+                err?.message ??
+                'Có lỗi xảy ra';
+            try {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Lỗi',
+                    detail: serverDetail
+                });
+            } catch (e) {
+                // ignore message errors
+            }
+            this._expectingDeleteMultiple = false;
+        }
+    });
 
     private _sync = effect(() => {
         const rows = this.facade.items();
@@ -311,7 +336,10 @@ export class PostCategories implements OnInit, OnDestroy {
             acceptButtonProps: { label: 'Xóa', severity: 'danger' },
             accept: () => {
                 const ids = this.selectedItems!.map((i) => i.id);
+                // mark we're waiting for deleteMultiple result so we can show error if it fails
+                this._expectingDeleteMultiple = true;
                 this.facade.deleteMultiple(ids);
+                // keep selectedItems cleared in UI for now
                 this.selectedItems = null;
             },
             reject: () =>

@@ -29,6 +29,7 @@ export interface IPostCategoryFacade {
     create(data: any): void;
     update(id: number, data: any): void;
     delete(id: number): void;
+    activeMultiple(ids: number[], active: boolean): void;
     destroy?(): void;
 }
 
