@@ -17,8 +17,10 @@ export class PostCategoryEffects extends BaseCrudEffects {
     load$: any;
     create$: any;
     createComplete$: any;
+    createFailure$: any;
     updateComplete$: any;
     update$: any;
+    updateFailure$: any;
     delete$: any;
     deleteSuccessReload$: any;
     loadPostCategory$: any;
@@ -88,6 +90,22 @@ export class PostCategoryEffects extends BaseCrudEffects {
             { dispatch: false }
         );
 
+        // Non-dispatching side-effect: hide global loading when create fails
+        this.createFailure$ = createEffect(
+            () =>
+                this.actions$.pipe(
+                    ofType(PostCategoryActions.createPostCategoryFailure),
+                    tap(() => {
+                        try {
+                            this.loadingService.hide();
+                        } catch (err) {
+                            // ignore
+                        }
+                    })
+                ),
+            { dispatch: false }
+        );
+
         this.update$ = this.makeUpdateEffect(
             PostCategoryActions.updatePostCategory,
             (p: any) => PostCategoryActions.updatePostCategorySuccess(p),
@@ -108,6 +126,22 @@ export class PostCategoryEffects extends BaseCrudEffects {
                             this.router.navigate([
                                 '/insurance/post-categories'
                             ]);
+                        } catch (err) {
+                            // ignore
+                        }
+                    })
+                ),
+            { dispatch: false }
+        );
+
+        // Non-dispatching side-effect: hide global loading when update fails
+        this.updateFailure$ = createEffect(
+            () =>
+                this.actions$.pipe(
+                    ofType(PostCategoryActions.updatePostCategoryFailure),
+                    tap(() => {
+                        try {
+                            this.loadingService.hide();
                         } catch (err) {
                             // ignore
                         }
