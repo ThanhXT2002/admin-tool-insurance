@@ -17,7 +17,7 @@
     [loading]="loading"
 >
     <ng-template #caption>
-        <div class="flex__between flex-col lg:flex-row gap-2 ">
+        <div class="flex__between flex-col lg:flex-row gap-2">
             <div class="flex__between w-full lg:w-auto">
                 <h5 class="!mb-0 text-nowrap">Danh sách Danh mục</h5>
                 <div class="lg:hidden">
@@ -36,6 +36,7 @@
                         class="w-full"
                         pInputText
                         type="text"
+                        [value]="currentKeyword || ''"
                         (input)="onGlobalFilter(dt, $event)"
                         placeholder="Tìm kiếm tên hoặc slug..."
                     />
@@ -146,4 +147,3 @@
     </ng-template>
 </p-table>
 <p-confirmdialog />
-

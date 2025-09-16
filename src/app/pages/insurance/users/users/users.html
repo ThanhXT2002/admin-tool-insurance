@@ -36,6 +36,7 @@
                         class="w-full"
                         pInputText
                         type="text"
+                         [value]="currentKeyword || ''"
                         (input)="onGlobalFilter(dt, $event)"
                         placeholder="Tìm kiếm email hoặc tên..."
                     />

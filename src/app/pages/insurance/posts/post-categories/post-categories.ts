@@ -139,13 +139,18 @@ export class PostCategories implements OnInit, OnDestroy {
             this.statusOptions.find((opt) => opt.code === this.active) ||
             this.statusOptions[0];
 
-        // Always load from server on init so we get fresh data (slug, server-generated fields)
-        this.facade.load({
-            page: this.page,
-            limit: this.limit,
-            keyword: this.currentKeyword,
-            active: this.active
-        });
+        // Only load from server on init if store is empty. This avoids
+        // unnecessary API calls when user navigates to Create/Update and then
+        // returns without making changes: we can reuse the items already in store.
+        const currentRows = this.facade.items() || [];
+        if (!currentRows || currentRows.length === 0) {
+            this.facade.load({
+                page: this.page,
+                limit: this.limit,
+                keyword: this.currentKeyword,
+                active: this.active
+            });
+        }
 
         this.route.queryParams
             .pipe(takeUntil(this.destroy$))
