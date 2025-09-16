@@ -15,8 +15,8 @@ export interface PostCategory {
     active: boolean;
     createdAt?: string | null;
     updatedAt?: string | null;
-    createdBy?: number | null;
-    updatedBy?: number | null;
+    createdBy?: string | null;
+    updatedBy?: string | null;
     children?: PostCategory[];
     parent?: PostCategory | null;
     posts?: { id: number; title: string; slug: string }[];

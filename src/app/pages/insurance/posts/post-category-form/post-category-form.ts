@@ -28,6 +28,8 @@ import { PostCategoryService } from '@/pages/service/post-category.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LoadingService } from '@/layout/service/loading.service';
 import { PostCategory } from '@/pages/service/post-category.service';
+import { CommonModule } from '@angular/common';
+import { MessageService } from 'primeng/api';
 
 @Component({
     selector: 'app-post-category-form',
@@ -40,7 +42,8 @@ import { PostCategory } from '@/pages/service/post-category.service';
         Select,
         ToggleSwitchModule,
         ButtonModule,
-        Seo
+        Seo,
+        CommonModule
     ],
     templateUrl: './post-category-form.html',
     styleUrl: './post-category-form.scss'
@@ -51,7 +54,9 @@ export class PostCategoryForm {
     private fb = inject(FormBuilder);
     private facade = inject(PostCategoryFacade);
     private loadingService = inject(LoadingService);
-    private postCategoryService = inject(PostCategoryService);
+    private messageService = inject(MessageService);
+
+
     // Danh sách options cho select (dẫn từ facade.items() nhưng có thể được
     // mở rộng tại chỗ nếu parent cần hiển thị nhưng chưa có trong items())
     items = signal<PostCategory[]>([]);
@@ -76,6 +81,14 @@ export class PostCategoryForm {
     // Dự trữ các parent được thêm cục bộ (nếu items không chứa parent cần hiển thị)
     postParent: PostCategory[] = [];
     private _extraParents: PostCategory[] = [];
+
+    // edit mode fields
+    createdAt?: string | null = null;
+    updatedAt?: string | null = null;
+
+        // edit mode fields
+    createdBy?: string | null = null;
+    updatedBy?: string | null = null;
 
     constructor() {
         this.form = this.fb.group({
@@ -152,6 +165,10 @@ export class PostCategoryForm {
                     );
                 }
                 this.seoData = sel.seoMeta ?? null;
+                this.createdAt = sel.createdAt;
+                this.updatedAt = sel.updatedAt;
+                this.createdBy = sel.createdBy;
+                this.updatedBy = sel.updatedBy;
             }
         });
     }
@@ -208,6 +225,11 @@ export class PostCategoryForm {
             }
             // this.saved.emit();
         } else {
+          this.messageService.add({
+                severity: 'error',
+                summary: 'Thiếu thông tin',
+                detail: 'Vui lòng kiểm tra lại thông tin trong form'
+            });
             this.form.markAllAsTouched();
         }
     }

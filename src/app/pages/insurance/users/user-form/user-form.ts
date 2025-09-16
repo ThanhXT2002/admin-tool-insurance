@@ -302,8 +302,6 @@ export class UserForm implements OnInit {
 
         this.createdAt = this.dataEdit.createdAt;
         this.updatedAt = this.dataEdit.updatedAt;
-        console.log('CreatedAt:', this.createdAt);
-        console.log('UpdatedAt:', this.updatedAt);
 
         this.form.patchValue({
             email: this.dataEdit.email,
