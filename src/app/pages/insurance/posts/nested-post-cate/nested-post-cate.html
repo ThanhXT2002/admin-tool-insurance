@@ -1,0 +1,144 @@
+<div class="card">
+    <div class="flex__between flex-col lg:flex-row gap-2 mb-4">
+        <div class="flex__between w-full lg:w-auto">
+            <h5 class="!mb-0 text-nowrap">Danh sách Danh mục</h5>
+            <div class="lg:hidden">
+                <p-button
+                    label="Mới"
+                    icon="pi pi-plus"
+                    severity="primary"
+                    (onClick)="openEdit(null)"
+                />
+            </div>
+        </div>
+        <div class="flex__end flex-wrap gap-2">
+            <p-iconfield class="w-full md:w-auto">
+                <p-inputicon class="pi pi-search" />
+                <input
+                    class="w-full"
+                    pInputText
+                    type="text"
+                    [value]="keyword || ''"
+                    (input)="triggerSearch($any($event.target).value)"
+                    placeholder="Tìm kiếm tên hoặc slug..."
+                />
+            </p-iconfield>
+
+            <p-select
+                [options]="statusOptions"
+                [(ngModel)]="selectedStatus"
+                optionLabel="name"
+                placeholder="Select a Status"
+                class="w-full md:w-48"
+                (ngModelChange)="changeStatus()"
+            />
+
+            <p-button
+                severity="success"
+                label="Kích hoạt"
+                icon="pi pi-check"
+                outlined
+                class="cursor-pointer"
+                (onClick)="bulkActivate()"
+                [disabled]="!selectedNodes || !selectedNodes.length"
+            />
+            <p-button
+                severity="secondary"
+                label="Vô hiệu hóa"
+                icon="pi pi-times"
+                outlined
+                class="cursor-pointer"
+                (onClick)="bulkDeactivate()"
+                [disabled]="!selectedNodes || !selectedNodes.length"
+            />
+            <p-button
+                severity="danger"
+                label="Xóa nhiều"
+                icon="pi pi-trash"
+                outlined
+                class="cursor-pointer"
+                (onClick)="bulkDelete()"
+                [disabled]="!selectedNodes || !selectedNodes.length"
+            />
+
+            <p-button
+                class="hidden lg:block"
+                label="Mới"
+                icon="pi pi-plus"
+                severity="primary"
+                (onClick)="openEdit(null)"
+            />
+        </div>
+    </div>
+
+    <p-treetable
+        #tt
+        [value]="files"
+        [columns]="cols"
+        [paginator]="true"
+        [rows]="limit"
+        [rowsPerPageOptions]="[5,10,25]"
+        [scrollable]="true"
+        [tableStyle]="{ 'min-width': '50rem' }"
+        selectionMode="checkbox"
+        [(selection)]="selectedNodes"
+        (selectionChange)="handleSelectionChange($event)"
+    >
+        <ng-template #header let-columns>
+            <tr>
+                <th>Tên</th>
+                <th>Mô tả</th>
+                <th class="text-center text-nowrap">Trạng thái</th>
+                <th class="text-center">Thao tác</th>
+            </tr>
+        </ng-template>
+
+        <ng-template
+            #body
+            let-rowNode
+            let-rowData="rowData"
+            let-columns="columns"
+        >
+            <tr [ttRow]="rowNode">
+                <td *ngFor="let col of columns; let i = index">
+                    <ng-container *ngIf="col.field === 'name'">
+                        <p-treetable-toggler
+                            [rowNode]="rowNode"
+                        ></p-treetable-toggler>
+                        {{ rowData.name }}
+                    </ng-container>
+                    <ng-container *ngIf="col.field === 'description'">
+                        {{ rowData.description || '-' }}
+                    </ng-container>
+                    <ng-container *ngIf="col.field === 'active'">
+                        <div class="flex__middle">
+                            <p-toggleswitch
+                                [ngModel]="rowData.active"
+                                (onChange)="toggleActive(rowData)"
+                            />
+                        </div>
+                    </ng-container>
+                    <ng-container *ngIf="col.field === 'actions'">
+                        <div class="flex__middle">
+                            <p-button
+                                icon="pi pi-pencil"
+                                class="mr-2"
+                                [rounded]="true"
+                                [outlined]="true"
+                                (click)="openEdit(rowData)"
+                            />
+                            <p-button
+                                icon="pi pi-trash"
+                                severity="danger"
+                                [rounded]="true"
+                                [outlined]="true"
+                                (click)="deleteItem(rowData)"
+                            />
+                        </div>
+                    </ng-container>
+                </td>
+            </tr>
+        </ng-template>
+    </p-treetable>
+    <p-confirmdialog />
+</div>

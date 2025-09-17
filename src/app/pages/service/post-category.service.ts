@@ -20,7 +20,7 @@ export interface PostCategory {
     children?: PostCategory[];
     parent?: PostCategory | null;
     posts?: { id: number; title: string; slug: string }[];
-    seoMeta?: Seo
+    seoMeta?: Seo;
 }
 
 export interface PostCategoryDto {
@@ -29,10 +29,17 @@ export interface PostCategoryDto {
     parentId?: number;
     order: number;
     active?: boolean;
-    seoMeta?: Seo
+    seoMeta?: Seo;
 }
 
-
+export interface PostCategoryNestedParams {
+    page?: number;
+    limit?: number;
+    keyword?: string;
+    active?: boolean;
+    parentId?: number | null;
+    includeInactive?: boolean | string;
+}
 
 @Injectable({
     providedIn: 'root'
@@ -41,7 +48,13 @@ export class PostCategoryService {
     private http = inject(HttpClient);
     private base = environment.apiUrl + '/post-categories';
 
-    getAll(query?: { page?: number; limit?: number; keyword?: string; active?: boolean; parentId?: number }): Observable<ApiResponse<{ rows: PostCategory[]; total: number }>> {
+    getAll(query?: {
+        page?: number;
+        limit?: number;
+        keyword?: string;
+        active?: boolean;
+        parentId?: number;
+    }): Observable<ApiResponse<{ rows: PostCategory[]; total: number }>> {
         const params: any = {};
         if (query?.page != null) params.page = query.page;
         if (query?.limit != null) params.limit = query.limit;
@@ -49,7 +62,9 @@ export class PostCategoryService {
         if (query?.active != null) params.active = String(query.active);
         if (query?.parentId != null) params.parentId = query.parentId;
 
-        return this.http.get<ApiResponse<{ rows: PostCategory[]; total: number }>>(`${this.base}`, { params });
+        return this.http.get<
+            ApiResponse<{ rows: PostCategory[]; total: number }>
+        >(`${this.base}`, { params });
     }
 
     getTree(): Observable<ApiResponse<PostCategory[]>> {
@@ -61,7 +76,9 @@ export class PostCategoryService {
     }
 
     getBySlug(slug: string): Observable<ApiResponse<PostCategory>> {
-        return this.http.get<ApiResponse<PostCategory>>(`${this.base}/slug/${encodeURIComponent(slug)}`);
+        return this.http.get<ApiResponse<PostCategory>>(
+            `${this.base}/slug/${encodeURIComponent(slug)}`
+        );
     }
 
     getById(id: number): Observable<ApiResponse<PostCategory>> {
@@ -72,22 +89,74 @@ export class PostCategoryService {
         return this.http.post<ApiResponse<PostCategory>>(`${this.base}`, data);
     }
 
-    update(id: number, data: PostCategoryDto): Observable<ApiResponse<PostCategory>> {
-        return this.http.put<ApiResponse<PostCategory>>(`${this.base}/${id}`, data);
+    update(
+        id: number,
+        data: PostCategoryDto
+    ): Observable<ApiResponse<PostCategory>> {
+        return this.http.put<ApiResponse<PostCategory>>(
+            `${this.base}/${id}`,
+            data
+        );
     }
 
     delete(id: number, force?: boolean): Observable<ApiResponse> {
         const params: Record<string, string> = {};
         if (force != null) params['force'] = String(force);
 
-        return this.http.delete<ApiResponse>(`${this.base}/${id}`, { params, observe: 'body' as const });
+        return this.http.delete<ApiResponse>(`${this.base}/${id}`, {
+            params,
+            observe: 'body' as const
+        });
     }
 
     batchDelete(ids: number[], force?: boolean): Observable<ApiResponse> {
-        return this.http.post<ApiResponse>(`${this.base}/batch/delete`, { ids, force });
+        return this.http.post<ApiResponse>(`${this.base}/batch/delete`, {
+            ids,
+            force
+        });
     }
 
     batchActive(ids: number[], active: boolean): Observable<ApiResponse> {
-        return this.http.post<ApiResponse>(`${this.base}/batch/active`, { ids, active });
+        return this.http.post<ApiResponse>(`${this.base}/batch/active`, {
+            ids,
+            active
+        });
+    }
+
+    // New: nested tree endpoints
+    getNested(
+        params?: PostCategoryNestedParams
+    ): Observable<ApiResponse<PostCategory[] | null>> {
+        const p: any = {};
+        if (params?.page != null) p.page = params.page;
+        if (params?.limit != null) p.limit = params.limit;
+        if (params?.keyword) p.keyword = params.keyword;
+        if (params?.active != null) p.active = String(params.active);
+        if (params?.parentId != null) p.parentId = params.parentId;
+        if (typeof params?.includeInactive !== 'undefined')
+            p.includeInactive = String(params.includeInactive);
+
+        return this.http.get<ApiResponse<PostCategory[] | null>>(
+            `${this.base}/nested`,
+            { params: p }
+        );
+    }
+
+    getNestedById(
+        id: number,
+        params?: Omit<PostCategoryNestedParams, 'parentId'>
+    ): Observable<ApiResponse<PostCategory | null>> {
+        const p: any = {};
+        if (params?.page != null) p.page = params.page;
+        if (params?.limit != null) p.limit = params.limit;
+        if (params?.keyword) p.keyword = params.keyword;
+        if (params?.active != null) p.active = String(params.active);
+        if (typeof params?.includeInactive !== 'undefined')
+            p.includeInactive = String(params.includeInactive);
+
+        return this.http.get<ApiResponse<PostCategory | null>>(
+            `${this.base}/nested/${id}`,
+            { params: p }
+        );
     }
 }
