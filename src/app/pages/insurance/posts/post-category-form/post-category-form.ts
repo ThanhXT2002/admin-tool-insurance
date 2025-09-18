@@ -21,9 +21,9 @@ import { Seo } from '../../components/seo/seo';
 import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LoadingService } from '@/layout/service/loading.service';
-import { PostCategory } from '@/pages/service/post-category.service';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
+import { PostCategory } from '@/interfaces/post-category.interface';
 
 @Component({
     selector: 'app-post-category-form',

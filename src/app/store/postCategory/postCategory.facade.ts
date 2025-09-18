@@ -3,10 +3,7 @@ import { Store } from '@ngrx/store';
 import * as PostCategorySelectors from './postCategory.selectors';
 import * as PostCategoryActions from './postCategory.actions';
 import { Subscription } from 'rxjs';
-import {
-    PostCategory,
-    PostCategoryDto
-} from '@/pages/service/post-category.service';
+import { PostCategory, PostCategoryDto } from '@/interfaces/post-category.interface';
 
 export interface IPostCategoryFacade {
     items: WritableSignal<PostCategory[]>;

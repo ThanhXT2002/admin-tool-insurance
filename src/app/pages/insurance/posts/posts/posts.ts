@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { Table, TableModule } from 'primeng/table';
 import { Button } from 'primeng/button';
-import { PostCategory } from '@/pages/service/post-category.service';
 import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
@@ -24,6 +23,7 @@ import { Select } from 'primeng/select';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { PostCategory } from '@/interfaces/post-category.interface';
 
 @Component({
     selector: 'app-posts',
@@ -267,7 +267,7 @@ export class Posts implements OnInit, OnDestroy {
     }
 
     openNew() {
-        this.router.navigate(['/insurance/post-category/create']);
+        this.router.navigate(['/insurance/post/create']);
     }
 
     editItem(id: number) {

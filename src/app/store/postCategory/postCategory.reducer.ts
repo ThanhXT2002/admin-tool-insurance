@@ -1,7 +1,8 @@
 import { createReducer, on } from '@ngrx/store';
 import * as PostCategoryActions from './postCategory.actions';
 import { PaginatedState } from '@/interfaces/paginated-state.interface';
-import { PostCategory } from '@/pages/service/post-category.service';
+import { PostCategory } from '@/interfaces/post-category.interface';
+
 
 export const postCategoryFeatureKey = 'postCategory';
 

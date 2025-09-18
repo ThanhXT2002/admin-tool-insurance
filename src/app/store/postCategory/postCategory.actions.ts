@@ -1,8 +1,6 @@
+import { PostCategory, PostCategoryDto } from '@/interfaces/post-category.interface';
 import { createAction, props } from '@ngrx/store';
-import {
-    PostCategory,
-    PostCategoryDto
-} from '@/pages/service/post-category.service';
+
 
 // Actions cho feature PostCategory (thể loại bài viết) - pagination + CRUD
 export const loadPostCategories = createAction(

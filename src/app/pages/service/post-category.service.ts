@@ -1,45 +1,12 @@
 import { ApiResponse } from '@/interfaces/api-response.interface';
+import { PostCategory, PostCategoryDto, PostCategoryNestedParams } from '@/interfaces/post-category.interface';
 import { Seo } from '@/interfaces/seo.interface';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
-export interface PostCategory {
-    id: number;
-    name: string;
-    slug: string;
-    description?: string | null;
-    parentId?: number | null;
-    order?: number;
-    active: boolean;
-    createdAt?: string | null;
-    updatedAt?: string | null;
-    createdBy?: string | null;
-    updatedBy?: string | null;
-    children?: PostCategory[];
-    parent?: PostCategory | null;
-    posts?: { id: number; title: string; slug: string }[];
-    seoMeta?: Seo;
-}
 
-export interface PostCategoryDto {
-    name: string;
-    description?: string;
-    parentId?: number;
-    order: number;
-    active?: boolean;
-    seoMeta?: Seo;
-}
-
-export interface PostCategoryNestedParams {
-    page?: number;
-    limit?: number;
-    keyword?: string;
-    active?: boolean;
-    parentId?: number | null;
-    includeInactive?: boolean | string;
-}
 
 @Injectable({
     providedIn: 'root'

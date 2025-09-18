@@ -1,0 +1,27 @@
+<div class="ckeditor-common">
+    @if (editor) {
+        <div class="editor-wrap" >
+            <ckeditor
+
+                [editor]="editor"
+                [data]="value"
+                [config]="config"
+                (ready)="onReady($event)"
+                (change)="onChangeEvent($event)"
+                (blur)="onTouchedEvent()"
+                [disabled]="disabled"
+            ></ckeditor>
+        </div>
+    } @else {
+        <div class="ckeditor-fallback" >
+            <textarea
+                class="fallback-textarea"
+                [disabled]="disabled"
+                [(ngModel)]="value"
+                (ngModelChange)="fallbackChange($event)"
+                (blur)="onTouchedEvent()"
+            ></textarea>
+            <div class="hint">Không thể tải CKEditor build. Vui lòng cài `@ckeditor/ckeditor5-build-classic` hoặc truyền <code>[editorBuild]</code>.</div>
+        </div>
+    }
+</div>

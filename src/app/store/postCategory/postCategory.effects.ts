@@ -2,8 +2,7 @@ import { Injectable } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as PostCategoryActions from './postCategory.actions';
 import {
-    PostCategoryService,
-    PostCategoryDto
+    PostCategoryService
 } from '@/pages/service/post-category.service';
 import { catchError, map, switchMap, of, withLatestFrom, tap } from 'rxjs';
 import * as NotificationActions from '@/store/notifications/notifications.actions';
@@ -12,6 +11,7 @@ import * as PostCategorySelectors from './postCategory.selectors';
 import { BaseCrudEffects } from '@/store/_base/base-crud-effects';
 import { Router } from '@angular/router';
 import { LoadingService } from '@/layout/service/loading.service';
+import { PostCategoryDto } from '@/interfaces/post-category.interface';
 
 @Injectable()
 export class PostCategoryEffects extends BaseCrudEffects {
