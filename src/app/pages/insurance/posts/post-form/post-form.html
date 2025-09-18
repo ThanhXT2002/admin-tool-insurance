@@ -22,41 +22,41 @@
                 <!-- Short content (inline editor) -->
                 <div>
                     <label for="excerpt" class="mb-4">Tóm tắt ngắn</label>
-                    <app-ckeditor-common
-                        height="150px"
-                        class="mt-3"
+                    <app-texteditor-common
+                        [height]="'150px'"
                         formControlName="excerpt"
-                        [config]="{placeholder: 'Tóm tắt ngắn...'}"
-                    ></app-ckeditor-common>
+                        [placeholder]="'Tóm tắt ngắn...'"
+                    ></app-texteditor-common>
                 </div>
-                <div>
-                    <label for="shortContent" class="mb-4">Nội dung đầu</label>
-                    <app-ckeditor-common
-                        class="mt-3"
+                <div class="!space-y-3">
+                    <label for="shortContent" class="">Nội dung đầu</label>
+                    <app-texteditor-common
+                        [height]="'250px'"
                         formControlName="shortContent"
-                        [config]="{placeholder: 'Nội dung đầu...'}"
-                    ></app-ckeditor-common>
+                        [placeholder]="'Nội dung đầu...'"
+                    ></app-texteditor-common>
                 </div>
 
                 <div>
                     <label for="content">Nội dung chi tiết</label>
-                    <app-ckeditor-common
-                        height="450px"
-                        class="mt-3"
+                    <app-texteditor-common
+                        [height]="'450px'"
                         formControlName="content"
-                        [config]="{placeholder: 'Nhập nội dung chi tiết...'}"
-                    ></app-ckeditor-common>
+                        [placeholder]="'Nội dung chi tiết...'"
+                    ></app-texteditor-common>
                 </div>
             </div>
             <div class="lg:col-span-1 space-y-6">
-              <div class="w-full ">
-                <Label class="featuredImage">Chọn hình ảnh </Label>
-                <img  [src]="displayFeaturedImage" class="h-[200px] w-full overflow-hidden object-cover cursor-pointer mt-3"
-                (click)="onFeaturedImageClick()"
-
-                 alt="">
-                <!-- <input type="hidden" id="featuredImage"  > -->
-              </div>
+                <div class="w-full">
+                    <label class="featuredImage">Chọn hình ảnh </label>
+                    <img
+                        [src]="displayFeaturedImage"
+                        class="h-[200px] w-full overflow-hidden object-cover cursor-pointer mt-3 rounded-md"
+                        (click)="onFeaturedImageClick()"
+                        alt=""
+                    />
+                    <!-- <input type="hidden" id="featuredImage"  > -->
+                </div>
                 <p-floatlabel variant="in">
                     <input
                         pInputText

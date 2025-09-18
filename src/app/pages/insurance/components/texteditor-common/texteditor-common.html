@@ -1,0 +1,10 @@
+<div class="NgxEditor__Wrapper mt-3">
+    <ngx-editor-menu [editor]="editor" [toolbar]="toolbar"> </ngx-editor-menu>
+    <ngx-editor
+        [editor]="editor"
+        [ngModel]="value"
+        (ngModelChange)="onContentChange($event)"
+        [disabled]="disabled"
+        [placeholder]="placeholder"
+    ></ngx-editor>
+  </div>

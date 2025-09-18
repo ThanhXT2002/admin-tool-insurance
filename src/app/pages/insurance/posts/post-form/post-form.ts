@@ -1,4 +1,13 @@
-import { Component, effect, inject, signal, ViewChild } from '@angular/core';
+import {
+    Component,
+    effect,
+    inject,
+    OnDestroy,
+    OnInit,
+    signal,
+    ViewChild,
+    ViewEncapsulation
+} from '@angular/core';
 import {
     FormBuilder,
     FormGroup,
@@ -16,13 +25,19 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LoadingService } from '@/layout/service/loading.service';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
-import { CkeditorCommon } from '../../components/ckeditor-common/ckeditor-common';
+import { TexteditorCommon } from '../../components/texteditor-common/texteditor-common';
 import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
 import { PostCategory } from '@/interfaces/post-category.interface';
 import { Post } from '@/interfaces/post.interface';
 import { TreeSelect } from 'primeng/treeselect';
 import { DatePickerModule } from 'primeng/datepicker';
 import { AutoComplete } from 'primeng/autocomplete';
+import {
+    NgxEditorComponent,
+    NgxEditorMenuComponent,
+    Editor,
+    Toolbar
+} from 'ngx-editor';
 
 interface AutoCompleteCompleteEvent {
     originalEvent: Event;
@@ -40,21 +55,25 @@ interface AutoCompleteCompleteEvent {
         ToggleSwitchModule,
         ButtonModule,
         Seo,
-        CkeditorCommon,
+        TexteditorCommon,
         TreeSelect,
         CommonModule,
         AutoComplete,
-        DatePickerModule
+        DatePickerModule,
+        NgxEditorComponent,
+        NgxEditorMenuComponent
     ],
+    encapsulation: ViewEncapsulation.None,
     templateUrl: './post-form.html',
     styleUrl: './post-form.scss'
 })
-export class PostForm {
+export class PostForm implements OnInit, OnDestroy {
     private fb = inject(FormBuilder);
     private loadingService = inject(LoadingService);
     private facade = inject(PostCategoryFacade);
     private messageService = inject(MessageService);
     private route = inject(ActivatedRoute);
+    editor!: Editor;
 
     currentId = signal<number | undefined>(undefined);
     private previewFeaturedImage = signal<string | null>(null);
@@ -77,6 +96,8 @@ export class PostForm {
     // edit mode fields
     createdBy?: string | null = null;
     updatedBy?: string | null = null;
+
+    
 
     constructor() {
         this.form = this.fb.group({
@@ -148,6 +169,14 @@ export class PostForm {
         });
     }
 
+    ngOnInit(): void {
+        this.editor = new Editor();
+    }
+
+    ngOnDestroy(): void {
+        this.editor.destroy();
+    }
+
     submit() {}
 
     searchTargetAudience(event: AutoCompleteCompleteEvent) {
@@ -177,16 +206,9 @@ export class PostForm {
             const file: File = event.target.files && event.target.files[0];
             if (!file) return;
 
-
-
             // create preview
             const reader = new FileReader();
-            reader.onload = (e: any) => {
-
-
-
-
-            };
+            reader.onload = (e: any) => {};
             reader.readAsDataURL(file);
         };
         input.click();
@@ -207,6 +229,6 @@ export class PostForm {
     get featuredImageUrl(): string | undefined {
         // const profile = this.authStore.profile();
         // return profile?.featuredImageUrl ?? 'assets/images/featured-image-default.webp';
-        return 'assets/images/no-img.webp'
+        return 'assets/images/no-img.webp';
     }
 }

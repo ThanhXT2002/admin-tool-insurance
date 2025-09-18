@@ -34,6 +34,7 @@
     "@supabase/supabase-js": "^2.57.2",
     "@tailwindcss/postcss": "^4.1.11",
     "chart.js": "4.4.2",
+    "ngx-editor": "^19.0.0-beta.1",
     "primeclt": "^0.1.5",
     "primeicons": "^7.0.0",
     "primeng": "^20",
