@@ -6,6 +6,7 @@ import { UserRoles } from './users/user-roles/user-roles';
 import { Permissions } from './users/permissions/permissions';
 import { PostCategoryForm } from './posts/post-category-form/post-category-form';
 import { NestedPostCate } from './posts/nested-post-cate/nested-post-cate';
+import { PostForm } from './posts/post-form/post-form';
 
 
 export default [
@@ -14,6 +15,8 @@ export default [
     { path: 'post-category/create', component:  PostCategoryForm},
     { path: 'post-category/update/:id', component:  PostCategoryForm},
     { path: 'posts', component: Posts },
+    { path: 'post/create', component: PostForm },
+    { path: 'posts/update/:id', component: PostForm },
     { path: 'users', component: Users },
     { path: 'user-roles', component: UserRoles },
     { path: 'permissions', component: Permissions },

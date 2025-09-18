@@ -1,21 +1,16 @@
 import {
     Component,
     effect,
-    EventEmitter,
     inject,
-    Input,
-    Output,
     signal,
     ViewChild
 } from '@angular/core';
 import {
-    FormArray,
     FormBuilder,
     FormGroup,
     ReactiveFormsModule,
     Validators
 } from '@angular/forms';
-import { DrawerModule } from 'primeng/drawer';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
@@ -24,7 +19,6 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { ButtonModule } from 'primeng/button';
 import { Seo } from '../../components/seo/seo';
 import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
-import { PostCategoryService } from '@/pages/service/post-category.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LoadingService } from '@/layout/service/loading.service';
 import { PostCategory } from '@/pages/service/post-category.service';
@@ -34,7 +28,6 @@ import { MessageService } from 'primeng/api';
 @Component({
     selector: 'app-post-category-form',
     imports: [
-        DrawerModule,
         ReactiveFormsModule,
         InputTextModule,
         FloatLabelModule,
