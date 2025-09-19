@@ -161,25 +161,41 @@ export class PostService {
             if (key === 'id') continue;
 
             if (key === 'featuredImage') {
-                if (val instanceof File)
+                if (val instanceof File) {
                     fd.append('featuredImage', val, (val as File).name);
+                } else if (val && typeof val === 'string') {
+                    // allow sending existing image URL as string
+                    fd.append('featuredImage', val);
+                }
                 continue;
             }
 
             if (key === 'albumImages') {
                 if (Array.isArray(val)) {
-                    for (const file of val) {
-                        if (file instanceof File)
-                            fd.append('albumImages', file, file.name);
+                    for (const item of val) {
+                        if (item instanceof File)
+                            fd.append('albumImages', item, item.name);
+                        else if (typeof item === 'string')
+                            fd.append('albumImages', item);
+                        else fd.append('albumImages', JSON.stringify(item));
                     }
                 }
                 continue;
             }
 
             // Arrays are stringified (backend will parse JSON)
-            if (Array.isArray(val)) fd.append(key, JSON.stringify(val));
-            else if (typeof val === 'boolean') fd.append(key, String(val));
-            else fd.append(key, String(val));
+            if (Array.isArray(val)) {
+                fd.append(key, JSON.stringify(val));
+            } else if (
+                val &&
+                typeof val === 'object' &&
+                !(val instanceof File)
+            ) {
+                // Plain objects (e.g. seoMeta) should be sent as JSON
+                fd.append(key, JSON.stringify(val));
+            } else if (typeof val === 'boolean') {
+                fd.append(key, String(val));
+            } else fd.append(key, String(val));
         }
         return fd;
     }

@@ -1,4 +1,3 @@
-
 <p-table
     #dt
     [value]="items()"
@@ -6,7 +5,7 @@
     [paginator]="true"
     [lazy]="true"
     (onLazyLoad)="onLazyLoad($event)"
-    [globalFilterFields]="['name','slug','description']"
+    [globalFilterFields]="['title','slug','excerpt','content']"
     [tableStyle]="{ 'max-width': '100%' }"
     [(selection)]="selectedItems"
     [rowHover]="true"
@@ -20,7 +19,7 @@
     <ng-template #caption>
         <div class="flex__between flex-col lg:flex-row gap-2">
             <div class="flex__between w-full lg:w-auto">
-                <h5 class="!mb-0 text-nowrap">Danh Sách Danh Mục Bài Viết</h5>
+                <h5 class="!mb-0 text-nowrap">Danh Sách Bài Viết</h5>
                 <div class="lg:hidden">
                     <p-button
                         label="Mới"
@@ -39,7 +38,7 @@
                         type="text"
                         [value]="currentKeyword || ''"
                         (input)="onGlobalFilter(dt, $event)"
-                        placeholder="Tìm kiếm tên hoặc slug..."
+                        placeholder="Tìm kiếm tiêu đề, tóm tắt hoặc nội dung..."
                     />
                 </p-iconfield>
 
@@ -96,8 +95,8 @@
             <th>
                 <p-tableHeaderCheckbox />
             </th>
-            <th>Thông tin bài viết</th>
-            <th>Mô tả</th>
+            <th>Tiêu đề</th>
+            <th>Mô tả / Tóm tắt</th>
             <th>
                 <p class="text-center text-nowrap">Trạng thái</p>
             </th>
@@ -112,10 +111,41 @@
             <td class="w-0">
                 <p-tableCheckbox [value]="item" />
             </td>
-            <td><p class="text-nowrap">{{ item.name || 'N/A' }}</p></td>
-            <td>{{ item.description || '-' }}</td>
             <td>
-                <p class="text-center">{{ item.status === 'active' ? 'Kích hoạt' : 'Vô hiệu hóa' }}</p>
+                <div>
+                    <p class="text-nowrap font-medium">
+                        {{ item.title || 'N/A' }}
+                    </p>
+                    <small class="text-muted" *ngIf="item.publishedAt"
+                        >{{ item.publishedAt | date:'short' }}</small
+                    >
+                </div>
+            </td>
+            <td>
+                <div class="max-h-16 overflow-hidden">
+                    {{ item.excerpt || item.shortContent || '-' }}
+                </div>
+            </td>
+            <td>
+                <div class="text-center">
+                    <div>
+                        {{ item.status === 'PUBLISHED' ? 'Đã xuất bản' :
+                        item.status === 'DRAFT' ? 'Bản nháp' : (item.status ||
+                        '-') }}
+                    </div>
+                    <div class="mt-1">
+                        <span
+                            *ngIf="item.isFeatured"
+                            class="badge badge-success mr-1"
+                            >Featured</span
+                        >
+                        <span
+                            *ngIf="item.isHighlighted"
+                            class="badge badge-info"
+                            >Highlighted</span
+                        >
+                    </div>
+                </div>
             </td>
             <td>
                 <div class="flex__middle">

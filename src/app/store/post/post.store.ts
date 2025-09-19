@@ -97,6 +97,27 @@ export class PostStore extends BaseStoreSignal<PostListState> {
         this.load({ keyword, page: 1 });
     }
 
+    // Hydrate store from raw query params (e.g., ActivatedRoute.snapshot.queryParams)
+    // Accepts an object of string values and converts them to proper types before loading
+    hydrateFromQueryParams(qp: Record<string, any>) {
+        const parsed: Partial<PostListState> = {};
+        if (qp['page']) parsed.page = Number(qp['page']) || 1;
+        if (qp['limit']) parsed.limit = Number(qp['limit']) || 10;
+        if (qp['keyword']) parsed.keyword = qp['keyword'];
+        if (qp['status']) parsed.status = qp['status'];
+        if (qp['categoryId']) parsed.categoryId = Number(qp['categoryId']);
+        if (qp['postType']) parsed.postType = qp['postType'];
+        if (qp['isFeatured'] !== undefined)
+            parsed.isFeatured = qp['isFeatured'] === 'true';
+        if (qp['isHighlighted'] !== undefined)
+            parsed.isHighlighted = qp['isHighlighted'] === 'true';
+
+        // call load which will patch state and fetch data
+        this.load(parsed);
+
+        return parsed;
+    }
+
     // Lấy chi tiết một bài viết theo id (gọi backend)
     async fetchById(id: number) {
         const res: any = await this.run(() =>
@@ -201,7 +222,33 @@ export class PostStore extends BaseStoreSignal<PostListState> {
             params.isHighlighted = String(q.isHighlighted);
 
         try {
-            this.router.navigate([], { queryParams: params, replaceUrl: true });
+            // Avoid unnecessary navigations: compare current snapshot query params
+            const currentParams =
+                this.router.routerState.snapshot.root.queryParams || {};
+            const keys = new Set([
+                ...Object.keys(currentParams),
+                ...Object.keys(params)
+            ]);
+            let identical = true;
+            for (const k of keys) {
+                const a = currentParams[k];
+                const b = params[k];
+                if (
+                    (a === undefined || a === null || a === '') &&
+                    (b === undefined || b === null || b === '')
+                )
+                    continue;
+                if (String(a) !== String(b)) {
+                    identical = false;
+                    break;
+                }
+            }
+            if (!identical) {
+                this.router.navigate([], {
+                    queryParams: params,
+                    replaceUrl: true
+                });
+            }
         } catch (err) {
             // ignore router errors in non-router contexts (e.g., tests)
         }

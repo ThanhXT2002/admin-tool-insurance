@@ -19,12 +19,14 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
 import { PostCategoryForm } from '../post-category-form/post-category-form';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { FormsModule } from '@angular/forms';
+import { CommonModule, DatePipe } from '@angular/common';
 import { Select } from 'primeng/select';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { PostCategory } from '@/interfaces/post-category.interface';
 import { PostStore } from '@/store/post/post.store';
+import { Post } from '@/interfaces/post.interface';
 
 @Component({
     selector: 'app-posts',
@@ -35,6 +37,7 @@ import { PostStore } from '@/store/post/post.store';
         InputIcon,
         InputTextModule,
         ConfirmDialog,
+        CommonModule,
         FormsModule,
         Select
     ],
@@ -50,12 +53,11 @@ export class Posts implements OnInit, OnDestroy {
     private route = inject(ActivatedRoute);
     private router = inject(Router);
 
-    items = signal<PostCategory[]>([]);
+    // Use store signals directly so UI stays in sync
+    items = this.postStore.rows;
     totalRecords = 0;
     loading = false;
-    selectedItems!: PostCategory[] | null;
-
-
+    selectedItems!: Post[] | null;
 
     page = 1;
     limit = 10;
@@ -64,12 +66,13 @@ export class Posts implements OnInit, OnDestroy {
     @ViewChild('dt') dt!: Table;
 
     private destroy$ = new Subject<void>();
-    private skipNextLazyLoad = false;
+    // counter to ignore a number of upcoming lazy load events (helps avoid duplicate loads)
+    private skipLazyLoads = 0;
     private searchTimeout: any;
 
     showForm = false;
     isEditing = false;
-    selectedItem: PostCategory | null = null;
+    selectedItem: Post | null = null;
 
     statusOptions = [
         { name: 'Tất cả trạng thái', code: undefined },
@@ -87,32 +90,66 @@ export class Posts implements OnInit, OnDestroy {
         const newLimit = Number(params['limit']) || 10;
         const newKeyword = params['keyword'] || undefined;
 
-        // let newActive: boolean | undefined = undefined;
-        // if (params['active'] === 'true') {
-        //     newActive = true;
-        // } else if (params['active'] === 'false') {
-        //     newActive = false;
-        // }
+        let newStatus: string | undefined = undefined;
+        if (params['status']) newStatus = params['status'];
 
-        // const pageChanged = this.page !== newPage;
-        // const limitChanged = this.limit !== newLimit;
-        // const keywordChanged = this.currentKeyword !== newKeyword;
-        // const activeChanged = this.active !== newActive;
+        const newCategoryId = params['categoryId']
+            ? Number(params['categoryId'])
+            : undefined;
+        const newPostType = params['postType'] || undefined;
+        const newIsFeatured =
+            params['isFeatured'] === 'true'
+                ? true
+                : params['isFeatured'] === 'false'
+                  ? false
+                  : undefined;
+        const newIsHighlighted =
+            params['isHighlighted'] === 'true'
+                ? true
+                : params['isHighlighted'] === 'false'
+                  ? false
+                  : undefined;
 
-        // this.page = newPage;
-        // this.limit = newLimit;
-        // this.currentKeyword = newKeyword;
-        // this.active = newActive;
+        const pageChanged = this.page !== newPage;
+        const limitChanged = this.limit !== newLimit;
+        const keywordChanged = this.currentKeyword !== newKeyword;
+        const statusChanged = this.selectedStatus?.code !== newStatus;
 
-        // this.selectedStatus =
-        //     this.statusOptions.find((opt) => opt.code === newActive) ||
-        //     this.statusOptions[0];
+        this.page = newPage;
+        this.limit = newLimit;
+        this.currentKeyword = newKeyword;
+        this.selectedStatus =
+            this.statusOptions.find((opt) => opt.code === newStatus) ||
+            this.statusOptions[0];
 
-        // if (pageChanged || limitChanged || keywordChanged || activeChanged) {
-        //     this.skipNextLazyLoad = true;
-        //     setTimeout(() => (this.skipNextLazyLoad = false), 250);
-        //     this.loadData(newKeyword);
-        // }
+        // If anything changed that should reload data, trigger store load but avoid duplicate lazyLoad
+        if (
+            pageChanged ||
+            limitChanged ||
+            keywordChanged ||
+            statusChanged ||
+            newCategoryId !== undefined ||
+            newPostType !== undefined ||
+            newIsFeatured !== undefined ||
+            newIsHighlighted !== undefined
+        ) {
+            // ignore the next lazy load event that PrimeNG might fire
+            this.skipLazyLoads += 1;
+
+            const paramsToLoad: any = {
+                page: this.page,
+                limit: this.limit,
+                keyword: this.currentKeyword,
+                status: this.selectedStatus?.code || undefined,
+                categoryId: newCategoryId,
+                postType: newPostType,
+                isFeatured: newIsFeatured,
+                isHighlighted: newIsHighlighted
+            };
+
+            // let the store handle fetching and URL syncing
+            this.postStore.load(paramsToLoad);
+        }
     }
 
     ngOnInit() {
@@ -133,6 +170,19 @@ export class Posts implements OnInit, OnDestroy {
             this.statusOptions.find((opt) => opt.code === this.active) ||
             this.statusOptions[0];
 
+        // hydrate store from current query params on init via store helper
+        const parsed =
+            this.postStore.hydrateFromQueryParams(
+                this.route.snapshot.queryParams as any
+            ) || {};
+
+        // update local UI fields from parsed values
+        this.page = parsed.page ?? this.page;
+        this.limit = parsed.limit ?? this.limit;
+        this.currentKeyword = parsed.keyword ?? this.currentKeyword;
+        this.selectedStatus =
+            this.statusOptions.find((opt) => opt.code === parsed.status) ||
+            this.selectedStatus;
 
         this.route.queryParams
             .pipe(takeUntil(this.destroy$))
@@ -147,6 +197,21 @@ export class Posts implements OnInit, OnDestroy {
                 const keyword = currentParams['keyword'] || undefined;
                 this.loadData(keyword);
             });
+
+        // Sync derived UI fields from store using signal effects
+        effect(() => {
+            // reading rows will register this effect; when rows change, turn off loading
+            const _ = this.postStore.rows();
+            this.loading = false;
+        });
+
+        effect(() => {
+            const t = this.postStore.total();
+            this.totalRecords = t;
+        });
+
+        // initial load
+        this.loadData(this.currentKeyword);
     }
 
     ngOnDestroy() {
@@ -186,15 +251,38 @@ export class Posts implements OnInit, OnDestroy {
 
     loadData(keyword?: string) {
         this.loading = true;
-        this.postStore.load({
 
+        const statusCode = this.selectedStatus?.code;
+        const params: any = {
+            page: this.page,
+            limit: this.limit,
+            keyword: keyword ?? this.currentKeyword,
+            status: statusCode ?? undefined
+        };
+
+        // call the store to load data; store will update signals used by template
+        this.postStore.load(params).finally(() => {
+            // keep loading false (store subscription also sets this)
+            this.loading = false;
         });
     }
 
     onLazyLoad(event: any) {
-        if (this.skipNextLazyLoad) return;
+        if (this.skipLazyLoads > 0) {
+            this.skipLazyLoads -= 1;
+            return;
+        }
 
-
+        // PrimeNG lazy event contains first and rows
+        const first = Number(event.first) || 0;
+        const rows = Number(event.rows) || this.limit;
+        const newPage = Math.floor(first / rows) + 1;
+        const pageChanged = newPage !== this.page;
+        const limitChanged = rows !== this.limit;
+        this.page = newPage;
+        this.limit = rows;
+        this.loading = true;
+        this.loadData(this.currentKeyword);
     }
 
     openNew() {
@@ -202,14 +290,14 @@ export class Posts implements OnInit, OnDestroy {
     }
 
     editItem(id: number) {
-        this.router.navigate(['/insurance/post-category/update', id]);
+        // navigate to post edit page (path used by admin routes)
+        this.router.navigate(['/insurance/post/update', id]);
     }
 
-
-    deleteItem(item: PostCategory) {
+    deleteItem(item: Post) {
         this.confirmationService.confirm({
-            message: 'Bạn có chắc muốn xóa danh mục này?',
-            header: 'Xóa danh mục',
+            message: 'Bạn có chắc muốn xóa bài viết này?',
+            header: 'Xóa bài viết',
             icon: 'pi pi-info-circle',
             rejectButtonProps: {
                 label: 'Hủy',
@@ -217,7 +305,22 @@ export class Posts implements OnInit, OnDestroy {
                 outlined: true
             },
             acceptButtonProps: { label: 'Xóa', severity: 'danger' },
-            accept: () => this.postStore.delete(item.id),
+            accept: async () => {
+                try {
+                    await this.postStore.delete(item.id);
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Đã xóa',
+                        detail: 'Xóa bài viết thành công'
+                    });
+                } catch (err: any) {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Lỗi',
+                        detail: err?.message || 'Xóa thất bại'
+                    });
+                }
+            },
             reject: () =>
                 this.messageService.add({
                     severity: 'warn',
@@ -227,9 +330,7 @@ export class Posts implements OnInit, OnDestroy {
         });
     }
 
-    changeStatus() {
-
-    }
+    changeStatus() {}
 
     deleteMultiple() {
         if (!this.selectedItems || this.selectedItems.length === 0) return;
@@ -276,7 +377,6 @@ export class Posts implements OnInit, OnDestroy {
     toggleChangeStatus(item: PostCategory) {
         if (!item) return;
         const newStatus = !item.active;
-
     }
 
     errorImg(event: Event) {
