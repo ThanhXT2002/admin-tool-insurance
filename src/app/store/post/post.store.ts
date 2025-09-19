@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { BaseStoreSignal } from '../_base/base-store-signal';
 import { Post } from '@/interfaces/post.interface';
@@ -10,11 +11,18 @@ interface PostListState {
     page: number;
     limit: number;
     keyword?: string;
+    // filters
+    status?: string;
+    categoryId?: number;
+    postType?: string;
+    isFeatured?: boolean;
+    isHighlighted?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
 export class PostStore extends BaseStoreSignal<PostListState> {
-    private svc = inject(PostService);
+    private postService = inject(PostService);
+    private router = inject(Router);
 
     // Các signal suy diễn (derived)
     public rows = this.select((s) => s.rows);
@@ -22,6 +30,11 @@ export class PostStore extends BaseStoreSignal<PostListState> {
     public page = this.select((s) => s.page);
     public limit = this.select((s) => s.limit);
     public keyword = this.select((s) => s.keyword);
+    public status = this.select((s) => s.status);
+    public categoryId = this.select((s) => s.categoryId);
+    public postType = this.select((s) => s.postType);
+    public isFeatured = this.select((s) => s.isFeatured);
+    public isHighlighted = this.select((s) => s.isHighlighted);
 
     // Giá trị tính toán tiện lợi
     public hasMore = computed(() => this.total() > this.rows().length);
@@ -33,14 +46,34 @@ export class PostStore extends BaseStoreSignal<PostListState> {
     // Tải danh sách với tham số tuỳ chọn (sẽ merge vào state hiện tại)
     async load(params?: Partial<PostListState>) {
         // update local query params
-        if (params) this.patch(params);
+        if (params) {
+            // if filters changed, ensure page resets to 1 by default
+            const resettingPage =
+                params.page == null &&
+                (params.keyword !== undefined ||
+                    params.status !== undefined ||
+                    params.categoryId !== undefined ||
+                    params.postType !== undefined ||
+                    params.isFeatured !== undefined ||
+                    params.isHighlighted !== undefined);
+            if (resettingPage) params = { ...params, page: 1 };
+            this.patch(params);
+            // sync filter-related params to URL so links are shareable
+            this.syncQueryParamsToUrl();
+        }
+
         const q = this.snapshot();
         const result: any = await this.run(() =>
             firstValueFrom(
-                this.svc.getAll({
+                this.postService.getAll({
                     page: q.page,
                     limit: q.limit,
-                    keyword: q.keyword
+                    keyword: q.keyword,
+                    status: q.status,
+                    categoryId: q.categoryId,
+                    postType: q.postType,
+                    isFeatured: q.isFeatured,
+                    isHighlighted: q.isHighlighted
                 })
             )
         );
@@ -55,10 +88,19 @@ export class PostStore extends BaseStoreSignal<PostListState> {
         return this.load({ page: q.page });
     }
 
+    // Set filters programmatically (resets page to 1)
+    setFilters(filters: Partial<PostListState>) {
+        this.load({ ...filters, page: 1 });
+    }
+
+    setKeyword(keyword?: string) {
+        this.load({ keyword, page: 1 });
+    }
+
     // Lấy chi tiết một bài viết theo id (gọi backend)
     async fetchById(id: number) {
         const res: any = await this.run(() =>
-            firstValueFrom(this.svc.getById(id))
+            firstValueFrom(this.postService.getById(id))
         );
         return (res as any).data as Post;
     }
@@ -66,7 +108,7 @@ export class PostStore extends BaseStoreSignal<PostListState> {
     // Tạo mới và đưa vào danh sách (prepend). Nếu muốn có thể refetch thay vì thêm trực tiếp.
     async create(payload: any) {
         const res: any = await this.run(() =>
-            firstValueFrom(this.svc.create(payload))
+            firstValueFrom(this.postService.create(payload))
         );
         // prepend new item to rows
         const created = res.data as Post;
@@ -80,7 +122,7 @@ export class PostStore extends BaseStoreSignal<PostListState> {
 
     async update(id: number, payload: any) {
         const res: any = await this.run(() =>
-            firstValueFrom(this.svc.update(id, payload))
+            firstValueFrom(this.postService.update(id, payload))
         );
         const updated = res.data as Post;
         this._state.update((s) => ({
@@ -91,7 +133,7 @@ export class PostStore extends BaseStoreSignal<PostListState> {
     }
 
     async delete(id: number) {
-        await this.run(() => firstValueFrom(this.svc.delete(id)));
+        await this.run(() => firstValueFrom(this.postService.delete(id)));
         // Loại bỏ item khỏi danh sách trong store sau khi backend xóa thành công
         this._state.update((s) => ({
             ...s,
@@ -102,7 +144,9 @@ export class PostStore extends BaseStoreSignal<PostListState> {
     }
 
     async deleteMultiple(ids: number[]) {
-        await this.run(() => firstValueFrom(this.svc.deleteMultiple(ids)));
+        await this.run(() =>
+            firstValueFrom(this.postService.deleteMultiple(ids))
+        );
         // Xoá nhiều item khỏi state sau khi backend trả về thành công
         this._state.update((s) => ({
             ...s,
@@ -118,10 +162,15 @@ export class PostStore extends BaseStoreSignal<PostListState> {
         const nextPage = (q.page || 1) + 1;
         const result: any = await this.run(() =>
             firstValueFrom(
-                this.svc.getAll({
+                this.postService.getAll({
                     page: nextPage,
                     limit: q.limit,
-                    keyword: q.keyword
+                    keyword: q.keyword,
+                    status: q.status,
+                    categoryId: q.categoryId,
+                    postType: q.postType,
+                    isFeatured: q.isFeatured,
+                    isHighlighted: q.isHighlighted
                 })
             )
         );
@@ -135,5 +184,26 @@ export class PostStore extends BaseStoreSignal<PostListState> {
             total: payload.total || s.total
         }));
         return payload;
+    }
+
+    private syncQueryParamsToUrl() {
+        const q = this.snapshot();
+        const params: any = {};
+        if (q.page) params.page = String(q.page);
+        if (q.limit) params.limit = String(q.limit);
+        if (q.keyword) params.keyword = q.keyword;
+        if (q.status) params.status = q.status;
+        if (q.categoryId != null) params.categoryId = String(q.categoryId);
+        if (q.postType) params.postType = q.postType;
+        if (q.isFeatured !== undefined && q.isFeatured !== null)
+            params.isFeatured = String(q.isFeatured);
+        if (q.isHighlighted !== undefined && q.isHighlighted !== null)
+            params.isHighlighted = String(q.isHighlighted);
+
+        try {
+            this.router.navigate([], { queryParams: params, replaceUrl: true });
+        } catch (err) {
+            // ignore router errors in non-router contexts (e.g., tests)
+        }
     }
 }

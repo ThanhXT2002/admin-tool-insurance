@@ -24,6 +24,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { PostCategory } from '@/interfaces/post-category.interface';
+import { PostStore } from '@/store/post/post.store';
 
 @Component({
     selector: 'app-posts',
@@ -35,7 +36,6 @@ import { PostCategory } from '@/interfaces/post-category.interface';
         InputTextModule,
         ConfirmDialog,
         FormsModule,
-        ToggleSwitch,
         Select
     ],
     providers: [ConfirmationService, MessageService],
@@ -43,7 +43,7 @@ import { PostCategory } from '@/interfaces/post-category.interface';
     styleUrl: './posts.scss'
 })
 export class Posts implements OnInit, OnDestroy {
-    facade = inject(PostCategoryFacade) as PostCategoryFacade;
+    postStore = inject(PostStore);
     private refreshService = inject(RefreshService);
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
@@ -54,40 +54,8 @@ export class Posts implements OnInit, OnDestroy {
     totalRecords = 0;
     loading = false;
     selectedItems!: PostCategory[] | null;
-    // Local flag to indicate we're waiting for deleteMultiple result
-    private _expectingDeleteMultiple = false;
 
-    // Watcher: when we're expecting a deleteMultiple result, surface server errors as toast
-    private _deleteMultipleWatcher = effect(() => {
-        const err = this.facade.error();
-        if (!err) return;
-        if (this._expectingDeleteMultiple) {
-            const serverDetail =
-                err?.error?.errors ??
-                err?.error?.message ??
-                err?.message ??
-                'Có lỗi xảy ra';
-            try {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Lỗi',
-                    detail: serverDetail
-                });
-            } catch (e) {
-                // ignore message errors
-            }
-            this._expectingDeleteMultiple = false;
-        }
-    });
 
-    private _sync = effect(() => {
-        const rows = this.facade.items();
-        const total = this.facade.total();
-        const loading = this.facade.loading();
-        this.items.set(rows || []);
-        this.totalRecords = total || 0;
-        this.loading = !!loading;
-    });
 
     page = 1;
     limit = 10;
@@ -105,8 +73,9 @@ export class Posts implements OnInit, OnDestroy {
 
     statusOptions = [
         { name: 'Tất cả trạng thái', code: undefined },
-        { name: 'Đang hoạt động', code: true },
-        { name: 'Không hoạt động', code: false }
+        { name: 'Đang hoạt động', code: 'PUBLISHED' },
+        { name: 'Đã lưu trữ', code: 'ARCHIVED' },
+        { name: 'Bản nháp', code: 'DRAFT' }
     ];
 
     selectedStatus = this.statusOptions[0];
@@ -118,32 +87,32 @@ export class Posts implements OnInit, OnDestroy {
         const newLimit = Number(params['limit']) || 10;
         const newKeyword = params['keyword'] || undefined;
 
-        let newActive: boolean | undefined = undefined;
-        if (params['active'] === 'true') {
-            newActive = true;
-        } else if (params['active'] === 'false') {
-            newActive = false;
-        }
+        // let newActive: boolean | undefined = undefined;
+        // if (params['active'] === 'true') {
+        //     newActive = true;
+        // } else if (params['active'] === 'false') {
+        //     newActive = false;
+        // }
 
-        const pageChanged = this.page !== newPage;
-        const limitChanged = this.limit !== newLimit;
-        const keywordChanged = this.currentKeyword !== newKeyword;
-        const activeChanged = this.active !== newActive;
+        // const pageChanged = this.page !== newPage;
+        // const limitChanged = this.limit !== newLimit;
+        // const keywordChanged = this.currentKeyword !== newKeyword;
+        // const activeChanged = this.active !== newActive;
 
-        this.page = newPage;
-        this.limit = newLimit;
-        this.currentKeyword = newKeyword;
-        this.active = newActive;
+        // this.page = newPage;
+        // this.limit = newLimit;
+        // this.currentKeyword = newKeyword;
+        // this.active = newActive;
 
-        this.selectedStatus =
-            this.statusOptions.find((opt) => opt.code === newActive) ||
-            this.statusOptions[0];
+        // this.selectedStatus =
+        //     this.statusOptions.find((opt) => opt.code === newActive) ||
+        //     this.statusOptions[0];
 
-        if (pageChanged || limitChanged || keywordChanged || activeChanged) {
-            this.skipNextLazyLoad = true;
-            setTimeout(() => (this.skipNextLazyLoad = false), 250);
-            this.loadData(newKeyword);
-        }
+        // if (pageChanged || limitChanged || keywordChanged || activeChanged) {
+        //     this.skipNextLazyLoad = true;
+        //     setTimeout(() => (this.skipNextLazyLoad = false), 250);
+        //     this.loadData(newKeyword);
+        // }
     }
 
     ngOnInit() {
@@ -164,18 +133,6 @@ export class Posts implements OnInit, OnDestroy {
             this.statusOptions.find((opt) => opt.code === this.active) ||
             this.statusOptions[0];
 
-        // Only load from server on init if store is empty. This avoids
-        // unnecessary API calls when user navigates to Create/Update and then
-        // returns without making changes: we can reuse the items already in store.
-        const currentRows = this.facade.items() || [];
-        if (!currentRows || currentRows.length === 0) {
-            this.facade.load({
-                page: this.page,
-                limit: this.limit,
-                keyword: this.currentKeyword,
-                active: this.active
-            });
-        }
 
         this.route.queryParams
             .pipe(takeUntil(this.destroy$))
@@ -229,41 +186,15 @@ export class Posts implements OnInit, OnDestroy {
 
     loadData(keyword?: string) {
         this.loading = true;
-        this.facade.load({
-            page: this.page,
-            limit: this.limit,
-            keyword,
-            active: this.active
+        this.postStore.load({
+
         });
     }
 
     onLazyLoad(event: any) {
         if (this.skipNextLazyLoad) return;
 
-        const newPage =
-            Math.floor((event.first || 0) / (event.rows || this.limit)) + 1;
-        const newLimit = event.rows || this.limit;
 
-        const currentParams = this.route.snapshot.queryParams;
-        const keyword = currentParams['keyword'] || null;
-
-        let active = null;
-        if (currentParams['active'] === 'true') active = true;
-        else if (currentParams['active'] === 'false') active = false;
-
-        if (newPage === this.page && newLimit === this.limit) return;
-
-        this.router.navigate([], {
-            relativeTo: this.route,
-            queryParams: {
-                page: newPage,
-                limit: newLimit,
-                keyword: keyword,
-                active: active
-            },
-            queryParamsHandling: 'merge',
-            replaceUrl: true
-        });
     }
 
     openNew() {
@@ -274,17 +205,6 @@ export class Posts implements OnInit, OnDestroy {
         this.router.navigate(['/insurance/post-category/update', id]);
     }
 
-    onSaved(saved?: unknown) {
-        this.showForm = false;
-        this.isEditing = false;
-    }
-
-    closeForm(saved?: boolean) {
-        this.showForm = false;
-        this.selectedItem = null;
-        this.isEditing = false;
-        if (saved) this.loadData(this.currentKeyword);
-    }
 
     deleteItem(item: PostCategory) {
         this.confirmationService.confirm({
@@ -297,7 +217,7 @@ export class Posts implements OnInit, OnDestroy {
                 outlined: true
             },
             acceptButtonProps: { label: 'Xóa', severity: 'danger' },
-            accept: () => this.facade.delete(item.id),
+            accept: () => this.postStore.delete(item.id),
             reject: () =>
                 this.messageService.add({
                     severity: 'warn',
@@ -308,18 +228,7 @@ export class Posts implements OnInit, OnDestroy {
     }
 
     changeStatus() {
-        const newActive = this.selectedStatus.code;
-        this.router.navigate([], {
-            relativeTo: this.route,
-            queryParams: {
-                page: 1,
-                limit: this.limit,
-                keyword: this.currentKeyword || null,
-                active: newActive !== undefined ? newActive : null
-            },
-            queryParamsHandling: 'merge',
-            replaceUrl: true
-        });
+
     }
 
     deleteMultiple() {
@@ -336,9 +245,8 @@ export class Posts implements OnInit, OnDestroy {
             acceptButtonProps: { label: 'Xóa', severity: 'danger' },
             accept: () => {
                 const ids = this.selectedItems!.map((i) => i.id);
-                // mark we're waiting for deleteMultiple result so we can show error if it fails
-                this._expectingDeleteMultiple = true;
-                this.facade.deleteMultiple(ids);
+
+                this.postStore.deleteMultiple(ids);
                 // keep selectedItems cleared in UI for now
                 this.selectedItems = null;
             },
@@ -354,27 +262,27 @@ export class Posts implements OnInit, OnDestroy {
     activeMultiple() {
         if (!this.selectedItems || this.selectedItems.length === 0) return;
         const ids = this.selectedItems.map((i) => i.id);
-        this.facade.activeMultiple(ids, true);
+
         this.selectedItems = null;
     }
 
     inactiveMultiple() {
         if (!this.selectedItems || this.selectedItems.length === 0) return;
         const ids = this.selectedItems.map((i) => i.id);
-        this.facade.activeMultiple(ids, false);
+
         this.selectedItems = null;
     }
 
     toggleChangeStatus(item: PostCategory) {
         if (!item) return;
         const newStatus = !item.active;
-        this.facade.activeMultiple([item.id], newStatus);
+
     }
 
     errorImg(event: Event) {
         const target = event?.target as HTMLImageElement | null;
         if (!target) return;
-        const fallback = 'assets/images/default-category.webp';
+        const fallback = 'assets/images/np-img.webp';
         if (target.src && !target.src.endsWith(fallback)) target.src = fallback;
     }
 }

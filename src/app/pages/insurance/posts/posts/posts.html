@@ -96,10 +96,7 @@
             <th>
                 <p-tableHeaderCheckbox />
             </th>
-            <th>
-                <p class="text-center">No</p>
-            </th>
-            <th>Tên</th>
+            <th>Thông tin bài viết</th>
             <th>Mô tả</th>
             <th>
                 <p class="text-center text-nowrap">Trạng thái</p>
@@ -115,16 +112,10 @@
             <td class="w-0">
                 <p-tableCheckbox [value]="item" />
             </td>
-            <td><p class="text-center">{{ ri + 1 }}</p></td>
             <td><p class="text-nowrap">{{ item.name || 'N/A' }}</p></td>
             <td>{{ item.description || '-' }}</td>
             <td>
-                <div class="flex__middle">
-                    <p-toggleswitch
-                        [ngModel]="item.active"
-                        (onChange)="toggleChangeStatus(item)"
-                    />
-                </div>
+                <p class="text-center">{{ item.status === 'active' ? 'Kích hoạt' : 'Vô hiệu hóa' }}</p>
             </td>
             <td>
                 <div class="flex__middle">

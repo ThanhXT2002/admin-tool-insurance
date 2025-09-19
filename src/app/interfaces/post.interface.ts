@@ -22,11 +22,14 @@ export interface Post {
     expiredAt?: string | null;
     publishedAt?: string | null;
     targetAudience?: any[] | null;
-    relatedProducts?: number[] | null;
+    // Array of product objects returned by the API (kept for compatibility)
+    relatedProducts?: any[] | null;
     metaKeywords?: string[] | null;
-    categoryId?: number | null;
     postType?: PostType;
-    taggedCategoryIds?: number[] | null;
+    // The API now returns the full category object (if present)
+    category?: { id: number; name: string; slug: string } | null;
+    // Tagged categories as objects (from join table)
+    taggedCategories?: { id: number; name: string; slug: string }[] | null;
     seoMeta?: Seo | null;
     createdAt?: string | null;
     updatedAt?: string | null;
@@ -44,7 +47,7 @@ export interface PostCreateDto {
     scheduledAt?: string;
     expiredAt?: string;
     targetAudience?: any[];
-    relatedProducts?: number[];
+    relatedProductIds?: number[];
     metaKeywords?: string[];
     note?: string;
     priority?: number;

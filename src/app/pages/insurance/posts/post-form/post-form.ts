@@ -59,9 +59,7 @@ interface AutoCompleteCompleteEvent {
         TreeSelect,
         CommonModule,
         AutoComplete,
-        DatePickerModule,
-        NgxEditorComponent,
-        NgxEditorMenuComponent
+        DatePickerModule
     ],
     encapsulation: ViewEncapsulation.None,
     templateUrl: './post-form.html',
@@ -97,8 +95,6 @@ export class PostForm implements OnInit, OnDestroy {
     createdBy?: string | null = null;
     updatedBy?: string | null = null;
 
-    
-
     constructor() {
         this.form = this.fb.group({
             title: ['', [Validators.required]],
@@ -117,7 +113,7 @@ export class PostForm implements OnInit, OnDestroy {
             scheduledAt: [''],
             expiredAt: [''],
             targetAudience: [undefined],
-            relatedProducts: [undefined],
+            relatedProductIds: [undefined],
             metaKeywords: ['']
         });
 
