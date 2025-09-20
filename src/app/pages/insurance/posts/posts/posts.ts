@@ -27,6 +27,8 @@ import { takeUntil } from 'rxjs/operators';
 import { PostCategory } from '@/interfaces/post-category.interface';
 import { PostStore } from '@/store/post/post.store';
 import { Post } from '@/interfaces/post.interface';
+import { Popover } from 'primeng/popover';
+import { Toolbar } from 'primeng/toolbar';
 
 @Component({
     selector: 'app-posts',
@@ -39,9 +41,11 @@ import { Post } from '@/interfaces/post.interface';
         ConfirmDialog,
         CommonModule,
         FormsModule,
-        Select
+        Select,
+        Popover,
+        Toolbar
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     templateUrl: './posts.html',
     styleUrl: './posts.scss'
 })
@@ -52,8 +56,7 @@ export class Posts implements OnInit, OnDestroy {
     private confirmationService = inject(ConfirmationService);
     private route = inject(ActivatedRoute);
     private router = inject(Router);
-
-    // Use store signals directly so UI stays in sync
+    // Sử dụng trực tiếp các signal của store để UI luôn đồng bộ
     items = this.postStore.rows;
     totalRecords = 0;
     loading = false;
@@ -66,12 +69,31 @@ export class Posts implements OnInit, OnDestroy {
     @ViewChild('dt') dt!: Table;
 
     private destroy$ = new Subject<void>();
-    // counter to ignore a number of upcoming lazy load events (helps avoid duplicate loads)
     private skipLazyLoads = 0;
     private searchTimeout: any;
+    // Khi true, applyParams sẽ không gọi store.load vì handler đã gọi trước đó
+    private _suppressApplyParamsLoad = false;
+    // Đặt true sau khi hydrate/load ban đầu hoàn tất để bỏ qua các sự kiện ngModelChange sinh ra trong khởi tạo
+    private _initialized = false;
+    // Lưu giá trị bộ lọc đã sync lần cuối để tránh điều hướng trùng lặp
+    private _lastSyncedFilters: {
+        status?: any;
+        postType?: any;
+        isHighlighted?: any;
+        isFeatured?: any;
+        keyword?: any;
+    } = {};
 
-    showForm = false;
-    isEditing = false;
+    private _rowsEffect = effect(() => {
+        const _ = this.postStore.rows();
+        this.loading = false;
+    });
+
+    private _totalEffect = effect(() => {
+        const t = this.postStore.total();
+        this.totalRecords = t;
+    });
+
     selectedItem: Post | null = null;
 
     statusOptions = [
@@ -81,77 +103,33 @@ export class Posts implements OnInit, OnDestroy {
         { name: 'Bản nháp', code: 'DRAFT' }
     ];
 
+    postTypeOptions = [
+        { name: 'Tất cả loại bài viết', code: undefined },
+        { name: 'Bài viết', code: 'ARTICLE' },
+        { name: 'Hướng dẫn', code: 'GUIDE' },
+        { name: 'Tin tức', code: 'NEWS' },
+        { name: 'Sản phẩm', code: 'PRODUCT' },
+        { name: 'Câu hỏi thường gặp', code: 'FAQ' }
+    ];
+
+    highlightedOptions = [
+        { name: 'Lọc theo nổi bật', code: undefined },
+        { name: 'Nổi bật', code: true },
+        { name: 'Không nổi bật', code: false }
+    ];
+
+    featuredOptions = [
+        { name: 'Hiển thị ở home page', code: undefined },
+        { name: 'Được hiển thị', code: true },
+        { name: 'Không được hiển thị', code: false }
+    ];
+
     selectedStatus = this.statusOptions[0];
+    selectedPostType = this.postTypeOptions[0];
+    selectedIsHighlighted = this.highlightedOptions[0];
+    selectedIsFeatured = this.featuredOptions[0];
 
-    private applyParams(params: any) {
-        clearTimeout(this.searchTimeout);
-
-        const newPage = Number(params['page']) || 1;
-        const newLimit = Number(params['limit']) || 10;
-        const newKeyword = params['keyword'] || undefined;
-
-        let newStatus: string | undefined = undefined;
-        if (params['status']) newStatus = params['status'];
-
-        const newCategoryId = params['categoryId']
-            ? Number(params['categoryId'])
-            : undefined;
-        const newPostType = params['postType'] || undefined;
-        const newIsFeatured =
-            params['isFeatured'] === 'true'
-                ? true
-                : params['isFeatured'] === 'false'
-                  ? false
-                  : undefined;
-        const newIsHighlighted =
-            params['isHighlighted'] === 'true'
-                ? true
-                : params['isHighlighted'] === 'false'
-                  ? false
-                  : undefined;
-
-        const pageChanged = this.page !== newPage;
-        const limitChanged = this.limit !== newLimit;
-        const keywordChanged = this.currentKeyword !== newKeyword;
-        const statusChanged = this.selectedStatus?.code !== newStatus;
-
-        this.page = newPage;
-        this.limit = newLimit;
-        this.currentKeyword = newKeyword;
-        this.selectedStatus =
-            this.statusOptions.find((opt) => opt.code === newStatus) ||
-            this.statusOptions[0];
-
-        // If anything changed that should reload data, trigger store load but avoid duplicate lazyLoad
-        if (
-            pageChanged ||
-            limitChanged ||
-            keywordChanged ||
-            statusChanged ||
-            newCategoryId !== undefined ||
-            newPostType !== undefined ||
-            newIsFeatured !== undefined ||
-            newIsHighlighted !== undefined
-        ) {
-            // ignore the next lazy load event that PrimeNG might fire
-            this.skipLazyLoads += 1;
-
-            const paramsToLoad: any = {
-                page: this.page,
-                limit: this.limit,
-                keyword: this.currentKeyword,
-                status: this.selectedStatus?.code || undefined,
-                categoryId: newCategoryId,
-                postType: newPostType,
-                isFeatured: newIsFeatured,
-                isHighlighted: newIsHighlighted
-            };
-
-            // let the store handle fetching and URL syncing
-            this.postStore.load(paramsToLoad);
-        }
-    }
-
+    // ... các trường và hiệu ứng được khai báo ở trên ...
     ngOnInit() {
         const queryParams = this.route.snapshot.queryParams;
         this.page = Number(queryParams['page']) || 1;
@@ -170,24 +148,59 @@ export class Posts implements OnInit, OnDestroy {
             this.statusOptions.find((opt) => opt.code === this.active) ||
             this.statusOptions[0];
 
-        // hydrate store from current query params on init via store helper
+        // đồng bộ store từ query params hiện tại khi khởi tạo thông qua helper của store
         const parsed =
             this.postStore.hydrateFromQueryParams(
                 this.route.snapshot.queryParams as any
             ) || {};
 
-        // update local UI fields from parsed values
+        // cập nhật các trường UI cục bộ từ các giá trị đã phân tích
         this.page = parsed.page ?? this.page;
         this.limit = parsed.limit ?? this.limit;
         this.currentKeyword = parsed.keyword ?? this.currentKeyword;
         this.selectedStatus =
             this.statusOptions.find((opt) => opt.code === parsed.status) ||
             this.selectedStatus;
+        // đồng bộ các trường UI select khác từ query params đã phân tích
+        this.selectedPostType =
+            this.postTypeOptions.find((opt) => opt.code === parsed.postType) ||
+            this.selectedPostType;
+        this.selectedIsHighlighted =
+            this.highlightedOptions.find(
+                (opt) => opt.code === parsed.isHighlighted
+            ) || this.selectedIsHighlighted;
+        this.selectedIsFeatured =
+            this.featuredOptions.find(
+                (opt) => opt.code === parsed.isFeatured
+            ) || this.selectedIsFeatured;
+
+        // ghi lại các bộ lọc đã được đồng bộ ban đầu
+        this._lastSyncedFilters = {
+            status: this.selectedStatus?.code ?? undefined,
+            postType: this.selectedPostType?.code ?? undefined,
+            isHighlighted:
+                this.selectedIsHighlighted?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsHighlighted?.code),
+            isFeatured:
+                this.selectedIsFeatured?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsFeatured?.code),
+            keyword: this.currentKeyword ?? undefined
+        };
+
+        // Bỏ qua sự kiện onLazyLoad đầu tiên của PrimeNG có thể được phát trong khi khởi tạo bảng
+        // và ghi đè giá trị page từ query params. Thông thường một lần bỏ qua là đủ,
+        // tăng số lần nếu bạn thấy nhiều sự kiện không mong muốn.
+        this.skipLazyLoads += 1;
 
         this.route.queryParams
             .pipe(takeUntil(this.destroy$))
             .subscribe((params) => {
-                this.applyParams(params);
+                // Trong lần subscribe ban đầu, component có thể chưa được khởi tạo hoàn toàn
+                // trong trường hợp đó, tránh để applyParams kích hoạt đồng bộ router
+                // vì điều đó sẽ ghi đè URL đã dán. Nếu đã khởi tạo thì cho phép đồng bộ.
+                this.applyParams(params, { skipSync: !this._initialized });
             });
 
         this.refreshService.refresh$
@@ -198,26 +211,26 @@ export class Posts implements OnInit, OnDestroy {
                 this.loadData(keyword);
             });
 
-        // Sync derived UI fields from store using signal effects
-        effect(() => {
-            // reading rows will register this effect; when rows change, turn off loading
-            const _ = this.postStore.rows();
-            this.loading = false;
-        });
-
-        effect(() => {
-            const t = this.postStore.total();
-            this.totalRecords = t;
-        });
-
-        // initial load
+        // tải dữ liệu ban đầu
         this.loadData(this.currentKeyword);
+
+        // cho phép các handler thay đổi select chỉ chạy sau khi hydrate/tải ban đầu hoàn tất
+        this._initialized = true;
     }
 
     ngOnDestroy() {
         this.destroy$.next();
         this.destroy$.complete();
         clearTimeout(this.searchTimeout);
+        // dừng các effect của signal được tạo dưới dạng trường lớp để tránh rò rỉ bộ nhớ
+        try {
+            if (typeof (this as any)._rowsEffect === 'function')
+                (this as any)._rowsEffect();
+        } catch (_) {}
+        try {
+            if (typeof (this as any)._totalEffect === 'function')
+                (this as any)._totalEffect();
+        } catch (_) {}
     }
 
     onGlobalFilter(table: Table, event: Event) {
@@ -235,13 +248,27 @@ export class Posts implements OnInit, OnDestroy {
             const shouldResetPage = currentKeyword !== keyword;
             const targetPage = shouldResetPage ? 1 : currentPage;
 
+            // giữ nguyên các lựa chọn bộ lọc khác khi tìm kiếm
+            const postType = this.selectedPostType?.code ?? null;
+            const isHighlighted =
+                this.selectedIsHighlighted?.code === undefined
+                    ? null
+                    : String(this.selectedIsHighlighted?.code);
+            const isFeatured =
+                this.selectedIsFeatured?.code === undefined
+                    ? null
+                    : String(this.selectedIsFeatured?.code);
+
             this.router.navigate([], {
                 relativeTo: this.route,
                 queryParams: {
                     page: targetPage,
                     limit: this.limit,
                     keyword: keyword || null,
-                    active: this.active !== undefined ? this.active : null
+                    active: this.active !== undefined ? this.active : null,
+                    postType: postType,
+                    isHighlighted: isHighlighted,
+                    isFeatured: isFeatured
                 },
                 queryParamsHandling: 'merge',
                 replaceUrl: true
@@ -260,11 +287,12 @@ export class Posts implements OnInit, OnDestroy {
             status: statusCode ?? undefined
         };
 
-        // call the store to load data; store will update signals used by template
-        this.postStore.load(params).finally(() => {
-            // keep loading false (store subscription also sets this)
-            this.loading = false;
-        });
+        // gọi store để tải dữ liệu; store sẽ cập nhật các signal được template sử dụng
+        this.postStore
+            .load(params, { skipSync: !this._initialized })
+            .finally(() => {
+                this.loading = false;
+            });
     }
 
     onLazyLoad(event: any) {
@@ -273,7 +301,7 @@ export class Posts implements OnInit, OnDestroy {
             return;
         }
 
-        // PrimeNG lazy event contains first and rows
+        // Sự kiện lazy của PrimeNG chứa các trường first và rows
         const first = Number(event.first) || 0;
         const rows = Number(event.rows) || this.limit;
         const newPage = Math.floor(first / rows) + 1;
@@ -290,7 +318,6 @@ export class Posts implements OnInit, OnDestroy {
     }
 
     editItem(id: number) {
-        // navigate to post edit page (path used by admin routes)
         this.router.navigate(['/insurance/post/update', id]);
     }
 
@@ -330,7 +357,87 @@ export class Posts implements OnInit, OnDestroy {
         });
     }
 
-    changeStatus() {}
+    changeStatus() {
+        if (!this._initialized) return;
+        // tránh phản ứng với các thay đổi trùng với bộ lọc đã đồng bộ lần cuối
+        const currentFilters = {
+            status: this.selectedStatus?.code ?? undefined,
+            postType: this.selectedPostType?.code ?? undefined,
+            isHighlighted:
+                this.selectedIsHighlighted?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsHighlighted?.code),
+            isFeatured:
+                this.selectedIsFeatured?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsFeatured?.code),
+            keyword: this.currentKeyword ?? undefined
+        };
+        const equal =
+            String(currentFilters.status) ===
+                String(this._lastSyncedFilters.status) &&
+            String(currentFilters.postType) ===
+                String(this._lastSyncedFilters.postType) &&
+            String(currentFilters.isHighlighted) ===
+                String(this._lastSyncedFilters.isHighlighted) &&
+            String(currentFilters.isFeatured) ===
+                String(this._lastSyncedFilters.isFeatured) &&
+            String(currentFilters.keyword || '') ===
+                String(this._lastSyncedFilters.keyword || '');
+        if (equal) return;
+
+        // Xây dựng tham số load từ các lựa chọn hiện tại và từ khóa
+        const params: any = {
+            page: 1,
+            limit: this.limit,
+            status: this.selectedStatus?.code ?? undefined,
+            postType: this.selectedPostType?.code ?? undefined,
+            isFeatured:
+                this.selectedIsFeatured?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsFeatured?.code),
+            isHighlighted:
+                this.selectedIsHighlighted?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsHighlighted?.code),
+            keyword: this.currentKeyword ?? undefined
+        };
+
+        // ngăn subscription của route kích hoạt load lần thứ hai
+        this._suppressApplyParamsLoad = true;
+
+        // cập nhật bộ lọc đã đồng bộ lần cuối để applyParams thấy cùng giá trị
+        this._lastSyncedFilters = { ...currentFilters };
+
+        this.postStore.load(params).finally(() => {
+            // cập nhật URL để phản ánh bộ lọc mới
+            const status = params.status ?? null;
+            const postType = params.postType ?? null;
+            const isHighlighted =
+                params.isHighlighted === undefined
+                    ? null
+                    : String(params.isHighlighted);
+            const isFeatured =
+                params.isFeatured === undefined
+                    ? null
+                    : String(params.isFeatured);
+
+            this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams: {
+                    page: 1,
+                    limit: this.limit,
+                    status,
+                    postType,
+                    isHighlighted,
+                    isFeatured,
+                    keyword: params.keyword ?? null
+                },
+                queryParamsHandling: 'merge',
+                replaceUrl: true
+            });
+        });
+    }
 
     deleteMultiple() {
         if (!this.selectedItems || this.selectedItems.length === 0) return;
@@ -346,9 +453,7 @@ export class Posts implements OnInit, OnDestroy {
             acceptButtonProps: { label: 'Xóa', severity: 'danger' },
             accept: () => {
                 const ids = this.selectedItems!.map((i) => i.id);
-
                 this.postStore.deleteMultiple(ids);
-                // keep selectedItems cleared in UI for now
                 this.selectedItems = null;
             },
             reject: () =>
@@ -384,5 +489,99 @@ export class Posts implements OnInit, OnDestroy {
         if (!target) return;
         const fallback = 'assets/images/np-img.webp';
         if (target.src && !target.src.endsWith(fallback)) target.src = fallback;
+    }
+
+    /**
+     * Áp dụng các tham số từ query params vào state của component.
+     * - Cập nhật page/limit/keyword và các select UI (status, postType, highlighted, featured)
+     * - Nếu một handler đã gọi load trước đó (_suppressApplyParamsLoad=true) thì sẽ bỏ qua
+     * - Nếu có thay đổi cần tải dữ liệu sẽ gọi this.postStore.load với tùy chọn skipSync khi được yêu cầu
+     */
+    private applyParams(params: any, options?: { skipSync?: boolean }) {
+        clearTimeout(this.searchTimeout);
+
+        const newPage = Number(params['page']) || 1;
+        const newLimit = Number(params['limit']) || 10;
+        const newKeyword = params['keyword'] || undefined;
+
+        let newStatus: string | undefined = undefined;
+        if (params['status']) newStatus = params['status'];
+
+        const newCategoryId = params['categoryId']
+            ? Number(params['categoryId'])
+            : undefined;
+        const newPostType = params['postType'] || undefined;
+        const newIsFeatured =
+            params['isFeatured'] === 'true'
+                ? true
+                : params['isFeatured'] === 'false'
+                  ? false
+                  : undefined;
+        const newIsHighlighted =
+            params['isHighlighted'] === 'true'
+                ? true
+                : params['isHighlighted'] === 'false'
+                  ? false
+                  : undefined;
+
+        const pageChanged = this.page !== newPage;
+        const limitChanged = this.limit !== newLimit;
+        const keywordChanged = this.currentKeyword !== newKeyword;
+        const statusChanged = this.selectedStatus?.code !== newStatus;
+
+        this.page = newPage;
+        this.limit = newLimit;
+        this.currentKeyword = newKeyword;
+        this.selectedStatus =
+            this.statusOptions.find((opt) => opt.code === newStatus) ||
+            this.statusOptions[0];
+        // cập nhật các select UI cho postType / highlighted / featured
+        this.selectedPostType =
+            this.postTypeOptions.find((opt) => opt.code === newPostType) ||
+            this.postTypeOptions[0];
+        this.selectedIsHighlighted =
+            this.highlightedOptions.find(
+                (opt) => opt.code === newIsHighlighted
+            ) || this.highlightedOptions[0];
+        this.selectedIsFeatured =
+            this.featuredOptions.find((opt) => opt.code === newIsFeatured) ||
+            this.featuredOptions[0];
+
+        // Nếu một handler đã trigger load và đặt flag suppress, thì không tải lại ở đây
+        if (this._suppressApplyParamsLoad) {
+            this._suppressApplyParamsLoad = false;
+            return;
+        }
+
+        // Nếu có thay đổi cần tải lại dữ liệu thì gọi store.load và tránh trùng với lazyLoad của PrimeNG
+        if (
+            pageChanged ||
+            limitChanged ||
+            keywordChanged ||
+            statusChanged ||
+            newCategoryId !== undefined ||
+            newPostType !== undefined ||
+            newIsFeatured !== undefined ||
+            newIsHighlighted !== undefined
+        ) {
+            // bỏ qua sự kiện lazy load tiếp theo mà PrimeNG có thể phát ra
+            this.skipLazyLoads += 1;
+
+            const paramsToLoad: any = {
+                page: this.page,
+                limit: this.limit,
+                keyword: this.currentKeyword,
+                status: this.selectedStatus?.code || undefined,
+                categoryId: newCategoryId,
+                postType: newPostType,
+                isFeatured: newIsFeatured,
+                isHighlighted: newIsHighlighted
+            };
+
+            // Gọi store để fetch dữ liệu; truyền skipSync nếu cần để tránh điều hướng URL khi đang hydrate
+            this.postStore.load(paramsToLoad, {
+                skipSync: !!options?.skipSync
+            });
+        }
     }
 }

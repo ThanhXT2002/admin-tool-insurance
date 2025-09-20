@@ -1,39 +1,93 @@
+<p-toolbar class="mb-6">
+    <ng-template #start>
+        <h5 class="!mb-0 text-nowrap">Danh Sách Bài Viết</h5>
+    </ng-template>
+
+    <ng-template #end>
+        <p-button
+            class=""
+            label="Mới"
+            icon="pi pi-plus"
+            severity="primary"
+            (onClick)="openNew()"
+        />
+        <p-button
+            class="ml-2"
+            icon="pi pi-ellipsis-v"
+            (click)="op.toggle($event)"
+            [rounded]="true"
+            [outlined]="true"
+        />
+        <p-popover #op>
+            <ng-template #content>
+                <div class="flex flex-col gap-2 w-full">
+                    <p-button
+                        label="Xuất bản"
+                        icon="pi pi-check"
+                        severity="success"
+                        outlined
+                        class="cursor-pointer"
+                        (onClick)="activeMultiple(); op.hide()"
+                        [disabled]="!selectedItems || !selectedItems.length"
+                    />
+                    <p-button
+                        label="Lưu trữ"
+                        icon="pi pi-save"
+                        severity="secondary"
+                        outlined
+                        class="cursor-pointer"
+                        (onClick)="inactiveMultiple(); op.hide()"
+                        [disabled]="!selectedItems || !selectedItems.length"
+                    />
+                    <p-button
+                        label="Bản nháp"
+                        icon="pi pi-times"
+                        severity="secondary"
+                        outlined
+                        class="cursor-pointer"
+                        (onClick)="inactiveMultiple(); op.hide()"
+                        [disabled]="!selectedItems || !selectedItems.length"
+                    />
+                    <p-button
+                        label="Xóa nhiều"
+                        icon="pi pi-trash"
+                        severity="danger"
+                        outlined
+                        class="cursor-pointer"
+                        (onClick)="deleteMultiple(); op.hide()"
+                        [disabled]="!selectedItems || !selectedItems.length"
+                    />
+                </div>
+            </ng-template>
+        </p-popover>
+    </ng-template>
+</p-toolbar>
 <p-table
     #dt
     [value]="items()"
     [rows]="limit"
     [paginator]="true"
+    [first]="(page - 1) * limit"
     [lazy]="true"
     (onLazyLoad)="onLazyLoad($event)"
-    [globalFilterFields]="['title','slug','excerpt','content']"
+    [globalFilterFields]="['title','excerpt','content']"
     [tableStyle]="{ 'max-width': '100%' }"
     [(selection)]="selectedItems"
     [rowHover]="true"
     dataKey="id"
-    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} categories"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} posts"
     [showCurrentPageReport]="true"
-    [rowsPerPageOptions]="[10, 20, 30]"
+    [rowsPerPageOptions]="[10, 20, 30, 50, 100]"
     [totalRecords]="totalRecords"
     [loading]="loading"
 >
     <ng-template #caption>
         <div class="flex__between flex-col lg:flex-row gap-2">
-            <div class="flex__between w-full lg:w-auto">
-                <h5 class="!mb-0 text-nowrap">Danh Sách Bài Viết</h5>
-                <div class="lg:hidden">
-                    <p-button
-                        label="Mới"
-                        icon="pi pi-plus"
-                        severity="primary"
-                        (onClick)="openNew()"
-                    />
-                </div>
-            </div>
-            <div class="flex__end flex-wrap gap-2">
-                <p-iconfield class="w-full md:w-auto">
+            <div class="">
+                <p-iconfield class="w-full">
                     <p-inputicon class="pi pi-search" />
                     <input
-                        class="w-full"
+                        class="w-96"
                         pInputText
                         type="text"
                         [value]="currentKeyword || ''"
@@ -41,7 +95,8 @@
                         placeholder="Tìm kiếm tiêu đề, tóm tắt hoặc nội dung..."
                     />
                 </p-iconfield>
-
+            </div>
+            <div class="flex__between flex-wrap gap-2">
                 <p-select
                     [options]="statusOptions"
                     [(ngModel)]="selectedStatus"
@@ -50,41 +105,26 @@
                     class="w-full md:w-48"
                     (ngModelChange)="changeStatus()"
                 />
-
-                <p-button
-                    severity="success"
-                    label="Kích hoạt"
-                    icon="pi pi-check"
-                    outlined
-                    class="cursor-pointer"
-                    (onClick)="activeMultiple()"
-                    [disabled]="!selectedItems || !selectedItems.length"
+                <p-select
+                    [options]="postTypeOptions"
+                    [(ngModel)]="selectedPostType"
+                    optionLabel="name"
+                    class="w-full md:w-52"
+                    (ngModelChange)="changeStatus()"
                 />
-                <p-button
-                    severity="secondary"
-                    label="Vô hiệu hóa"
-                    icon="pi pi-times"
-                    outlined
-                    class="cursor-pointer"
-                    (onClick)="inactiveMultiple()"
-                    [disabled]="!selectedItems || !selectedItems.length"
+                <p-select
+                    [options]="highlightedOptions"
+                    [(ngModel)]="selectedIsHighlighted"
+                    optionLabel="name"
+                    class="w-full md:w-48"
+                    (ngModelChange)="changeStatus()"
                 />
-                <p-button
-                    severity="danger"
-                    label="Xóa nhiều"
-                    icon="pi pi-trash"
-                    outlined
-                    class="cursor-pointer"
-                    (onClick)="deleteMultiple()"
-                    [disabled]="!selectedItems || !selectedItems.length"
-                />
-
-                <p-button
-                    class="hidden lg:block"
-                    label="Mới"
-                    icon="pi pi-plus"
-                    severity="primary"
-                    (onClick)="openNew()"
+                <p-select
+                    [options]="featuredOptions"
+                    [(ngModel)]="selectedIsFeatured"
+                    optionLabel="name"
+                    class="w-full md:w-56"
+                    (ngModelChange)="changeStatus()"
                 />
             </div>
         </div>
@@ -95,8 +135,7 @@
             <th>
                 <p-tableHeaderCheckbox />
             </th>
-            <th>Tiêu đề</th>
-            <th>Mô tả / Tóm tắt</th>
+            <th>Thông tin bài viết</th>
             <th>
                 <p class="text-center text-nowrap">Trạng thái</p>
             </th>
@@ -112,18 +151,29 @@
                 <p-tableCheckbox [value]="item" />
             </td>
             <td>
-                <div>
-                    <p class="text-nowrap font-medium">
-                        {{ item.title || 'N/A' }}
-                    </p>
-                    <small class="text-muted" *ngIf="item.publishedAt"
-                        >{{ item.publishedAt | date:'short' }}</small
-                    >
-                </div>
-            </td>
-            <td>
-                <div class="max-h-16 overflow-hidden">
-                    {{ item.excerpt || item.shortContent || '-' }}
+                <div class="flex items-center gap-x-3">
+                    <div>
+                        <img
+                            [src]="item.featuredImage"
+                            [alt]="item.title"
+                            class="w-22 h-16 object-cover rounded-md"
+                        />
+                    </div>
+                    <div>
+                        <p class="text-nowrap font-bold text-lg !mb-0">
+                            {{ item.title || 'N/A' }}
+                        </p>
+                        <p
+                            class="!mb-0 p-0 px-2 rounded-full bg-primary/70 w-fit text-"
+                        >
+                            {{item.category?.name || 'Chưa phân loại'}}
+                        </p>
+                        @if (item.publishedAt) {
+                        <small class="text-muted"
+                            >{{ item.publishedAt | date:'short' }}</small
+                        >
+                        }
+                    </div>
                 </div>
             </td>
             <td>
@@ -132,18 +182,6 @@
                         {{ item.status === 'PUBLISHED' ? 'Đã xuất bản' :
                         item.status === 'DRAFT' ? 'Bản nháp' : (item.status ||
                         '-') }}
-                    </div>
-                    <div class="mt-1">
-                        <span
-                            *ngIf="item.isFeatured"
-                            class="badge badge-success mr-1"
-                            >Featured</span
-                        >
-                        <span
-                            *ngIf="item.isHighlighted"
-                            class="badge badge-info"
-                            >Highlighted</span
-                        >
                     </div>
                 </div>
             </td>

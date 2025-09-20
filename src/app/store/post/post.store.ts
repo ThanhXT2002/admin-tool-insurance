@@ -44,7 +44,10 @@ export class PostStore extends BaseStoreSignal<PostListState> {
     }
 
     // Tải danh sách với tham số tuỳ chọn (sẽ merge vào state hiện tại)
-    async load(params?: Partial<PostListState>) {
+    async load(
+        params?: Partial<PostListState>,
+        options?: { skipSync?: boolean }
+    ) {
         // update local query params
         if (params) {
             // if filters changed, ensure page resets to 1 by default
@@ -59,7 +62,8 @@ export class PostStore extends BaseStoreSignal<PostListState> {
             if (resettingPage) params = { ...params, page: 1 };
             this.patch(params);
             // sync filter-related params to URL so links are shareable
-            this.syncQueryParamsToUrl();
+            // allow callers to skip syncing (useful during initial hydrate from URL)
+            if (!options?.skipSync) this.syncQueryParamsToUrl();
         }
 
         const q = this.snapshot();
@@ -113,7 +117,8 @@ export class PostStore extends BaseStoreSignal<PostListState> {
             parsed.isHighlighted = qp['isHighlighted'] === 'true';
 
         // call load which will patch state and fetch data
-        this.load(parsed);
+        // but skip syncing back to the router since we're hydrating from the router
+        this.load(parsed, { skipSync: true });
 
         return parsed;
     }

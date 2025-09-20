@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { Table, TableModule } from 'primeng/table';
 import { Button } from 'primeng/button';
-
 import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
@@ -17,7 +16,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { RefreshService } from '@/pages/service/refresh.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialog } from 'primeng/confirmdialog';
-import { PostCategoryForm } from '../post-category-form/post-category-form';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { FormsModule } from '@angular/forms';
 import { Select } from 'primeng/select';
@@ -100,8 +98,6 @@ export class PostCategories implements OnInit, OnDestroy {
     private skipNextLazyLoad = false;
     private searchTimeout: any;
 
-    showForm = false;
-    isEditing = false;
     selectedItem: PostCategory | null = null;
 
     statusOptions = [
@@ -273,18 +269,6 @@ export class PostCategories implements OnInit, OnDestroy {
 
     editItem(id: number) {
         this.router.navigate(['/insurance/post-category/update', id]);
-    }
-
-    onSaved(saved?: unknown) {
-        this.showForm = false;
-        this.isEditing = false;
-    }
-
-    closeForm(saved?: boolean) {
-        this.showForm = false;
-        this.selectedItem = null;
-        this.isEditing = false;
-        if (saved) this.loadData(this.currentKeyword);
     }
 
     deleteItem(item: PostCategory) {
