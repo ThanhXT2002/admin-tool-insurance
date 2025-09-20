@@ -27,7 +27,7 @@
                         severity="success"
                         outlined
                         class="cursor-pointer"
-                        (onClick)="activeMultiple(); op.hide()"
+                        (onClick)="publishSelected(op)"
                         [disabled]="!selectedItems || !selectedItems.length"
                     />
                     <p-button
@@ -36,7 +36,7 @@
                         severity="secondary"
                         outlined
                         class="cursor-pointer"
-                        (onClick)="inactiveMultiple(); op.hide()"
+                        (onClick)="archiveSelected(op)"
                         [disabled]="!selectedItems || !selectedItems.length"
                     />
                     <p-button
@@ -45,7 +45,7 @@
                         severity="secondary"
                         outlined
                         class="cursor-pointer"
-                        (onClick)="inactiveMultiple(); op.hide()"
+                        (onClick)="unpublishSelected(op)"
                         [disabled]="!selectedItems || !selectedItems.length"
                     />
                     <p-button
@@ -83,11 +83,11 @@
 >
     <ng-template #caption>
         <div class="flex__between flex-col lg:flex-row gap-2">
-            <div class="">
+            <div class="w-full lg:w-96">
                 <p-iconfield class="w-full">
                     <p-inputicon class="pi pi-search" />
                     <input
-                        class="w-96"
+                        class="w-full"
                         pInputText
                         type="text"
                         [value]="currentKeyword || ''"
@@ -96,7 +96,7 @@
                     />
                 </p-iconfield>
             </div>
-            <div class="flex__between flex-wrap gap-2">
+            <div class="flex__end flex-wrap gap-2">
                 <p-select
                     [options]="statusOptions"
                     [(ngModel)]="selectedStatus"
@@ -164,7 +164,7 @@
                             {{ item.title || 'N/A' }}
                         </p>
                         <p
-                            class="!mb-0 p-0 px-2 rounded-full bg-primary/70 w-fit text-"
+                            class="!mb-0 p-0 px-2 rounded-full bg-primary/70 w-fit text-white"
                         >
                             {{item.category?.name || 'Chưa phân loại'}}
                         </p>
@@ -179,9 +179,7 @@
             <td>
                 <div class="text-center">
                     <div>
-                        {{ item.status === 'PUBLISHED' ? 'Đã xuất bản' :
-                        item.status === 'DRAFT' ? 'Bản nháp' : (item.status ||
-                        '-') }}
+                        {{ getStatusName(item.status) }}
                     </div>
                 </div>
             </td>
@@ -194,6 +192,30 @@
                         [outlined]="true"
                         (click)="editItem(item.id)"
                     />
+                    <!-- <p-button
+                        icon="pi pi-check"
+                        class="mr-2"
+                        [rounded]="true"
+                        [outlined]="true"
+                        tooltip="Xuất bản"
+                        (click)="publishItem(item.id)"
+                    />
+                    <p-button
+                        icon="pi pi-times"
+                        class="mr-2"
+                        [rounded]="true"
+                        [outlined]="true"
+                        tooltip="Bản nháp"
+                        (click)="unpublishItem(item.id)"
+                    />
+                    <p-button
+                        icon="pi pi-save"
+                        class="mr-2"
+                        [rounded]="true"
+                        [outlined]="true"
+                        tooltip="Lưu trữ"
+                        (click)="archiveItem(item.id)"
+                    /> -->
                     <p-button
                         icon="pi pi-trash"
                         severity="danger"

@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { BaseStoreSignal } from '../_base/base-store-signal';
@@ -10,6 +10,7 @@ interface PostListState {
     total: number;
     page: number;
     limit: number;
+
     keyword?: string;
     // filters
     status?: string;
@@ -178,6 +179,174 @@ export class PostStore extends BaseStoreSignal<PostListState> {
             ...s,
             rows: s.rows.filter((r) => !ids.includes(r.id)),
             total: Math.max(0, s.total - ids.length)
+        }));
+        return true;
+    }
+
+    // Đổi trạng thái 1 bài viết thành PUBLISHED (cập nhật state cục bộ)
+    async publish(id: number) {
+        const res: any = await this.run(() =>
+            firstValueFrom(this.postService.publish(id))
+        );
+        const updated: Post | undefined = res?.data;
+        if (updated) {
+            // nếu backend trả về object đã cập nhật, thay thế hàng tương ứng
+            this._state.update((s) => ({
+                ...s,
+                rows: s.rows.map((r) => (r.id === updated.id ? updated : r))
+            }));
+            return updated;
+        }
+
+        // nếu backend không trả về object chi tiết, thực hiện cập nhật trạng thái tối ưu
+        this._state.update((s) => ({
+            ...s,
+            rows: s.rows.map((r) =>
+                r.id === id
+                    ? {
+                          ...r,
+                          status: 'PUBLISHED',
+                          publishedAt: new Date().toISOString()
+                      }
+                    : r
+            )
+        }));
+        return true;
+    }
+
+    // Gỡ xuất bản 1 bài viết (về DRAFT) - cập nhật state cục bộ
+    async unpublish(id: number) {
+        const res: any = await this.run(() =>
+            firstValueFrom(this.postService.unpublish(id))
+        );
+        const updated: Post | undefined = res?.data;
+        if (updated) {
+            this._state.update((s) => ({
+                ...s,
+                rows: s.rows.map((r) => (r.id === updated.id ? updated : r))
+            }));
+            return updated;
+        }
+        this._state.update((s) => ({
+            ...s,
+            rows: s.rows.map((r) =>
+                r.id === id ? { ...r, status: 'DRAFT' } : r
+            )
+        }));
+        return true;
+    }
+
+    // Lưu trữ 1 bài viết - cập nhật state cục bộ
+    async archive(id: number) {
+        const res: any = await this.run(() =>
+            firstValueFrom(this.postService.archive(id))
+        );
+        const updated: Post | undefined = res?.data;
+        if (updated) {
+            this._state.update((s) => ({
+                ...s,
+                rows: s.rows.map((r) => (r.id === updated.id ? updated : r))
+            }));
+            return updated;
+        }
+        this._state.update((s) => ({
+            ...s,
+            rows: s.rows.map((r) =>
+                r.id === id ? { ...r, status: 'ARCHIVED' } : r
+            )
+        }));
+        return true;
+    }
+
+    // Batch: xuất bản nhiều bài viết - cập nhật state cục bộ
+    async publishMultiple(ids: number[]) {
+        const res: any = await this.run(() =>
+            firstValueFrom(this.postService.publishMultiple(ids))
+        );
+        const data: any = res?.data;
+        if (Array.isArray(data) && data.length > 0) {
+            // nếu backend trả về danh sách bài viết đã cập nhật
+            const updatedIds = new Set(data.map((d: any) => d.id));
+            this._state.update((s) => ({
+                ...s,
+                rows: s.rows.map((r) =>
+                    updatedIds.has(r.id)
+                        ? { ...r, ...data.find((d: any) => d.id === r.id) }
+                        : r
+                )
+            }));
+            return data;
+        }
+
+        // tối ưu: cập nhật trạng thái cho các id được chỉ định
+        const idSet = new Set(ids);
+        this._state.update((s) => ({
+            ...s,
+            rows: s.rows.map((r) =>
+                idSet.has(r.id)
+                    ? {
+                          ...r,
+                          status: 'PUBLISHED',
+                          publishedAt: new Date().toISOString()
+                      }
+                    : r
+            )
+        }));
+        return true;
+    }
+
+    // Batch: gỡ xuất bản nhiều bài viết - cập nhật state cục bộ
+    async unpublishMultiple(ids: number[]) {
+        const res: any = await this.run(() =>
+            firstValueFrom(this.postService.unpublishMultiple(ids))
+        );
+        const data: any = res?.data;
+        if (Array.isArray(data) && data.length > 0) {
+            const updatedIds = new Set(data.map((d: any) => d.id));
+            this._state.update((s) => ({
+                ...s,
+                rows: s.rows.map((r) =>
+                    updatedIds.has(r.id)
+                        ? { ...r, ...data.find((d: any) => d.id === r.id) }
+                        : r
+                )
+            }));
+            return data;
+        }
+        const idSet = new Set(ids);
+        this._state.update((s) => ({
+            ...s,
+            rows: s.rows.map((r) =>
+                idSet.has(r.id) ? { ...r, status: 'DRAFT' } : r
+            )
+        }));
+        return true;
+    }
+
+    // Batch: lưu trữ nhiều bài viết - cập nhật state cục bộ
+    async archiveMultiple(ids: number[]) {
+        const res: any = await this.run(() =>
+            firstValueFrom(this.postService.archiveMultiple(ids))
+        );
+        const data: any = res?.data;
+        if (Array.isArray(data) && data.length > 0) {
+            const updatedIds = new Set(data.map((d: any) => d.id));
+            this._state.update((s) => ({
+                ...s,
+                rows: s.rows.map((r) =>
+                    updatedIds.has(r.id)
+                        ? { ...r, ...data.find((d: any) => d.id === r.id) }
+                        : r
+                )
+            }));
+            return data;
+        }
+        const idSet = new Set(ids);
+        this._state.update((s) => ({
+            ...s,
+            rows: s.rows.map((r) =>
+                idSet.has(r.id) ? { ...r, status: 'ARCHIVED' } : r
+            )
         }));
         return true;
     }

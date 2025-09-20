@@ -321,6 +321,131 @@ export class Posts implements OnInit, OnDestroy {
         this.router.navigate(['/insurance/post/update', id]);
     }
 
+    // Xuất bản một bài viết
+    async publishItem(id: number) {
+        try {
+            await this.postStore.publish(id);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Đã xuất bản',
+                detail: 'Xuất bản thành công'
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Lỗi',
+                detail: err?.message || 'Không thể xuất bản'
+            });
+        }
+    }
+
+    // Gỡ xuất bản (về bản nháp)
+    async unpublishItem(id: number) {
+        try {
+            await this.postStore.unpublish(id);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Đã gỡ xuất bản',
+                detail: 'Thao tác thành công'
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Lỗi',
+                detail: err?.message || 'Không thể gỡ xuất bản'
+            });
+        }
+    }
+
+    // Lưu trữ một bài viết
+    async archiveItem(id: number) {
+        try {
+            await this.postStore.archive(id);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Đã lưu trữ',
+                detail: 'Lưu trữ thành công'
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Lỗi',
+                detail: err?.message || 'Không thể lưu trữ'
+            });
+        }
+    }
+
+    // Batch actions từ popover: dùng selectedItems
+    async publishSelected(op?: any) {
+        if (!this.selectedItems || this.selectedItems.length === 0) return;
+        const ids = this.idsFromSelected();
+        try {
+            await this.postStore.publishMultiple(ids);
+            // clear selection and table internals, update last-synced filters, reload
+            this.clearSelectionAndDt();
+            op?.hide?.();
+            this.updateLastSyncedFilters();
+            this.reloadCurrentData();
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Đã xuất bản',
+                detail: 'Xuất bản các bài viết thành công'
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Lỗi',
+                detail: err?.message || 'Không thể xuất bản'
+            });
+        }
+    }
+
+    async unpublishSelected(op?: any) {
+        if (!this.selectedItems || this.selectedItems.length === 0) return;
+        const ids = this.idsFromSelected();
+        try {
+            await this.postStore.unpublishMultiple(ids);
+            this.clearSelectionAndDt();
+            op?.hide?.();
+            this.updateLastSyncedFilters();
+            this.reloadCurrentData();
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Đã gỡ xuất bản',
+                detail: 'Hoàn tất'
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Lỗi',
+                detail: err?.message || 'Không thể gỡ xuất bản'
+            });
+        }
+    }
+
+    async archiveSelected(op?: any) {
+        if (!this.selectedItems || this.selectedItems.length === 0) return;
+        const ids = this.idsFromSelected();
+        try {
+            await this.postStore.archiveMultiple(ids);
+            this.clearSelectionAndDt();
+            op?.hide?.();
+            this.updateLastSyncedFilters();
+            this.reloadCurrentData();
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Đã lưu trữ',
+                detail: 'Hoàn tất'
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Lỗi',
+                detail: err?.message || 'Không thể lưu trữ'
+            });
+        }
+    }
+
     deleteItem(item: Post) {
         this.confirmationService.confirm({
             message: 'Bạn có chắc muốn xóa bài viết này?',
@@ -454,7 +579,7 @@ export class Posts implements OnInit, OnDestroy {
             accept: () => {
                 const ids = this.selectedItems!.map((i) => i.id);
                 this.postStore.deleteMultiple(ids);
-                this.selectedItems = null;
+                this.clearSelectionAndDt();
             },
             reject: () =>
                 this.messageService.add({
@@ -467,16 +592,14 @@ export class Posts implements OnInit, OnDestroy {
 
     activeMultiple() {
         if (!this.selectedItems || this.selectedItems.length === 0) return;
-        const ids = this.selectedItems.map((i) => i.id);
-
-        this.selectedItems = null;
+        const ids = this.idsFromSelected();
+        this.clearSelectionAndDt();
     }
 
     inactiveMultiple() {
         if (!this.selectedItems || this.selectedItems.length === 0) return;
-        const ids = this.selectedItems.map((i) => i.id);
-
-        this.selectedItems = null;
+        const ids = this.idsFromSelected();
+        this.clearSelectionAndDt();
     }
 
     toggleChangeStatus(item: PostCategory) {
@@ -583,5 +706,45 @@ export class Posts implements OnInit, OnDestroy {
                 skipSync: !!options?.skipSync
             });
         }
+    }
+
+    // --- Helpers to reduce duplication for selection & reload operations ---
+    private idsFromSelected(): number[] {
+        return this.selectedItems?.map((i) => i.id) || [];
+    }
+
+    private clearSelectionAndDt(): void {
+        this.selectedItems = null;
+        try {
+            if (this.dt) {
+                (this.dt as any).selection = null;
+                (this.dt as any).selectionKeys = {};
+            }
+        } catch (_) {}
+    }
+
+    private updateLastSyncedFilters(): void {
+        this._lastSyncedFilters = {
+            status: this.selectedStatus?.code ?? undefined,
+            postType: this.selectedPostType?.code ?? undefined,
+            isHighlighted:
+                this.selectedIsHighlighted?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsHighlighted?.code),
+            isFeatured:
+                this.selectedIsFeatured?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsFeatured?.code),
+            keyword: this.currentKeyword ?? undefined
+        };
+    }
+
+    private reloadCurrentData(): void {
+        this.loadData(this.currentKeyword);
+    }
+
+    getStatusName(code: string | undefined): string {
+        const found = this.statusOptions.find((opt) => opt.code === code);
+        return found ? found.name : 'Không xác định';
     }
 }
