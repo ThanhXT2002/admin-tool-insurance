@@ -148,6 +148,9 @@ export class Posts implements OnInit, OnDestroy {
             this.statusOptions.find((opt) => opt.code === this.active) ||
             this.statusOptions[0];
 
+        // Khi hydrate từ query params ban đầu, chặn subscription của route
+        // để tránh applyParams gọi load trùng lặp (hydrate đã gọi load)
+        this._suppressApplyParamsLoad = true;
         // đồng bộ store từ query params hiện tại khi khởi tạo thông qua helper của store
         const parsed =
             this.postStore.hydrateFromQueryParams(
@@ -175,19 +178,7 @@ export class Posts implements OnInit, OnDestroy {
             ) || this.selectedIsFeatured;
 
         // ghi lại các bộ lọc đã được đồng bộ ban đầu
-        this._lastSyncedFilters = {
-            status: this.selectedStatus?.code ?? undefined,
-            postType: this.selectedPostType?.code ?? undefined,
-            isHighlighted:
-                this.selectedIsHighlighted?.code === undefined
-                    ? undefined
-                    : Boolean(this.selectedIsHighlighted?.code),
-            isFeatured:
-                this.selectedIsFeatured?.code === undefined
-                    ? undefined
-                    : Boolean(this.selectedIsFeatured?.code),
-            keyword: this.currentKeyword ?? undefined
-        };
+        this._lastSyncedFilters = this.buildCurrentFilters();
 
         // Bỏ qua sự kiện onLazyLoad đầu tiên của PrimeNG có thể được phát trong khi khởi tạo bảng
         // và ghi đè giá trị page từ query params. Thông thường một lần bỏ qua là đủ,
@@ -211,8 +202,12 @@ export class Posts implements OnInit, OnDestroy {
                 this.loadData(keyword);
             });
 
-        // tải dữ liệu ban đầu
-        this.loadData(this.currentKeyword);
+        // Nếu hydrateFromQueryParams đã cung cấp filter (parsed not empty),
+        // thì store.load đã được gọi trong hydrate -> không gọi loadData thêm lần nữa.
+        // Nếu không có query params, gọi loadData để tải dữ liệu mặc định.
+        if (!parsed || Object.keys(parsed).length === 0) {
+            this.loadData(this.currentKeyword);
+        }
 
         // cho phép các handler thay đổi select chỉ chạy sau khi hydrate/tải ban đầu hoàn tất
         this._initialized = true;
@@ -279,13 +274,11 @@ export class Posts implements OnInit, OnDestroy {
     loadData(keyword?: string) {
         this.loading = true;
 
-        const statusCode = this.selectedStatus?.code;
-        const params: any = {
+        const params: any = this.buildFilterParams(undefined, {
             page: this.page,
             limit: this.limit,
-            keyword: keyword ?? this.currentKeyword,
-            status: statusCode ?? undefined
-        };
+            keyword: keyword ?? this.currentKeyword
+        });
 
         // gọi store để tải dữ liệu; store sẽ cập nhật các signal được template sử dụng
         this.postStore
@@ -305,8 +298,6 @@ export class Posts implements OnInit, OnDestroy {
         const first = Number(event.first) || 0;
         const rows = Number(event.rows) || this.limit;
         const newPage = Math.floor(first / rows) + 1;
-        const pageChanged = newPage !== this.page;
-        const limitChanged = rows !== this.limit;
         this.page = newPage;
         this.limit = rows;
         this.loading = true;
@@ -485,19 +476,7 @@ export class Posts implements OnInit, OnDestroy {
     changeStatus() {
         if (!this._initialized) return;
         // tránh phản ứng với các thay đổi trùng với bộ lọc đã đồng bộ lần cuối
-        const currentFilters = {
-            status: this.selectedStatus?.code ?? undefined,
-            postType: this.selectedPostType?.code ?? undefined,
-            isHighlighted:
-                this.selectedIsHighlighted?.code === undefined
-                    ? undefined
-                    : Boolean(this.selectedIsHighlighted?.code),
-            isFeatured:
-                this.selectedIsFeatured?.code === undefined
-                    ? undefined
-                    : Boolean(this.selectedIsFeatured?.code),
-            keyword: this.currentKeyword ?? undefined
-        };
+        const currentFilters = this.buildCurrentFilters();
         const equal =
             String(currentFilters.status) ===
                 String(this._lastSyncedFilters.status) &&
@@ -511,31 +490,49 @@ export class Posts implements OnInit, OnDestroy {
                 String(this._lastSyncedFilters.keyword || '');
         if (equal) return;
 
-        // Xây dựng tham số load từ các lựa chọn hiện tại và từ khóa
-        const params: any = {
+        // Xây dựng tham số load từ các lựa chọn hiện tại và từ khóa (dùng helper chung)
+        const params: any = this.buildFilterParams(undefined, {
             page: 1,
             limit: this.limit,
-            status: this.selectedStatus?.code ?? undefined,
-            postType: this.selectedPostType?.code ?? undefined,
-            isFeatured:
-                this.selectedIsFeatured?.code === undefined
-                    ? undefined
-                    : Boolean(this.selectedIsFeatured?.code),
-            isHighlighted:
-                this.selectedIsHighlighted?.code === undefined
-                    ? undefined
-                    : Boolean(this.selectedIsHighlighted?.code),
             keyword: this.currentKeyword ?? undefined
-        };
+        });
 
+        // ngăn subscription của route kích hoạt load lần thứ hai
         // ngăn subscription của route kích hoạt load lần thứ hai
         this._suppressApplyParamsLoad = true;
 
         // cập nhật bộ lọc đã đồng bộ lần cuối để applyParams thấy cùng giá trị
-        this._lastSyncedFilters = { ...currentFilters };
+        this.updateLastSyncedFilters();
 
+        // shared loader + navigation
+        this.applyFiltersAndNavigate(params);
+    }
+
+    // Lọc theo category khi người dùng click vào tên category trong danh sách
+    filterByCategory(categoryId?: number) {
+        if (!this._initialized) {
+            // nếu component chưa sẵn sàng, chặn hành động
+            return;
+        }
+
+        const params: any = this.buildFilterParams(categoryId, {
+            page: 1,
+            limit: this.limit,
+            keyword: this.currentKeyword ?? undefined
+        });
+
+        // ngăn subscription của route kích hoạt load lần thứ hai
+        this._suppressApplyParamsLoad = true;
+
+        // cập nhật bộ lọc đã đồng bộ lần cuối
+        this.updateLastSyncedFilters();
+
+        this.applyFiltersAndNavigate(params);
+    }
+
+    // Shared: perform store.load then navigate to reflect params in URL (keeps categoryId when provided)
+    private applyFiltersAndNavigate(params: any) {
         this.postStore.load(params).finally(() => {
-            // cập nhật URL để phản ánh bộ lọc mới
             const status = params.status ?? null;
             const postType = params.postType ?? null;
             const isHighlighted =
@@ -547,17 +544,23 @@ export class Posts implements OnInit, OnDestroy {
                     ? null
                     : String(params.isFeatured);
 
+            const queryParams: any = {
+                page: 1,
+                limit: this.limit,
+                status,
+                postType,
+                isHighlighted,
+                isFeatured,
+                keyword: params.keyword ?? null
+            };
+
+            if (params.categoryId !== undefined) {
+                queryParams.categoryId = params.categoryId ?? null;
+            }
+
             this.router.navigate([], {
                 relativeTo: this.route,
-                queryParams: {
-                    page: 1,
-                    limit: this.limit,
-                    status,
-                    postType,
-                    isHighlighted,
-                    isFeatured,
-                    keyword: params.keyword ?? null
-                },
+                queryParams,
                 queryParamsHandling: 'merge',
                 replaceUrl: true
             });
@@ -708,7 +711,7 @@ export class Posts implements OnInit, OnDestroy {
         }
     }
 
-    // --- Helpers to reduce duplication for selection & reload operations ---
+    // --- Các hàm trợ giúp để giảm trùng lặp cho các thao tác chọn và tải lại ---
     private idsFromSelected(): number[] {
         return this.selectedItems?.map((i) => i.id) || [];
     }
@@ -724,7 +727,11 @@ export class Posts implements OnInit, OnDestroy {
     }
 
     private updateLastSyncedFilters(): void {
-        this._lastSyncedFilters = {
+        this._lastSyncedFilters = this.buildCurrentFilters();
+    }
+
+    private buildCurrentFilters() {
+        return {
             status: this.selectedStatus?.code ?? undefined,
             postType: this.selectedPostType?.code ?? undefined,
             isHighlighted:
@@ -743,8 +750,107 @@ export class Posts implements OnInit, OnDestroy {
         this.loadData(this.currentKeyword);
     }
 
+    // Đặt lại phân trang về mặc định (page=1, limit=10) và xóa tất cả bộ lọc khác
+    // URL kết quả sẽ chỉ chứa page=1 và limit=10 (các query params khác bị loại bỏ)
+    resetPagination() {
+        this.page = 1;
+        this.limit = 10;
+
+        // Xóa trạng thái bộ lọc cục bộ để UI phản ánh việc xóa bộ lọc
+        this.currentKeyword = undefined;
+        this.selectedStatus = this.statusOptions[0];
+        this.selectedPostType = this.postTypeOptions[0];
+        this.selectedIsHighlighted = this.highlightedOptions[0];
+        this.selectedIsFeatured = this.featuredOptions[0];
+
+        // Xây dựng params tối giản chỉ chứa page và limit
+        const queryParams: any = {
+            page: 1,
+            limit: 10
+        };
+
+        // Ngăn subscription applyParams tải dữ liệu hai lần (chúng ta sẽ tải sau khi điều hướng)
+        this._suppressApplyParamsLoad = true;
+
+        // Điều hướng, thay thế URL và loại bỏ các query params khác bằng cách không dùng merge
+        this.router
+            .navigate([], {
+                relativeTo: this.route,
+                queryParams,
+                replaceUrl: true
+            })
+            .then(() => {
+                // Sau khi điều hướng, tải dữ liệu với bộ lọc đã được xóa.
+                // Gọi load với skipSync=true để ngăn store tự động đồng bộ lại các query params cũ
+                this.postStore
+                    .load(
+                        {
+                            page: 1,
+                            limit: 10,
+                            keyword: undefined,
+                            status: undefined,
+                            categoryId: undefined,
+                            postType: undefined,
+                            isFeatured: undefined,
+                            isHighlighted: undefined
+                        },
+                        { skipSync: true }
+                    )
+                    .finally(() => {
+                        // đảm bảo UI đồng bộ
+                        this.updateLastSyncedFilters();
+                    });
+            });
+    }
+
+    /**
+     * Xây dựng đối tượng params dùng để tải dữ liệu và điều hướng URL.
+     * Chấp nhận categoryId tùy chọn và một đối tượng overrides để thiết lập page/limit/keyword
+     */
+    private buildFilterParams(categoryId?: number, overrides?: any) {
+        // if caller didn't provide categoryId explicitly, preserve one from current route
+        let resolvedCategoryId = categoryId;
+        if (resolvedCategoryId === undefined) {
+            const q = this.route.snapshot.queryParams['categoryId'];
+            if (q !== undefined && q !== null && q !== '') {
+                const n = Number(q);
+                resolvedCategoryId = Number.isNaN(n) ? undefined : n;
+            }
+        }
+
+        return {
+            page: overrides?.page ?? 1,
+            limit: overrides?.limit ?? this.limit,
+            keyword: overrides?.keyword ?? this.currentKeyword ?? undefined,
+            status: this.selectedStatus?.code ?? undefined,
+            postType: this.selectedPostType?.code ?? undefined,
+            isFeatured:
+                this.selectedIsFeatured?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsFeatured?.code),
+            isHighlighted:
+                this.selectedIsHighlighted?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsHighlighted?.code),
+            categoryId: resolvedCategoryId ?? undefined
+        };
+    }
+
     getStatusName(code: string | undefined): string {
         const found = this.statusOptions.find((opt) => opt.code === code);
         return found ? found.name : 'Không xác định';
+    }
+
+    getBgColorForStatus(code: string | undefined): string {
+        switch (code) {
+            case 'PUBLISHED':
+                return 'bg-green-100 text-green-800';
+            case 'ARCHIVED':
+                return 'bg-gray-100 text-gray-800';
+            case 'DRAFT':
+                return 'bg-yellow-100 text-yellow-800';
+            default:
+                return 'bg-gray-100 text-gray-800';
+        }
     }
 }

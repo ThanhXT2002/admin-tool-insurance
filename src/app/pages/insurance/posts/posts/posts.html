@@ -83,7 +83,13 @@
 >
     <ng-template #caption>
         <div class="flex__between flex-col lg:flex-row gap-2">
-            <div class="w-full lg:w-96">
+            <div class="w-full lg:w-96 flex__between gap-2">
+                <p-button
+                    icon="pi pi-refresh"
+                    [rounded]="true"
+                    severity="success"
+                    (onClick)="resetPagination()"
+                />
                 <p-iconfield class="w-full">
                     <p-inputicon class="pi pi-search" />
                     <input
@@ -164,7 +170,8 @@
                             {{ item.title || 'N/A' }}
                         </p>
                         <p
-                            class="!mb-0 p-0 px-2 rounded-full bg-primary/70 w-fit text-white"
+                            class="!mb-0 p-0 px-2 rounded-full bg-primary/70 w-fit text-white cursor-pointer"
+                            (click)="filterByCategory(item.category?.id)"
                         >
                             {{item.category?.name || 'Chưa phân loại'}}
                         </p>
@@ -177,11 +184,11 @@
                 </div>
             </td>
             <td>
-                <div class="text-center">
-                    <div>
-                        {{ getStatusName(item.status) }}
-                    </div>
-                </div>
+                <p class="flex__middle text-nowrap px-2 py-1 rounded-full "
+                    [ngClass]="getBgColorForStatus(item.status)"
+                >
+                    {{ getStatusName(item.status) }}
+                </p>
             </td>
             <td>
                 <div class="flex__middle">

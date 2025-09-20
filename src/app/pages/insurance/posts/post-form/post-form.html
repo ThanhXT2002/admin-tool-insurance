@@ -45,6 +45,16 @@
                         [placeholder]="'Nội dung chi tiết...'"
                     ></app-texteditor-common>
                 </div>
+                <p-floatlabel variant="in">
+                    <input
+                        pInputText
+                        id="videoUrl"
+                        class="w-full"
+                        formControlName="videoUrl"
+                        autocomplete="off"
+                    />
+                    <label for="videoUrl">URL: Video Youtube</label>
+                </p-floatlabel>
             </div>
             <div class="lg:col-span-1 space-y-6">
                 <div class="w-full">
@@ -57,36 +67,26 @@
                     />
                     <!-- <input type="hidden" id="featuredImage"  > -->
                 </div>
-                <p-floatlabel variant="in">
-                    <input
-                        pInputText
-                        id="videoUrl"
-                        class="w-full"
-                        formControlName="videoUrl"
-                        autocomplete="off"
-                    />
-                    <label for="videoUrl">URL: Video Youtube</label>
-                </p-floatlabel>
 
                 <p-floatlabel class="w-full" variant="in">
-                    <p-select
+                    <p-treeselect
                         inputId="categoryId"
+                        formControlName="categoryId"
                         [options]="items()"
-                        [filter]="true"
+                        [showClear]="true"
                         filterBy="name"
                         optionLabel="name"
                         optionValue="id"
+                        [filter]="true"
                         class="w-full"
-                        variant="filled"
-                        formControlName="categoryId"
                     />
                     <label for="categoryId">Chọn danh mục bài viết (*)</label>
                 </p-floatlabel>
-
                 <p-floatlabel class="w-full" variant="in">
                     <p-treeselect
                         inputId="taggedCategoryIds"
                         formControlName="taggedCategoryIds"
+                        [options]="items()"
                         [showClear]="true"
                         selectionMode="multiple"
                         [filter]="true"
@@ -98,11 +98,9 @@
                 <p-floatlabel class="w-full" variant="in">
                     <p-select
                         inputId="status"
-                        [options]="items()"
-                        [filter]="true"
-                        filterBy="name"
+                        [options]="statusOptions"
                         optionLabel="name"
-                        optionValue="id"
+                        optionValue="code"
                         class="w-full"
                         variant="filled"
                         formControlName="status"
@@ -113,11 +111,9 @@
                 <p-floatlabel class="w-full" variant="in">
                     <p-select
                         inputId="postType"
-                        [options]="items()"
-                        [filter]="true"
-                        filterBy="name"
+                        [options]="postTypeOptions"
                         optionLabel="name"
-                        optionValue="id"
+                        optionValue="code"
                         class="w-full"
                         variant="filled"
                         formControlName="postType"
@@ -177,14 +173,17 @@
                 </p-floatlabel>
 
                 <p-floatlabel class="w-full" variant="in">
-                    <p-treeselect
+                    <p-select
                         inputId="relatedProductIds"
                         formControlName="relatedProductIds"
+                        [options]="productOptions()"
+                        optionLabel="name"
+                        optionValue="id"
                         [showClear]="true"
                         selectionMode="multiple"
                         [filter]="true"
                         class="w-full"
-                    />
+                    ></p-select>
                     <label for="relatedProductIds">Sản phẩm liên quan</label>
                 </p-floatlabel>
 
@@ -199,6 +198,32 @@
                         [invalid]="isInvalid('priority')"
                     />
                     <label for="priority">Độ ưu tiên </label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-select
+                        inputId="isHighlighted"
+                        [options]="booleanOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="isHighlighted"
+                    />
+                    <label for="isHighlighted">Có phải bài viết nổi bật?</label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-select
+                        inputId="isFeatured"
+                        [options]="booleanOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="isFeatured"
+                    />
+                    <label for="isFeatured">Có xuất hiện ở trang chủ?</label>
                 </p-floatlabel>
 
                 <p-floatlabel variant="in">

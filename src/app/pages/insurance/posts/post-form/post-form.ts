@@ -28,16 +28,16 @@ import { MessageService } from 'primeng/api';
 import { TexteditorCommon } from '../../components/texteditor-common/texteditor-common';
 import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
 import { PostCategory } from '@/interfaces/post-category.interface';
+import { PostCategoryService } from '@/pages/service/post-category.service';
+import { firstValueFrom } from 'rxjs';
+import { TreeNode } from 'primeng/api';
 import { Post } from '@/interfaces/post.interface';
 import { TreeSelect } from 'primeng/treeselect';
 import { DatePickerModule } from 'primeng/datepicker';
 import { AutoComplete } from 'primeng/autocomplete';
-import {
-    NgxEditorComponent,
-    NgxEditorMenuComponent,
-    Editor,
-    Toolbar
-} from 'ngx-editor';
+import { ProductApiService } from '@/pages/service/productApi.service';
+import { Product } from '@/interfaces/product.interface';
+import { PostStore } from '@/store/post/post.store';
 
 interface AutoCompleteCompleteEvent {
     originalEvent: Event;
@@ -68,10 +68,8 @@ interface AutoCompleteCompleteEvent {
 export class PostForm implements OnInit, OnDestroy {
     private fb = inject(FormBuilder);
     private loadingService = inject(LoadingService);
-    private facade = inject(PostCategoryFacade);
     private messageService = inject(MessageService);
     private route = inject(ActivatedRoute);
-    editor!: Editor;
 
     currentId = signal<number | undefined>(undefined);
     private previewFeaturedImage = signal<string | null>(null);
@@ -80,12 +78,20 @@ export class PostForm implements OnInit, OnDestroy {
     isEditMode = signal(false);
     form!: FormGroup;
 
-    items = signal<PostCategory[]>([]);
+    // Items provided to p-treeselect must be TreeNode[]
+    items = signal<TreeNode[]>([]);
+    // product options for relatedProductIds select
+    productOptions = signal<Product[]>([]);
+    private postCategoryService = inject(PostCategoryService);
+    private productApi = inject(ProductApiService);
     seoData: any = null;
     seoStatus: 'VALID' | 'INVALID' | 'PENDING' = 'PENDING';
     @ViewChild(Seo) seoComp?: Seo;
 
     itemTargetAudience!: any[] | undefined;
+
+    // submitting flag used to disable UI while creating/updating
+    submitting = false;
 
     // edit mode fields
     createdAt?: string | null = null;
@@ -95,25 +101,46 @@ export class PostForm implements OnInit, OnDestroy {
     createdBy?: string | null = null;
     updatedBy?: string | null = null;
 
+    booleanOptions = [
+        { label: 'Có', value: true },
+        { label: 'Không', value: false }
+    ];
+
+    statusOptions = [
+        { name: 'Đang hoạt động', code: 'PUBLISHED' },
+        { name: 'Đã lưu trữ', code: 'ARCHIVED' },
+        { name: 'Bản nháp', code: 'DRAFT' }
+    ];
+
+    postTypeOptions = [
+        { name: 'Bài viết', code: 'ARTICLE' },
+        { name: 'Hướng dẫn', code: 'GUIDE' },
+        { name: 'Tin tức', code: 'NEWS' },
+        { name: 'Sản phẩm', code: 'PRODUCT' },
+        { name: 'Câu hỏi thường gặp', code: 'FAQ' }
+    ];
+
     constructor() {
         this.form = this.fb.group({
             title: ['', [Validators.required]],
             excerpt: [''],
             shortContent: [''],
             content: ['', [Validators.required]],
-            status: [undefined, [Validators.required]],
+            status: ['DRAFT', [Validators.required]],
             videoUrl: [''],
             note: [''],
             priority: [0],
             isHighlighted: [false],
             isFeatured: [false],
-            postType: [undefined, [Validators.required]],
+            postType: ['ARTICLE', [Validators.required]],
             categoryId: ['', [Validators.required]],
             taggedCategoryIds: [''],
             scheduledAt: [''],
             expiredAt: [''],
             targetAudience: [undefined],
             relatedProductIds: [undefined],
+            // file control for featured image (will be attached to FormData)
+            featuredImage: [null],
             metaKeywords: ['']
         });
 
@@ -123,57 +150,121 @@ export class PostForm implements OnInit, OnDestroy {
                 ? 'Cập Nhật Bài Viết'
                 : 'Thêm Bài Viết';
         });
-
-        // Effect: khi `facade.selected()` trả về item (ví dụ khi loadById hoàn tất),
-        // patch giá trị vào form. Đồng thời đảm bảo parent option tồn tại
-        // trong `items` để p-select hiển thị nhãn.
-        // Lưu ý: effect này được tạo trong constructor để có injection context
-        effect(() => {
-            const sel = this.facade.selected();
-            const id = this.currentId();
-            if (sel && id && sel.id === id) {
-                // Only patch the form if incoming values differ from current form
-                // to avoid re-patch loops when effects/streams emit repeatedly.
-                const cur = this.form.value || {};
-                const needPatch =
-                    cur.name !== sel.name ||
-                    (cur.parentId ?? null) !== (sel.parentId ?? null) ||
-                    cur.order !== sel.order ||
-                    !!cur.active !== !!sel.active ||
-                    (cur.description ?? '') !== (sel.description ?? '');
-
-                if (needPatch) {
-                    // Use emitEvent:false to avoid triggering valueChange subscriptions
-                    // that might feed back into effects.
-                    this.form.patchValue(
-                        {
-                            name: sel.name,
-                            parentId: sel.parentId,
-                            order: sel.order,
-                            active: !!sel.active,
-                            description: sel.description
-                        },
-                        { emitEvent: false }
-                    );
-                }
-                this.seoData = sel.seoMeta ?? null;
-                this.createdAt = sel.createdAt;
-                this.updatedAt = sel.updatedAt;
-                this.createdBy = sel.createdBy;
-                this.updatedBy = sel.updatedBy;
-            }
-        });
     }
 
     ngOnInit(): void {
-        this.editor = new Editor();
+        // Load category tree for treeselects
+        this.loadCategories();
+        // Load related products (up to 100 items)
+        this.loadProducts();
+    }
+
+    private async loadCategories() {
+        try {
+            const resp: any = await firstValueFrom(
+                this.postCategoryService.getNested({
+                    includeInactive: false
+                } as any)
+            );
+            const data: PostCategory[] | null = resp?.data ?? null;
+            const nodes: TreeNode[] = Array.isArray(data)
+                ? this.toTreeNodes(data)
+                : [];
+            this.items.set(nodes);
+        } catch (err) {
+            console.error('Failed to load categories for treeselect', err);
+            this.items.set([]);
+        }
+    }
+
+    private toTreeNodes(items: PostCategory[]): TreeNode[] {
+        return items.map((it) => ({
+            label: it.name,
+            data: it,
+            key: String(it.id),
+            selectable: true,
+            expanded: true,
+            children: it.children ? this.toTreeNodes(it.children) : undefined
+        }));
+    }
+
+    private async loadProducts() {
+        try {
+            const resp: any = await firstValueFrom(
+                this.productApi.getAll({ limit: 100 }) as any
+            );
+            const payload: any = resp?.data;
+            const rows: Product[] = Array.isArray(payload?.rows)
+                ? payload.rows
+                : [];
+            this.productOptions.set(rows);
+        } catch (err) {
+            console.error('Failed to load related products', err);
+            this.productOptions.set([]);
+        }
     }
 
     ngOnDestroy(): void {
-        this.editor.destroy();
+        // Revoke object URL if we created one to avoid memory leak
+        try {
+            const url = this.previewFeaturedImage();
+            if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
+        } catch (err) {
+            // ignore
+        }
     }
+    submit() {
+        // mark parent controls
+        this.form.markAllAsTouched();
 
-    submit() {}
+        // validate seo child (mark touched and get boolean)
+        const childValid = this.seoComp
+            ? this.seoComp.validate()
+            : this.seoStatus === 'VALID';
+
+        // Prepare payload
+        const payload: any = {
+            ...this.form.value,
+            seoMeta: this.seoData
+        };
+
+        // Log payload (mask file content) for inspection before sending
+        const logged = { ...payload };
+        try {
+            const f = this.form.get('featuredImage')?.value;
+            logged.featuredImage = f
+                ? '[File]'
+                : (payload.featuredImage ?? null);
+        } catch (err) {
+            // ignore
+        }
+        console.log('Prepared post payload (preview):', logged);
+        console.log(
+            'Featured image file object:',
+            this.form.get('featuredImage')?.value ?? null
+        );
+
+        if (this.form.valid && childValid) {
+            // continuing to create/update
+            this.submitting = true;
+            this.loadingService.show();
+
+            const postStore = inject(PostStore);
+            if (this.isEditMode() && this.currentId()) {
+                const id = this.currentId() as number;
+                postStore.update(id, payload);
+            } else {
+                postStore.create(payload);
+            }
+        } else {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Thiếu thông tin',
+                detail: 'Vui lòng kiểm tra lại thông tin trong form'
+            });
+            this.form.markAllAsTouched();
+        }
+    }
 
     searchTargetAudience(event: AutoCompleteCompleteEvent) {
         this.targetAudience?.setValue(
@@ -193,8 +284,7 @@ export class PostForm implements OnInit, OnDestroy {
     }
 
     onFeaturedImageClick(): void {
-        // prevent concurrent uploads
-
+        // allow user to pick a single image file, preview it and attach to the form
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
@@ -202,10 +292,20 @@ export class PostForm implements OnInit, OnDestroy {
             const file: File = event.target.files && event.target.files[0];
             if (!file) return;
 
-            // create preview
-            const reader = new FileReader();
-            reader.onload = (e: any) => {};
-            reader.readAsDataURL(file);
+            // revoke previous blob URL if any
+            try {
+                const prev = this.previewFeaturedImage();
+                if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
+            } catch (err) {
+                // ignore
+            }
+
+            // create object URL preview and set to signal
+            const url = URL.createObjectURL(file);
+            this.previewFeaturedImage.set(url);
+
+            // attach File to form control so PostService.buildFormData will include it
+            this.form.get('featuredImage')?.setValue(file);
         };
         input.click();
     }
