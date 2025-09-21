@@ -74,9 +74,9 @@
                         formControlName="categoryId"
                         [options]="items()"
                         [showClear]="true"
-                        filterBy="name"
-                        optionLabel="name"
-                        optionValue="id"
+                        filterBy="label"
+                        optionLabel="label"
+                        optionValue="key"
                         [filter]="true"
                         class="w-full"
                     />
@@ -88,6 +88,7 @@
                         formControlName="taggedCategoryIds"
                         [options]="items()"
                         [showClear]="true"
+                        [metaKeySelection]="false"
                         selectionMode="multiple"
                         [filter]="true"
                         class="w-full"
@@ -127,7 +128,11 @@
                         class="w-full"
                         formArrayName="scheduledAt"
                         showIcon
+                        [showTime]="true"
+                        [hourFormat]="'24'"
                         iconDisplay="input"
+                        dateFormat="dd.mm.yy"
+                         [invalid]="isInvalid('scheduledAt')"
                     />
                     <label for="scheduledAt">Thời gian lên bài dự kiến</label>
                 </p-floatlabel>
@@ -138,7 +143,11 @@
                         class="w-full"
                         formArrayName="expiredAt"
                         showIcon
+                        [showTime]="true"
+                        [hourFormat]="'24'"
+                        dateFormat="dd.mm.yy"
                         iconDisplay="input"
+                        [invalid]="isInvalid('expiredAt')"
                     />
                     <label for="expiredAt">Thời gian hết hạn</label>
                 </p-floatlabel>
@@ -173,7 +182,7 @@
                 </p-floatlabel>
 
                 <p-floatlabel class="w-full" variant="in">
-                    <p-select
+                    <p-multiselect
                         inputId="relatedProductIds"
                         formControlName="relatedProductIds"
                         [options]="productOptions()"
@@ -183,7 +192,7 @@
                         selectionMode="multiple"
                         [filter]="true"
                         class="w-full"
-                    ></p-select>
+                    ></p-multiselect>
                     <label for="relatedProductIds">Sản phẩm liên quan</label>
                 </p-floatlabel>
 

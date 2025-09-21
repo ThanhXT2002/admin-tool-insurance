@@ -38,6 +38,7 @@ import { AutoComplete } from 'primeng/autocomplete';
 import { ProductApiService } from '@/pages/service/productApi.service';
 import { Product } from '@/interfaces/product.interface';
 import { PostStore } from '@/store/post/post.store';
+import { MultiSelect } from 'primeng/multiselect';
 
 interface AutoCompleteCompleteEvent {
     originalEvent: Event;
@@ -59,7 +60,8 @@ interface AutoCompleteCompleteEvent {
         TreeSelect,
         CommonModule,
         AutoComplete,
-        DatePickerModule
+        DatePickerModule,
+        MultiSelect
     ],
     encapsulation: ViewEncapsulation.None,
     templateUrl: './post-form.html',
@@ -70,6 +72,7 @@ export class PostForm implements OnInit, OnDestroy {
     private loadingService = inject(LoadingService);
     private messageService = inject(MessageService);
     private route = inject(ActivatedRoute);
+    private postStore = inject(PostStore);
 
     currentId = signal<number | undefined>(undefined);
     private previewFeaturedImage = signal<string | null>(null);
@@ -213,6 +216,7 @@ export class PostForm implements OnInit, OnDestroy {
             // ignore
         }
     }
+
     submit() {
         // mark parent controls
         this.form.markAllAsTouched();
@@ -227,6 +231,55 @@ export class PostForm implements OnInit, OnDestroy {
             ...this.form.value,
             seoMeta: this.seoData
         };
+
+        // Normalize category/taggedCategory/relatedProduct values to plain ids
+        try {
+            // categoryId can be number or object (tree node) depending on p-treeselect config
+            const rawCat = this.form.get('categoryId')?.value;
+            if (rawCat == null || rawCat === '') payload.categoryId = undefined;
+            else if (typeof rawCat === 'number') payload.categoryId = rawCat;
+            else if (typeof rawCat === 'string' && !isNaN(Number(rawCat)))
+                payload.categoryId = Number(rawCat);
+            else if (rawCat && typeof rawCat === 'object')
+                payload.categoryId = rawCat.id ?? rawCat.data?.id;
+
+            // taggedCategoryIds may be an array of nodes or ids
+            const rawTagged = this.form.get('taggedCategoryIds')?.value;
+            if (Array.isArray(rawTagged)) {
+                payload.taggedCategoryIds = rawTagged
+                    .map((it: any) => {
+                        if (it == null) return it;
+                        if (typeof it === 'number') return it;
+                        if (typeof it === 'string' && !isNaN(Number(it)))
+                            return Number(it);
+                        if (typeof it === 'object')
+                            return it.id ?? it.data?.id ?? null;
+                        return null;
+                    })
+                    .filter((v: any) => v != null);
+            } else {
+                payload.taggedCategoryIds = undefined;
+            }
+
+            // relatedProductIds may be array of Product objects or ids
+            const rawRelated = this.form.get('relatedProductIds')?.value;
+            if (Array.isArray(rawRelated)) {
+                payload.relatedProductIds = rawRelated
+                    .map((it: any) => {
+                        if (it == null) return it;
+                        if (typeof it === 'number') return it;
+                        if (typeof it === 'string' && !isNaN(Number(it)))
+                            return Number(it);
+                        if (typeof it === 'object') return it.id ?? null;
+                        return null;
+                    })
+                    .filter((v: any) => v != null);
+            } else {
+                payload.relatedProductIds = undefined;
+            }
+        } catch (err) {
+            console.warn('Failed to normalize category/related values', err);
+        }
 
         // Log payload (mask file content) for inspection before sending
         const logged = { ...payload };
@@ -249,12 +302,11 @@ export class PostForm implements OnInit, OnDestroy {
             this.submitting = true;
             this.loadingService.show();
 
-            const postStore = inject(PostStore);
             if (this.isEditMode() && this.currentId()) {
                 const id = this.currentId() as number;
-                postStore.update(id, payload);
+                this.postStore.update(id, payload);
             } else {
-                postStore.create(payload);
+                // postStore.create(payload);
             }
         } else {
             this.messageService.add({
