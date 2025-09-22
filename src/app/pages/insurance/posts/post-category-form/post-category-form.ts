@@ -1,10 +1,4 @@
-import {
-    Component,
-    effect,
-    inject,
-    signal,
-    ViewChild
-} from '@angular/core';
+import { Component, effect, inject, signal, ViewChild } from '@angular/core';
 import {
     FormBuilder,
     FormGroup,
@@ -49,7 +43,6 @@ export class PostCategoryForm {
     private loadingService = inject(LoadingService);
     private messageService = inject(MessageService);
 
-
     // Danh sách options cho select (dẫn từ facade.items() nhưng có thể được
     // mở rộng tại chỗ nếu parent cần hiển thị nhưng chưa có trong items())
     items = signal<PostCategory[]>([]);
@@ -79,7 +72,7 @@ export class PostCategoryForm {
     createdAt?: string | null = null;
     updatedAt?: string | null = null;
 
-        // edit mode fields
+    // edit mode fields
     createdBy?: string | null = null;
     updatedBy?: string | null = null;
 
@@ -97,6 +90,14 @@ export class PostCategoryForm {
             this.headerTitle = this.isEditMode()
                 ? 'Cập Nhật Danh Mục Bài Viết'
                 : 'Thêm Danh Mục Bài Viết';
+        });
+
+        effect(() => {
+            const rows = this.facade.items();
+            this.items.set(rows || []);
+            if (!rows || (Array.isArray(rows) && rows.length === 0)) {
+                this.loadCategories();
+            }
         });
 
         // Effect: đồng bộ `items` từ facade, nhưng:
@@ -166,15 +167,7 @@ export class PostCategoryForm {
         });
     }
 
-
     ngOnInit() {
-        this.facade.load({
-            page: undefined,
-            limit: 1000,
-            keyword: '',
-            active: true
-        });
-
         const idParam = Number(this.route.snapshot.paramMap.get('id'));
         if (idParam) {
             this.isEditMode.set(true);
@@ -183,6 +176,20 @@ export class PostCategoryForm {
             this.facade.loadById(idParam);
             // The effect that patches the form runs in the constructor and
             // will react when facade.selected() becomes available and matches currentId.
+        }
+    }
+
+    private async loadCategories() {
+        try {
+            this.facade.load({
+                page: undefined,
+                limit: 500,
+                keyword: '',
+                active: undefined
+            });
+        } catch (err) {
+            console.error('Failed to load categories for treeselect', err);
+            this.items.set([]);
         }
     }
 
@@ -218,7 +225,7 @@ export class PostCategoryForm {
             }
             // this.saved.emit();
         } else {
-          this.messageService.add({
+            this.messageService.add({
                 severity: 'error',
                 summary: 'Thiếu thông tin',
                 detail: 'Vui lòng kiểm tra lại thông tin trong form'

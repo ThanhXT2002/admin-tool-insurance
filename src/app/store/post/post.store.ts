@@ -117,9 +117,15 @@ export class PostStore extends BaseStoreSignal<PostListState> {
         if (qp['isHighlighted'] !== undefined)
             parsed.isHighlighted = qp['isHighlighted'] === 'true';
 
-        // call load which will patch state and fetch data
-        // but skip syncing back to the router since we're hydrating from the router
-        this.load(parsed, { skipSync: true });
+        // only call load when parsed contains at least one filter/page/limit value
+        // this prevents hydrateFromQueryParams from triggering an unnecessary
+        // API call when the router queryParams object is empty
+        const hasAny = Object.keys(parsed).length > 0;
+        if (hasAny) {
+            // call load which will patch state and fetch data
+            // but skip syncing back to the router since we're hydrating from the router
+            this.load(parsed, { skipSync: true });
+        }
 
         return parsed;
     }

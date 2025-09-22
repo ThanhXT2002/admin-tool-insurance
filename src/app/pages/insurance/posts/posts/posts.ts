@@ -71,6 +71,8 @@ export class Posts implements OnInit, OnDestroy {
     private destroy$ = new Subject<void>();
     private skipLazyLoads = 0;
     private searchTimeout: any;
+    // Prevent overlapping API calls
+    private _isLoadingInFlight = false;
     // Khi true, applyParams sẽ không gọi store.load vì handler đã gọi trước đó
     private _suppressApplyParamsLoad = false;
     // Đặt true sau khi hydrate/load ban đầu hoàn tất để bỏ qua các sự kiện ngModelChange sinh ra trong khởi tạo
@@ -129,7 +131,7 @@ export class Posts implements OnInit, OnDestroy {
     selectedIsHighlighted = this.highlightedOptions[0];
     selectedIsFeatured = this.featuredOptions[0];
 
-    // ... các trường và hiệu ứng được khai báo ở trên ...
+
     ngOnInit() {
         const queryParams = this.route.snapshot.queryParams;
         this.page = Number(queryParams['page']) || 1;
@@ -204,9 +206,16 @@ export class Posts implements OnInit, OnDestroy {
 
         // Nếu hydrateFromQueryParams đã cung cấp filter (parsed not empty),
         // thì store.load đã được gọi trong hydrate -> không gọi loadData thêm lần nữa.
-        // Nếu không có query params, gọi loadData để tải dữ liệu mặc định.
+        // Nếu không có query params, chỉ gọi loadData khi store hiện tại không có dữ liệu
         if (!parsed || Object.keys(parsed).length === 0) {
-            this.loadData(this.currentKeyword);
+            const currentRows = this.postStore.rows();
+            if (!currentRows || (Array.isArray(currentRows) && currentRows.length === 0)) {
+                // store empty -> tải dữ liệu từ API
+                this.loadData(this.currentKeyword);
+            } else {
+                // store đã có dữ liệu -> không cần gọi API, đảm bảo loading=false
+                this.loading = false;
+            }
         }
 
         // cho phép các handler thay đổi select chỉ chạy sau khi hydrate/tải ban đầu hoàn tất
@@ -272,7 +281,11 @@ export class Posts implements OnInit, OnDestroy {
     }
 
     loadData(keyword?: string) {
+        // avoid duplicate concurrent loads
+        if (this._isLoadingInFlight) return;
+
         this.loading = true;
+        this._isLoadingInFlight = true;
 
         const params: any = this.buildFilterParams(undefined, {
             page: this.page,
@@ -285,6 +298,7 @@ export class Posts implements OnInit, OnDestroy {
             .load(params, { skipSync: !this._initialized })
             .finally(() => {
                 this.loading = false;
+                this._isLoadingInFlight = false;
             });
     }
 
@@ -309,7 +323,7 @@ export class Posts implements OnInit, OnDestroy {
     }
 
     editItem(id: number) {
-        this.router.navigate(['/insurance/post/update', id]);
+        this.router.navigate(['/insurance/posts/update', id]);
     }
 
     // Xuất bản một bài viết

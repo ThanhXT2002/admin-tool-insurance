@@ -86,10 +86,11 @@ export class PostForm implements OnInit, OnDestroy {
     form!: FormGroup;
 
     // Items provided to p-treeselect must be TreeNode[]
-    items = signal<TreeNode[]>([]);
+    items = signal<PostCategory[]>([]);
     // product options for relatedProductIds select
     productOptions = signal<Product[]>([]);
     private postCategoryService = inject(PostCategoryService);
+    private facadePostCategory = inject(PostCategoryFacade);
     private productApi = inject(ProductApiService);
     private _subs = new Subscription();
     seoData: any = null;
@@ -161,6 +162,14 @@ export class PostForm implements OnInit, OnDestroy {
                 ? 'Cập Nhật Bài Viết'
                 : 'Thêm Bài Viết';
         });
+
+        effect(() => {
+            const rows = this.facadePostCategory.items();
+            this.items.set(rows || []);
+            if (!rows || (Array.isArray(rows) && rows.length === 0)) {
+                this.loadCategories();
+            }
+        });
     }
 
     // Validator: optional YouTube URL validator
@@ -212,7 +221,7 @@ export class PostForm implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         // Load category tree for treeselects
-        this.loadCategories();
+
         // Load related products (up to 100 items)
         this.loadProducts();
 
@@ -233,35 +242,148 @@ export class PostForm implements OnInit, OnDestroy {
                 )
             );
         }
+
+        // If route contains an id param -> load post for edit
+        try {
+            const idParam = this.route.snapshot.paramMap.get('id');
+            if (idParam) {
+                const id = Number(idParam);
+                if (!isNaN(id)) {
+                    this.currentId.set(id);
+                    this.isEditMode.set(true);
+                    // load details and populate form
+                    this.loadPostForEdit(id).catch((err) => {
+                        console.error('Failed to load post for edit', err);
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Lỗi',
+                            detail: 'Không thể tải chi tiết bài viết'
+                        });
+                    });
+                }
+            }
+        } catch (err) {
+            // ignore
+        }
+    }
+
+    // Load post detail and populate the form for update
+    private async loadPostForEdit(id: number) {
+        this.loadingService.show();
+        try {
+            const post: Post = await this.postStore.fetchById(id);
+            if (!post) throw new Error('Post not found');
+
+            // basic fields
+            this.form.get('title')?.setValue(post.title ?? '');
+            this.form.get('excerpt')?.setValue(post.excerpt ?? '');
+            this.form.get('shortContent')?.setValue(post.shortContent ?? '');
+            this.form.get('content')?.setValue(post.content ?? '');
+            this.form.get('status')?.setValue(post.status ?? 'DRAFT');
+            this.form.get('videoUrl')?.setValue(post.videoUrl ?? '');
+            this.form.get('note')?.setValue(post.note ?? '');
+            this.form.get('priority')?.setValue(post.priority ?? 0);
+            this.form.get('isHighlighted')?.setValue(!!post.isHighlighted);
+            this.form.get('isFeatured')?.setValue(!!post.isFeatured);
+            this.form.get('postType')?.setValue(post.postType ?? 'ARTICLE');
+
+            // category: API returns full category object
+            if (post.category && post.category.id != null) {
+                this.form.get('categoryId')?.setValue(post.category.id);
+            }
+
+            // tagged categories -> set ids array
+            if (Array.isArray(post.taggedCategories)) {
+                this.form
+                    .get('taggedCategoryIds')
+                    ?.setValue(post.taggedCategories.map((c: any) => c.id));
+            }
+
+            // related products -> set array of ids
+            if (Array.isArray(post.relatedProducts)) {
+                this.form
+                    .get('relatedProductIds')
+                    ?.setValue(post.relatedProducts.map((p: any) => p.id));
+            }
+
+            // dates: convert ISO -> Date for datepicker
+            try {
+                this.form
+                    .get('scheduledAt')
+                    ?.setValue(
+                        post.scheduledAt ? new Date(post.scheduledAt) : ''
+                    );
+            } catch (err) {}
+            try {
+                this.form
+                    .get('expiredAt')
+                    ?.setValue(post.expiredAt ? new Date(post.expiredAt) : '');
+            } catch (err) {}
+
+            // targetAudience and metaKeywords are arrays
+            if (Array.isArray(post.targetAudience))
+                this.form.get('targetAudience')?.setValue(post.targetAudience);
+            if (Array.isArray(post.metaKeywords))
+                this.form.get('metaKeywords')?.setValue(post.metaKeywords);
+
+            // featured image: backend returns URL -> use as preview and set control to string
+            if (post.featuredImage) {
+                try {
+                    this.previewFeaturedImage.set(post.featuredImage as any);
+                    // set form control to URL so buildFormData can send existing URL
+                    this.form
+                        .get('featuredImage')
+                        ?.setValue(post.featuredImage);
+                } catch (err) {}
+            }
+
+            // SEO meta
+            if (post.seoMeta) {
+                this.seoData = post.seoMeta;
+                this.seoStatus = 'VALID';
+                // if Seo component exposes a setter we could call it, but keep data in seoData
+                try {
+                    // @ts-ignore - optional helper if Seo component implements setData
+                    if (
+                        this.seoComp &&
+                        typeof (this.seoComp as any).setData === 'function'
+                    )
+                        (this.seoComp as any).setData(post.seoMeta);
+                } catch (err) {}
+            }
+
+            // audit fields for display
+            this.createdAt = post.createdAt ?? null;
+            this.updatedAt = post.updatedAt ?? null;
+            // createdBy/updatedBy aren't in the typed Post interface; read defensively
+            this.createdBy = (post as any)?.createdBy ?? null;
+            this.updatedBy = (post as any)?.updatedBy ?? null;
+
+            // mark form as pristine since we loaded remote data
+            try {
+                this.form.markAsPristine();
+                this.form.markAsUntouched();
+            } catch (err) {}
+        } finally {
+            try {
+                this.loadingService.hide();
+                console.log('form value', this.form.value);
+            } catch (ignore) {}
+        }
     }
 
     private async loadCategories() {
         try {
-            const resp: any = await firstValueFrom(
-                this.postCategoryService.getNested({
-                    includeInactive: false
-                } as any)
-            );
-            const data: PostCategory[] | null = resp?.data ?? null;
-            const nodes: TreeNode[] = Array.isArray(data)
-                ? this.toTreeNodes(data)
-                : [];
-            this.items.set(nodes);
+            this.facadePostCategory.load({
+                    page: undefined,
+                    limit: 500,
+                    keyword: '',
+                    active: undefined
+                });
         } catch (err) {
             console.error('Failed to load categories for treeselect', err);
             this.items.set([]);
         }
-    }
-
-    private toTreeNodes(items: PostCategory[]): TreeNode[] {
-        return items.map((it) => ({
-            label: it.name,
-            data: it,
-            key: String(it.id),
-            selectable: true,
-            expanded: true,
-            children: it.children ? this.toTreeNodes(it.children) : undefined
-        }));
     }
 
     private async loadProducts() {
@@ -296,6 +418,7 @@ export class PostForm implements OnInit, OnDestroy {
     }
 
     async submit() {
+        console.log('[PostForm] form submit, form value:', this.form.value);
         this.form.markAllAsTouched();
         const childValid = this.seoComp
             ? this.seoComp.validate()

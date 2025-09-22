@@ -90,31 +90,32 @@
                 </div>
 
                 <p-floatlabel class="w-full" variant="in">
-                    <p-treeselect
+                    <p-select
                         inputId="categoryId"
-                        formControlName="categoryId"
                         [options]="items()"
-                        [showClear]="true"
-                        filterBy="label"
-                        optionLabel="label"
-                        optionValue="key"
                         [filter]="true"
-                        [invalid]="isInvalid('categoryId')"
+                        filterBy="name"
+                        optionLabel="name"
+                        optionValue="id"
                         class="w-full"
+                        variant="filled"
+                        formControlName="categoryId"
                     />
                     <label for="categoryId">Chọn danh mục bài viết (*)</label>
                 </p-floatlabel>
                 <p-floatlabel class="w-full" variant="in">
-                    <p-treeselect
+
+                  <p-multiselect
                         inputId="taggedCategoryIds"
                         formControlName="taggedCategoryIds"
                         [options]="items()"
+                        optionLabel="name"
+                        optionValue="id"
                         [showClear]="true"
-                        [metaKeySelection]="false"
                         selectionMode="multiple"
                         [filter]="true"
                         class="w-full"
-                    />
+                    ></p-multiselect>
                     <label for="taggedCategoryIds">Danh mục gán thẻ</label>
                 </p-floatlabel>
 
