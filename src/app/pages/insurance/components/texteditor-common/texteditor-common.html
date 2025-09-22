@@ -1,4 +1,8 @@
-<div class="NgxEditor__Wrapper mt-3">
+<div
+    class="NgxEditor__Wrapper mt-3"
+    (focusout)="markTouched()"
+    [ngClass]="{'border': invalid, '!border-red-500': invalid}"
+>
     <ngx-editor-menu [editor]="editor" [toolbar]="toolbar"> </ngx-editor-menu>
     <ngx-editor
         [editor]="editor"
@@ -7,4 +11,4 @@
         [disabled]="disabled"
         [placeholder]="placeholder"
     ></ngx-editor>
-  </div>
+</div>

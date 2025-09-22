@@ -7,7 +7,9 @@ import {
     OnChanges,
     SimpleChanges,
     ElementRef,
-    Renderer2
+    Renderer2,
+    Optional,
+    Self
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -15,6 +17,7 @@ import {
     NG_VALUE_ACCESSOR,
     FormsModule
 } from '@angular/forms';
+// NgControl intentionally not imported to avoid circular DI with NG_VALUE_ACCESSOR
 import {
     NgxEditorModule,
     NgxEditorComponent,
@@ -61,10 +64,12 @@ export class TexteditorCommon
     private onChange: (v: any) => void = () => {};
     private onTouched: () => void = () => {};
 
-    // host-scoped classname so the injected style only targets this component
+    // Tên lớp (scoped) gắn lên host để stylesheet được chèn chỉ tác động đến component này
     private hostScopeClass =
         'texteditor-common-' + Math.random().toString(36).slice(2, 9);
     private styleEl: HTMLStyleElement | null = null;
+    // Nếu parent muốn truyền trạng thái invalid, bind vào input này
+    @Input() invalid = false;
 
     constructor(
         private hostEl: ElementRef,
@@ -73,18 +78,21 @@ export class TexteditorCommon
 
     ngOnInit(): void {
         this.editor = new Editor({ history: true });
-        // add a unique class to the host so our injected stylesheet can scope to it
+        // Thêm một lớp duy nhất lên phần tử host để stylesheet chèn vào chỉ ảnh hưởng component này
         try {
             this.renderer.addClass(
                 this.hostEl.nativeElement,
                 this.hostScopeClass
             );
         } catch (err) {
-            // fall back silently if renderer cannot add class
+            // Bỏ qua nếu không thể thêm lớp bằng renderer
         }
 
-        // apply initial height if provided
+        // Áp dụng chiều cao ban đầu nếu input `height` được cung cấp
         this.applyHeightStyle();
+
+        // Không tự động inject NgControl để tránh vòng phụ thuộc DI.
+        // Nếu parent muốn component hiển thị trạng thái invalid, hãy bind [invalid] từ parent.
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -95,16 +103,20 @@ export class TexteditorCommon
 
     ngOnDestroy(): void {
         this.editor.destroy();
-        // remove injected style element when component destroyed
+        // Gỡ style element đã chèn khi component bị huỷ
         if (this.styleEl && this.styleEl.parentNode) {
             try {
                 this.styleEl.parentNode.removeChild(this.styleEl);
             } catch (err) {
-                // ignore
+                // Bỏ qua nếu gỡ style thất bại
             }
             this.styleEl = null;
         }
+        // Không có đăng ký statusChanges để huỷ vì component không subscribe NgControl
     }
+
+    // Trước đây component tự subscribe NgControl để tính trạng thái invalid,
+    // nhưng điều này gây vòng lặp DI. Giờ parent sẽ bind [invalid] nếu cần.
 
     writeValue(obj: any): void {
         this.value = obj ?? '';
@@ -119,13 +131,23 @@ export class TexteditorCommon
         this.disabled = isDisabled;
     }
 
-    // called when editor content changes
+    // Được gọi khi nội dung editor thay đổi
     onContentChange(html: string) {
         this.value = html;
         this.onChange(this.value);
     }
 
-    // public helper
+    // Đánh dấu control là 'touched' từ bên trong component khi user rời khỏi editor
+    // Điều này sẽ kích hoạt hiển thị lỗi validation ngay khi người dùng blur khỏi editor
+    public markTouched() {
+        try {
+            this.onTouched();
+        } catch (err) {
+            // ignore
+        }
+    }
+
+    // Helper công khai: cho phép bên ngoài set chiều cao của editor
     setHeight(h: number | string | null) {
         this.height = h;
         this.applyHeightStyle();
@@ -134,7 +156,7 @@ export class TexteditorCommon
     private applyHeightStyle() {
         const h = this.height;
 
-        // if no height provided, remove existing style
+        // Nếu không có giá trị height, gỡ style đã chèn (nếu có)
         if (h === null || h === undefined || h === '') {
             if (this.styleEl && this.styleEl.parentNode) {
                 try {
@@ -150,16 +172,17 @@ export class TexteditorCommon
         const css = `.${this.hostScopeClass} .NgxEditor { height: ${value} !important; min-height: ${value} !important; max-height: none !important; overflow: auto; }`;
 
         if (!this.styleEl) {
+            // Chèn stylesheet mới nếu chưa có
             this.styleEl = document.createElement('style');
             this.styleEl.type = 'text/css';
             this.styleEl.appendChild(document.createTextNode(css));
             document.head.appendChild(this.styleEl);
         } else {
-            // replace contents
+            // Thay thế nội dung CSS nếu đã tồn tại
             try {
                 this.styleEl.textContent = css;
             } catch (err) {
-                // fallback: recreate
+                // Phương án dự phòng: tạo lại style element
                 if (this.styleEl.parentNode) {
                     this.styleEl.parentNode.removeChild(this.styleEl);
                 }

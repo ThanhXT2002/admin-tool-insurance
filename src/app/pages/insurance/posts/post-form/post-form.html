@@ -1,6 +1,12 @@
 <div class="card !p-5 flex__between sticky top-16 left-0 right-0 z-50">
     <div class="font-bold text-xl">{{headerTitle}}</div>
-    <p-button label="Lưu" severity="primary" (onClick)="submit()" />
+    <p-button
+        label="Lưu"
+        severity="primary"
+        (onClick)="submit()"
+        [disabled]="submitting"
+        [loading]="submitting"
+    ></p-button>
 </div>
 
 <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-8">
@@ -25,6 +31,7 @@
                     <app-texteditor-common
                         [height]="'150px'"
                         formControlName="excerpt"
+                        [invalid]="isInvalid('excerpt')"
                         [placeholder]="'Tóm tắt ngắn...'"
                     ></app-texteditor-common>
                 </div>
@@ -33,15 +40,17 @@
                     <app-texteditor-common
                         [height]="'250px'"
                         formControlName="shortContent"
+                        [invalid]="isInvalid('shortContent')"
                         [placeholder]="'Nội dung đầu...'"
                     ></app-texteditor-common>
                 </div>
 
                 <div>
-                    <label for="content">Nội dung chi tiết</label>
+                    <label for="content">Nội dung chi tiết (*)</label>
                     <app-texteditor-common
                         [height]="'450px'"
                         formControlName="content"
+                        [invalid]="isInvalid('content')"
                         [placeholder]="'Nội dung chi tiết...'"
                     ></app-texteditor-common>
                 </div>
@@ -51,18 +60,30 @@
                         id="videoUrl"
                         class="w-full"
                         formControlName="videoUrl"
+                        [invalid]="isInvalid('videoUrl') || (form.get('videoUrl')?.errors?.['youtubeUrl'] && (form.get('videoUrl')?.touched || form.get('videoUrl')?.dirty))"
                         autocomplete="off"
                     />
                     <label for="videoUrl">URL: Video Youtube</label>
+                    @if(form.get('videoUrl')?.errors?.['youtubeUrl'] &&
+                    (form.get('videoUrl')?.touched ||
+                    form.get('videoUrl')?.dirty)){
+                    <p class="text-sm text-red-600 !mb-0 mt-1">
+                        URL không hợp lệ - nhập link YouTube
+                        (youtube.com/watch?v=... hoặc youtu.be/...)
+                    </p>
+                    }
                 </p-floatlabel>
             </div>
             <div class="lg:col-span-1 space-y-6">
                 <div class="w-full">
-                    <label class="featuredImage">Chọn hình ảnh </label>
+                    <label class="featuredImage">Chọn hình ảnh (*)</label>
                     <img
                         [src]="displayFeaturedImage"
                         class="h-[200px] w-full overflow-hidden object-cover cursor-pointer mt-3 rounded-md"
                         (click)="onFeaturedImageClick()"
+                        [ngClass]="{
+                            'border border-red-500': isInvalid('featuredImage')
+                        }"
                         alt=""
                     />
                     <!-- <input type="hidden" id="featuredImage"  > -->
@@ -78,6 +99,7 @@
                         optionLabel="label"
                         optionValue="key"
                         [filter]="true"
+                        [invalid]="isInvalid('categoryId')"
                         class="w-full"
                     />
                     <label for="categoryId">Chọn danh mục bài viết (*)</label>
@@ -126,22 +148,27 @@
                     <p-datepicker
                         inputId="scheduledAt"
                         class="w-full"
-                        formArrayName="scheduledAt"
+                        formControlName="scheduledAt"
                         showIcon
                         [showTime]="true"
                         [hourFormat]="'24'"
                         iconDisplay="input"
                         dateFormat="dd.mm.yy"
-                         [invalid]="isInvalid('scheduledAt')"
+                        [invalid]="isInvalid('scheduledAt')"
                     />
                     <label for="scheduledAt">Thời gian lên bài dự kiến</label>
                 </p-floatlabel>
 
+                @if(hasDateRangeError()){
+                <p class="text-sm text-red-600 !mb-0">
+                    Thời gian hết hạn phải lớn hơn thời gian lên bài dự kiến.
+                </p>
+                }
                 <p-floatlabel variant="in">
                     <p-datepicker
                         inputId="expiredAt"
                         class="w-full"
-                        formArrayName="expiredAt"
+                        formControlName="expiredAt"
                         showIcon
                         [showTime]="true"
                         [hourFormat]="'24'"
@@ -302,8 +329,8 @@
     <div>
         <app-seo
             [initialValue]="seoData"
-            [parentName]="form.get('name')?.value"
-            [segment]="'post-category'"
+            [parentName]="form.get('title')?.value"
+            [segment]="'post'"
             [createMode]="!isEditMode()"
             (valueChange)="seoData = $event"
             (statusChange)="seoStatus = $event"

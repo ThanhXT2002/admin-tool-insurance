@@ -12,7 +12,9 @@ import {
     FormBuilder,
     FormGroup,
     ReactiveFormsModule,
-    Validators
+    Validators,
+    AbstractControl,
+    ValidatorFn
 } from '@angular/forms';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { InputTextModule } from 'primeng/inputtext';
@@ -29,7 +31,7 @@ import { TexteditorCommon } from '../../components/texteditor-common/texteditor-
 import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
 import { PostCategory } from '@/interfaces/post-category.interface';
 import { PostCategoryService } from '@/pages/service/post-category.service';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { TreeNode } from 'primeng/api';
 import { Post } from '@/interfaces/post.interface';
 import { TreeSelect } from 'primeng/treeselect';
@@ -39,6 +41,7 @@ import { ProductApiService } from '@/pages/service/productApi.service';
 import { Product } from '@/interfaces/product.interface';
 import { PostStore } from '@/store/post/post.store';
 import { MultiSelect } from 'primeng/multiselect';
+import { toIsoOrUndefined } from '../../../../utils/dateTimeHelper';
 
 interface AutoCompleteCompleteEvent {
     originalEvent: Event;
@@ -72,6 +75,7 @@ export class PostForm implements OnInit, OnDestroy {
     private loadingService = inject(LoadingService);
     private messageService = inject(MessageService);
     private route = inject(ActivatedRoute);
+    private router = inject(Router);
     private postStore = inject(PostStore);
 
     currentId = signal<number | undefined>(undefined);
@@ -87,6 +91,7 @@ export class PostForm implements OnInit, OnDestroy {
     productOptions = signal<Product[]>([]);
     private postCategoryService = inject(PostCategoryService);
     private productApi = inject(ProductApiService);
+    private _subs = new Subscription();
     seoData: any = null;
     seoStatus: 'VALID' | 'INVALID' | 'PENDING' = 'PENDING';
     @ViewChild(Seo) seoComp?: Seo;
@@ -124,28 +129,31 @@ export class PostForm implements OnInit, OnDestroy {
     ];
 
     constructor() {
-        this.form = this.fb.group({
-            title: ['', [Validators.required]],
-            excerpt: [''],
-            shortContent: [''],
-            content: ['', [Validators.required]],
-            status: ['DRAFT', [Validators.required]],
-            videoUrl: [''],
-            note: [''],
-            priority: [0],
-            isHighlighted: [false],
-            isFeatured: [false],
-            postType: ['ARTICLE', [Validators.required]],
-            categoryId: ['', [Validators.required]],
-            taggedCategoryIds: [''],
-            scheduledAt: [''],
-            expiredAt: [''],
-            targetAudience: [undefined],
-            relatedProductIds: [undefined],
-            // file control for featured image (will be attached to FormData)
-            featuredImage: [null],
-            metaKeywords: ['']
-        });
+        this.form = this.fb.group(
+            {
+                title: ['', [Validators.required]],
+                excerpt: [''],
+                shortContent: [''],
+                content: ['', [Validators.required]],
+                status: ['DRAFT', [Validators.required]],
+                videoUrl: ['', this.youtubeUrlValidator.bind(this)],
+                note: [''],
+                priority: [0],
+                isHighlighted: [false],
+                isFeatured: [false],
+                postType: ['ARTICLE', [Validators.required]],
+                categoryId: ['', [Validators.required]],
+                taggedCategoryIds: [''],
+                scheduledAt: [''],
+                expiredAt: [''],
+                targetAudience: [undefined],
+                relatedProductIds: [undefined],
+                // file control for featured image (will be attached to FormData)
+                featuredImage: [null, Validators.required],
+                metaKeywords: ['']
+            },
+            { validators: this.dateRangeValidator() }
+        );
 
         // Effect: cập nhật tiêu đề header khi chế độ edit/create thay đổi
         effect(() => {
@@ -155,11 +163,76 @@ export class PostForm implements OnInit, OnDestroy {
         });
     }
 
+    // Validator: optional YouTube URL validator
+    // Accepts empty value. If provided, must match common YouTube URL formats.
+    youtubeUrlValidator(control: AbstractControl) {
+        const v = control.value;
+        if (!v) return null;
+        try {
+            const s = String(v).trim();
+            // common patterns: https://www.youtube.com/watch?v=..., https://youtu.be/...
+            const ytRegex =
+                /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[A-Za-z0-9_-]{6,}/i;
+            return ytRegex.test(s) ? null : { youtubeUrl: true };
+        } catch (err) {
+            return { youtubeUrl: true };
+        }
+    }
+
+    // Validator: expiredAt must be greater than scheduledAt (if both provided)
+    private dateRangeValidator(): ValidatorFn {
+        return (group: AbstractControl) => {
+            const scheduled = group.get('scheduledAt')?.value;
+            const expired = group.get('expiredAt')?.value;
+            if (!scheduled || !expired) {
+                // clear any previous error
+                group.get('expiredAt')?.setErrors(null);
+                return null;
+            }
+
+            const s = new Date(scheduled).getTime();
+            const e = new Date(expired).getTime();
+            if (isNaN(s) || isNaN(e)) {
+                group.get('expiredAt')?.setErrors(null);
+                return null;
+            }
+
+            if (e <= s) {
+                group.get('expiredAt')?.setErrors({ dateRange: true });
+                return { dateRange: true };
+            }
+
+            // valid -> clear error
+            group.get('expiredAt')?.setErrors(null);
+            return null;
+        };
+    }
+
+    // hasDateRangeError() moved to bottom (keeps runtime checks centralized)
+
     ngOnInit(): void {
         // Load category tree for treeselects
         this.loadCategories();
         // Load related products (up to 100 items)
         this.loadProducts();
+
+        // Real-time date range validation: subscribe to changes
+        const scheduledCtrl = this.form.get('scheduledAt');
+        const expiredCtrl = this.form.get('expiredAt');
+        if (scheduledCtrl) {
+            this._subs.add(
+                scheduledCtrl.valueChanges.subscribe(() =>
+                    this.validateDateRange()
+                )
+            );
+        }
+        if (expiredCtrl) {
+            this._subs.add(
+                expiredCtrl.valueChanges.subscribe(() =>
+                    this.validateDateRange()
+                )
+            );
+        }
     }
 
     private async loadCategories() {
@@ -215,26 +288,97 @@ export class PostForm implements OnInit, OnDestroy {
         } catch (err) {
             // ignore
         }
+        try {
+            this._subs.unsubscribe();
+        } catch (err) {
+            // ignore
+        }
     }
 
-    submit() {
-        // mark parent controls
+    async submit() {
         this.form.markAllAsTouched();
-
-        // validate seo child (mark touched and get boolean)
         const childValid = this.seoComp
             ? this.seoComp.validate()
             : this.seoStatus === 'VALID';
 
-        // Prepare payload
+        if (!this.form.valid || !childValid) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Thiếu thông tin',
+                detail: 'Vui lòng kiểm tra lại thông tin trong form'
+            });
+            this.form.markAllAsTouched();
+            return;
+        }
+
+        const payload = this.buildPayload();
+
+        // show loading
+        this.submitting = true;
+        this.loadingService.show();
+
+        try {
+            const result = await this.performSave(payload);
+            this.handleSaveSuccess(result);
+        } catch (err: any) {
+            console.error(
+                '[PostForm] submit error, form before handling error:',
+                this.form.value,
+                err
+            );
+            this.handleSaveError(err);
+            console.log(
+                '[PostForm] submit error handled, form after handling error:',
+                this.form.value
+            );
+            return;
+        } finally {
+            this.submitting = false;
+            try {
+                this.loadingService.hide();
+            } catch (ignore) {}
+        }
+    }
+
+    // Build payload and normalize dates
+    private buildPayload(): any {
+        const normalizedScheduled = toIsoOrUndefined(
+            this.form.get('scheduledAt')?.value
+        );
+        const normalizedExpired = toIsoOrUndefined(
+            this.form.get('expiredAt')?.value
+        );
+
         const payload: any = {
             ...this.form.value,
+            scheduledAt: normalizedScheduled,
+            expiredAt: normalizedExpired,
             seoMeta: this.seoData
         };
 
-        // Normalize category/taggedCategory/relatedProduct values to plain ids
+        // normalize relations
+        this.normalizeRelations(payload);
+
+        // mask file for logs
+        const logged = { ...payload };
         try {
-            // categoryId can be number or object (tree node) depending on p-treeselect config
+            const f = this.form.get('featuredImage')?.value;
+            logged.featuredImage = f
+                ? '[File]'
+                : (payload.featuredImage ?? null);
+        } catch (err) {}
+        console.log('Prepared post payload (preview):', logged);
+        console.log(
+            'Featured image file object:',
+            this.form.get('featuredImage')?.value ?? null
+        );
+
+        return payload;
+    }
+
+    // Normalize category/taggedCategory/relatedProduct values to plain ids (in-place)
+    private normalizeRelations(payload: any) {
+        try {
             const rawCat = this.form.get('categoryId')?.value;
             if (rawCat == null || rawCat === '') payload.categoryId = undefined;
             else if (typeof rawCat === 'number') payload.categoryId = rawCat;
@@ -243,7 +387,6 @@ export class PostForm implements OnInit, OnDestroy {
             else if (rawCat && typeof rawCat === 'object')
                 payload.categoryId = rawCat.id ?? rawCat.data?.id;
 
-            // taggedCategoryIds may be an array of nodes or ids
             const rawTagged = this.form.get('taggedCategoryIds')?.value;
             if (Array.isArray(rawTagged)) {
                 payload.taggedCategoryIds = rawTagged
@@ -261,7 +404,6 @@ export class PostForm implements OnInit, OnDestroy {
                 payload.taggedCategoryIds = undefined;
             }
 
-            // relatedProductIds may be array of Product objects or ids
             const rawRelated = this.form.get('relatedProductIds')?.value;
             if (Array.isArray(rawRelated)) {
                 payload.relatedProductIds = rawRelated
@@ -280,42 +422,64 @@ export class PostForm implements OnInit, OnDestroy {
         } catch (err) {
             console.warn('Failed to normalize category/related values', err);
         }
+    }
 
-        // Log payload (mask file content) for inspection before sending
-        const logged = { ...payload };
-        try {
-            const f = this.form.get('featuredImage')?.value;
-            logged.featuredImage = f
-                ? '[File]'
-                : (payload.featuredImage ?? null);
-        } catch (err) {
-            // ignore
+    // perform save and return the created/updated record or null on update
+    private async performSave(payload: any): Promise<any> {
+        if (this.isEditMode() && this.currentId()) {
+            const id = this.currentId() as number;
+            const updated = await this.postStore.update(id, payload);
+            return { action: 'update', record: updated };
+        } else {
+            const created = await this.postStore.create(payload);
+            return { action: 'create', record: created };
         }
-        console.log('Prepared post payload (preview):', logged);
-        console.log(
-            'Featured image file object:',
-            this.form.get('featuredImage')?.value ?? null
-        );
+    }
 
-        if (this.form.valid && childValid) {
-            // continuing to create/update
-            this.submitting = true;
-            this.loadingService.show();
-
-            if (this.isEditMode() && this.currentId()) {
-                const id = this.currentId() as number;
-                this.postStore.update(id, payload);
-            } else {
-                // postStore.create(payload);
-            }
+    private handleSaveSuccess(result: any) {
+        if (result.action === 'update') {
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Cập nhật',
+                detail: 'Cập nhật bài viết thành công'
+            });
         } else {
             this.messageService.add({
-                severity: 'error',
-                summary: 'Thiếu thông tin',
-                detail: 'Vui lòng kiểm tra lại thông tin trong form'
+                severity: 'success',
+                summary: 'Tạo',
+                detail: 'Tạo bài viết thành công'
             });
-            this.form.markAllAsTouched();
         }
+        // navigate back to posts list on success
+        try {
+            this.router
+                .navigate(['/insurance/posts'], { relativeTo: this.route })
+                .catch((navErr) =>
+                    console.warn(
+                        'Chuyển hướng đến danh sách bài viết thất bại',
+                        navErr
+                    )
+                );
+        } catch (navErr) {
+            console.warn(
+                'Chuyển hướng đến danh sách bài viết thất bại',
+                navErr
+            );
+        }
+    }
+
+    private handleSaveError(err: any) {
+        console.error('Error saving post:', err);
+        this.messageService.add({
+            severity: 'error',
+            summary: 'Lỗi',
+            detail: err?.error?.errors ?? 'Có lỗi xảy ra khi lưu bài viết'
+        });
+        // ensure loading / submitting are turned off immediately on failure
+        this.submitting = false;
+        try {
+            this.loadingService.hide();
+        } catch (ignore) {}
     }
 
     searchTargetAudience(event: AutoCompleteCompleteEvent) {
@@ -332,7 +496,66 @@ export class PostForm implements OnInit, OnDestroy {
 
     isInvalid(controlName: string) {
         const control = this.form.get(controlName);
-        return control?.invalid && control.touched;
+        return !!(
+            control &&
+            control.invalid &&
+            (control.touched || control.dirty)
+        );
+    }
+
+    private validateDateRange() {
+        try {
+            const sc = this.form.get('scheduledAt');
+            const ec = this.form.get('expiredAt');
+            if (!sc || !ec) return;
+            const sVal = sc.value;
+            const eVal = ec.value;
+            if (!sVal || !eVal) {
+                // clear dateRange error
+                const curErr = ec.errors;
+                if (curErr && (curErr as any)['dateRange']) {
+                    // remove dateRange only
+                    const copy = { ...curErr };
+                    delete (copy as any).dateRange;
+                    if (Object.keys(copy).length === 0) ec.setErrors(null);
+                    else ec.setErrors(copy);
+                }
+                return;
+            }
+
+            const s = new Date(sVal);
+            const e = new Date(eVal);
+            if (isNaN(s.getTime()) || isNaN(e.getTime())) {
+                // not comparable
+                return;
+            }
+
+            if (e <= s) {
+                // set dateRange error on expiredAt
+                const prev = ec.errors || {};
+                ec.setErrors({ ...prev, dateRange: true });
+                // mark touched so UI shows invalid immediately
+                try {
+                    ec.markAsTouched();
+                } catch (err) {}
+            } else {
+                // remove dateRange error only
+                const prev = ec.errors;
+                if (prev && (prev as any)['dateRange']) {
+                    const copy = { ...prev };
+                    delete (copy as any).dateRange;
+                    if (Object.keys(copy).length === 0) ec.setErrors(null);
+                    else ec.setErrors(copy);
+                }
+            }
+        } catch (err) {
+            // ignore
+        }
+    }
+
+    hasDateRangeError() {
+        const ec = this.form.get('expiredAt');
+        return !!(ec && ec.errors && (ec.errors as any).dateRange);
     }
 
     onFeaturedImageClick(): void {
