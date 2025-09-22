@@ -131,7 +131,6 @@ export class Posts implements OnInit, OnDestroy {
     selectedIsHighlighted = this.highlightedOptions[0];
     selectedIsFeatured = this.featuredOptions[0];
 
-
     ngOnInit() {
         const queryParams = this.route.snapshot.queryParams;
         this.page = Number(queryParams['page']) || 1;
@@ -209,7 +208,10 @@ export class Posts implements OnInit, OnDestroy {
         // Nếu không có query params, chỉ gọi loadData khi store hiện tại không có dữ liệu
         if (!parsed || Object.keys(parsed).length === 0) {
             const currentRows = this.postStore.rows();
-            if (!currentRows || (Array.isArray(currentRows) && currentRows.length === 0)) {
+            if (
+                !currentRows ||
+                (Array.isArray(currentRows) && currentRows.length === 0)
+            ) {
                 // store empty -> tải dữ liệu từ API
                 this.loadData(this.currentKeyword);
             } else {
