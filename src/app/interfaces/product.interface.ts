@@ -2,6 +2,7 @@ import { Seo } from './seo.interface';
 
 export interface Product {
     id: number;
+    sku?: string | null;
     name: string;
     slug?: string | null;
     description?: string | null;
@@ -13,6 +14,12 @@ export interface Product {
     targetLink?: string | null;
     targetFile?: string | null;
     imgs?: string[] | null;
+    details?: string | null;
+    icon?: string | null;
+    priority?: number | null;
+    isHighlighted?: boolean | null;
+    isFeatured?: boolean | null;
+    isSaleOnline?: boolean | null;
     active?: boolean | null;
     tags?: string[] | null;
     isPromotion?: boolean | null;
@@ -36,6 +43,13 @@ export interface ProductCreateDto {
     targetLink?: string;
     targetFile?: string;
     imgs?: File[] | string[] | null; // allow files or existing URLs
+    sku?: string;
+    details?: string;
+    icon?: string;
+    priority?: number;
+    isHighlighted?: boolean;
+    isFeatured?: boolean;
+    isSaleOnline?: boolean;
     tags?: string[];
     isPromotion?: boolean;
     promotionDetails?: string;
