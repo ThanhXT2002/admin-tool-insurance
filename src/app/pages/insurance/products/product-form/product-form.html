@@ -17,26 +17,26 @@
                 <p-floatlabel variant="in" class="!w-full">
                     <input
                         pInputText
-                        id="title"
-                        formControlName="title"
+                        id="name"
+                        formControlName="name"
                         class="w-full"
                         autocomplete="off"
-                        [invalid]="isInvalid('title')"
+                        [invalid]="isInvalid('name')"
                     />
-                    <label for="title">Tiêu đề bài viết (*)</label>
+                    <label for="name">Tiêu đề bài viết (*)</label>
                 </p-floatlabel>
                 <!-- Short content (inline editor) -->
                 <div>
-                    <label for="excerpt" class="mb-4">Tóm tắt ngắn</label>
+                    <label for="description" class="mb-4">Mô tả</label>
                     <app-texteditor-common
                         [height]="'150px'"
-                        formControlName="excerpt"
-                        [invalid]="isInvalid('excerpt')"
+                        formControlName="description"
+                        [invalid]="isInvalid('description')"
                         [placeholder]="'Tóm tắt ngắn...'"
                     ></app-texteditor-common>
                 </div>
                 <div class="!space-y-3">
-                    <label for="shortContent" class="">Nội dung đầu</label>
+                    <label for="shortContent" class="">Nội dung ngắn</label>
                     <app-texteditor-common
                         [height]="'250px'"
                         formControlName="shortContent"
@@ -54,25 +54,9 @@
                         [placeholder]="'Nội dung chi tiết...'"
                     ></app-texteditor-common>
                 </div>
-                <p-floatlabel variant="in">
-                    <input
-                        pInputText
-                        id="videoUrl"
-                        class="w-full"
-                        formControlName="videoUrl"
-                        [invalid]="isInvalid('videoUrl') || (form.get('videoUrl')?.errors?.['youtubeUrl'] && (form.get('videoUrl')?.touched || form.get('videoUrl')?.dirty))"
-                        autocomplete="off"
-                    />
-                    <label for="videoUrl">URL: Video Youtube</label>
-                    @if(form.get('videoUrl')?.errors?.['youtubeUrl'] &&
-                    (form.get('videoUrl')?.touched ||
-                    form.get('videoUrl')?.dirty)){
-                    <p class="text-sm text-red-600 !mb-0 mt-1">
-                        URL không hợp lệ - nhập link YouTube
-                        (youtube.com/watch?v=... hoặc youtu.be/...)
-                    </p>
-                    }
-                </p-floatlabel>
+
+                <app-drag-drop-img-list></app-drag-drop-img-list>
+                
             </div>
             <div class="lg:col-span-1 space-y-6">
                 <div class="w-full">
@@ -90,105 +74,129 @@
 
                 <p-floatlabel class="w-full" variant="in">
                     <p-select
-                        inputId="categoryId"
-                        [options]="items()"
-                        [filter]="true"
-                        filterBy="name"
+                        inputId="isSaleOnline"
+                        [options]="saleOnlineOptions"
                         optionLabel="name"
-                        optionValue="id"
+                        optionValue="code"
                         class="w-full"
                         variant="filled"
-                        formControlName="categoryId"
+                        formControlName="isSaleOnline"
                     />
-                    <label for="categoryId">Chọn danh mục bài viết (*)</label>
-                </p-floatlabel>
-                <p-floatlabel class="w-full" variant="in">
-
-                  <p-multiselect
-                        inputId="taggedCategoryIds"
-                        formControlName="taggedCategoryIds"
-                        [options]="items()"
-                        optionLabel="name"
-                        optionValue="id"
-                        [showClear]="true"
-                        selectionMode="multiple"
-                        [filter]="true"
-                        class="w-full"
-                    ></p-multiselect>
-                    <label for="taggedCategoryIds">Danh mục gán thẻ</label>
+                    <label for="isSaleOnline">Có bán online hay không?</label>
                 </p-floatlabel>
 
                 <p-floatlabel class="w-full" variant="in">
                     <p-select
-                        inputId="status"
+                        inputId="isPromotion"
+                        [options]="promotionOptions"
+                        optionLabel="name"
+                        optionValue="code"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="isPromotion"
+                    />
+                    <label for="isPromotion">Có khuyến mãi hay không?</label>
+                </p-floatlabel>
+
+                <p-floatlabel variant="in">
+                    <textarea
+                        pTextarea
+                        id="promotionDetails"
+                        formControlName="promotionDetails"
+                        rows="5"
+                        class="h-full w-full"
+                    ></textarea>
+                      <label for="promotionDetails">Chi tiết khuyến mãi</label>
+                </p-floatlabel>
+
+                <p-floatlabel variant="in">
+                    <p-inputnumber
+                        class="w-full"
+                        inputId="price"
+                        mode="currency"
+                        currency="VND"
+                        locale="vi-VN"
+                        formControlName="price"
+                        [minFractionDigits]="0"
+                        [maxFractionDigits]="0"
+                    />
+                    <label for="price">Giá sản phẩm VNĐ</label>
+                </p-floatlabel>
+
+                <p-floatlabel variant="in">
+                    <p-inputnumber
+                        class="w-full"
+                        inputId="coverage"
+                        mode="currency"
+                        currency="VND"
+                        locale="vi-VN"
+                        formControlName="coverage"
+                        [minFractionDigits]="0"
+                        [maxFractionDigits]="0"
+                    />
+                    <label for="coverage">Mức độ bảo hiểm VNĐ</label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-select
+                        inputId="term"
+                        [options]="termOptions"
+                        optionLabel="name"
+                        optionValue="code"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="term"
+                    />
+                    <label for="term">Thời hạn bảo hiểm</label>
+                </p-floatlabel>
+
+                <p-floatlabel variant="in">
+                    <input
+                        pInputText
+                        id="targetLink"
+                        class="w-full"
+                        formControlName="targetLink"
+                        autocomplete="off"
+                    />
+                    <label for="targetLink"
+                        >URL: Link mua hàng hoặc trang chi tiết</label
+                    >
+                </p-floatlabel>
+
+                <p-floatlabel variant="in">
+                    <input
+                        pInputText
+                        id="targetFile"
+                        class="w-full"
+                        formControlName="targetFile"
+                        autocomplete="off"
+                    />
+                    <label for="targetFile">URL: Link tải về file</label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-select
+                        inputId="active"
                         [options]="statusOptions"
                         optionLabel="name"
                         optionValue="code"
                         class="w-full"
                         variant="filled"
-                        formControlName="status"
+                        formControlName="active"
                     />
-                    <label for="status">Chọn trạng thái bài viết</label>
-                </p-floatlabel>
-
-                <p-floatlabel class="w-full" variant="in">
-                    <p-select
-                        inputId="postType"
-                        [options]="postTypeOptions"
-                        optionLabel="name"
-                        optionValue="code"
-                        class="w-full"
-                        variant="filled"
-                        formControlName="postType"
-                    />
-                    <label for="postType">Chọn loại bài viết</label>
-                </p-floatlabel>
-
-                <p-floatlabel variant="in">
-                    <p-datepicker
-                        inputId="scheduledAt"
-                        class="w-full"
-                        formControlName="scheduledAt"
-                        showIcon
-                        [showTime]="true"
-                        [hourFormat]="'24'"
-                        iconDisplay="input"
-                        dateFormat="dd.mm.yy"
-                        [invalid]="isInvalid('scheduledAt')"
-                    />
-                    <label for="scheduledAt">Thời gian lên bài dự kiến</label>
-                </p-floatlabel>
-
-                @if(hasDateRangeError()){
-                <p class="text-sm text-red-600 !mb-0">
-                    Thời gian hết hạn phải lớn hơn thời gian lên bài dự kiến.
-                </p>
-                }
-                <p-floatlabel variant="in">
-                    <p-datepicker
-                        inputId="expiredAt"
-                        class="w-full"
-                        formControlName="expiredAt"
-                        showIcon
-                        [showTime]="true"
-                        [hourFormat]="'24'"
-                        dateFormat="dd.mm.yy"
-                        iconDisplay="input"
-                        [invalid]="isInvalid('expiredAt')"
-                    />
-                    <label for="expiredAt">Thời gian hết hạn</label>
+                    <label for="active">Chọn trạng thái bài viết</label>
                 </p-floatlabel>
 
                 <p-floatlabel variant="in">
                     <p-autocomplete
-                        (completeMethod)="searchTargetAudience($event)"
+                        (completeMethod)="searchTags($event)"
                         multiple
                         fluid
-                        inputId="targetAudience"
-                        formControlName="targetAudience"
+                        inputId="tags"
+                        formControlName="tags"
                         [typeahead]="false"
                     />
-                    <label for="targetAudience"
+                    <label for="tags"
                         >Đối tượng mục tiêu (Enter để hoàn thành tag)</label
                     >
                 </p-floatlabel>
@@ -206,21 +214,6 @@
                         >Từ khóa tìm kiếm nội bộ (Enter để hoàn thành
                         tag)</label
                     >
-                </p-floatlabel>
-
-                <p-floatlabel class="w-full" variant="in">
-                    <p-multiselect
-                        inputId="relatedProductIds"
-                        formControlName="relatedProductIds"
-                        [options]="productOptions()"
-                        optionLabel="name"
-                        optionValue="id"
-                        [showClear]="true"
-                        selectionMode="multiple"
-                        [filter]="true"
-                        class="w-full"
-                    ></p-multiselect>
-                    <label for="relatedProductIds">Sản phẩm liên quan</label>
                 </p-floatlabel>
 
                 <p-floatlabel class="w-full" variant="in">
@@ -337,4 +330,3 @@
         ></app-seo>
     </div>
 </form>
-

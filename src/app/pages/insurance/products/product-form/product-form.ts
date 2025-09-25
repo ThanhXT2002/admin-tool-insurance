@@ -41,6 +41,9 @@ import { Product } from '@/interfaces/product.interface';
 import { PostStore } from '@/store/post/post.store';
 import { MultiSelect } from 'primeng/multiselect';
 import { toIsoOrUndefined } from '../../../../utils/dateTimeHelper';
+import { InputNumber } from 'primeng/inputnumber';
+import { Tag } from 'primeng/tag';
+import { DragDropImgList } from "../../components/drag-drop-img-list/drag-drop-img-list";
 
 interface AutoCompleteCompleteEvent {
     originalEvent: Event;
@@ -50,20 +53,22 @@ interface AutoCompleteCompleteEvent {
 @Component({
     selector: 'app-product-form',
     imports: [
-        ReactiveFormsModule,
-        InputTextModule,
-        FloatLabelModule,
-        TextareaModule,
-        Select,
-        ToggleSwitchModule,
-        ButtonModule,
-        Seo,
-        TexteditorCommon,
-        CommonModule,
-        AutoComplete,
-        DatePickerModule,
-        MultiSelect
-    ],
+    ReactiveFormsModule,
+    InputTextModule,
+    FloatLabelModule,
+    TextareaModule,
+    Select,
+    ToggleSwitchModule,
+    ButtonModule,
+    Seo,
+    TexteditorCommon,
+    CommonModule,
+    AutoComplete,
+    DatePickerModule,
+    MultiSelect,
+    InputNumber,
+    DragDropImgList
+],
     encapsulation: ViewEncapsulation.None,
     templateUrl: './product-form.html',
     styleUrl: './product-form.scss'
@@ -83,8 +88,7 @@ export class ProductForm implements OnInit, OnDestroy {
     isEditMode = signal(false);
     form!: FormGroup;
 
-    // Items provided to p-treeselect must be TreeNode[]
-    items = signal<PostCategory[]>([]);
+
     // product options for relatedProductIds select
     productOptions = signal<Product[]>([]);
     private postCategoryService = inject(PostCategoryService);
@@ -114,29 +118,34 @@ export class ProductForm implements OnInit, OnDestroy {
     ];
 
     statusOptions = [
-        { name: 'Đang hoạt động', code: 'PUBLISHED' },
-        { name: 'Đã lưu trữ', code: 'ARCHIVED' },
-        { name: 'Bản nháp', code: 'DRAFT' }
+        { name: 'Hoạt động', code: true },
+        { name: 'Không hoạt động', code: false }
     ];
 
-    postTypeOptions = [
-        { name: 'Bài viết', code: 'ARTICLE' },
-        { name: 'Hướng dẫn', code: 'GUIDE' },
-        { name: 'Tin tức', code: 'NEWS' },
-        { name: 'Sản phẩm', code: 'PRODUCT' },
-        { name: 'Câu hỏi thường gặp', code: 'FAQ' }
+    saleOnlineOptions = [
+        { name: 'Có', code: true },
+        { name: 'Không', code: false }
+    ];
+    promotionOptions = [
+        { name: 'Có khuyến mãi', code: true },
+        { name: 'Không có khuyến mãi', code: false }
+    ];
+
+    termOptions = [
+        { name: '1 năm', code: '1Y' },
+        { name: '2 năm', code: '2Y' },
+        { name: '3 năm', code: '3Y' }
     ];
 
     constructor() {
         this.form = this.fb.group(
             {
-                sku: ['',[Validators.required]],
                 name: ['', [Validators.required]],
                 description: [''],
                 shortContent: [''],
                 content: ['', [Validators.required]],
-                price: [null, [Validators.min(0)]],
-                coverage: [''],
+                price: [undefined, [Validators.min(0)]],
+                coverage: [undefined],
                 term: [''],
                 targetLink: [''],
                 targetFile: [''],
@@ -149,6 +158,7 @@ export class ProductForm implements OnInit, OnDestroy {
                 isSaleOnline: [false],
                 isPromotion: [false],
                 promotionDetails: [''],
+                tags: [undefined],
                 imgs: [null, Validators.required],
                 icon: [null, Validators.required],
                 metaKeywords: ['']
@@ -163,13 +173,7 @@ export class ProductForm implements OnInit, OnDestroy {
                 : 'Thêm Sản Phẩm';
         });
 
-        effect(() => {
-            const rows = this.facadePostCategory.items();
-            this.items.set(rows || []);
-            if (!rows || (Array.isArray(rows) && rows.length === 0)) {
-                this.loadCategories();
-            }
-        });
+
     }
 
     // Validator: optional YouTube URL validator
@@ -372,19 +376,6 @@ export class ProductForm implements OnInit, OnDestroy {
         }
     }
 
-    private async loadCategories() {
-        try {
-            this.facadePostCategory.load({
-                page: undefined,
-                limit: 500,
-                keyword: '',
-                active: undefined
-            });
-        } catch (err) {
-            console.error('Failed to load categories for treeselect', err);
-            this.items.set([]);
-        }
-    }
 
     private async loadProducts() {
         try {
@@ -605,8 +596,8 @@ export class ProductForm implements OnInit, OnDestroy {
         } catch (ignore) {}
     }
 
-    searchTargetAudience(event: AutoCompleteCompleteEvent) {
-        this.targetAudience?.setValue(
+    searchTags(event: AutoCompleteCompleteEvent) {
+        this.tags?.setValue(
             [...Array(10).keys()].map((item) => event.query + '-' + item)
         );
     }
@@ -708,8 +699,8 @@ export class ProductForm implements OnInit, OnDestroy {
         input.click();
     }
 
-    get targetAudience() {
-        return this.form.get('targetAudience');
+    get tags() {
+        return this.form.get('tags');
     }
     get metaKeywords() {
         return this.form.get('metaKeywords');

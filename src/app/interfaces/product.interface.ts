@@ -37,12 +37,11 @@ export interface ProductCreateDto {
     shortContent?: string;
     content?: string;
     price?: number;
-    coverage?: string;
+    coverage?: number;
     term?: string;
     targetLink?: string;
     targetFile?: string;
     imgs?: File[] | string[] | null; // allow files or existing URLs
-    sku: string;
     details?: string;
     icon: string;
     priority?: number;

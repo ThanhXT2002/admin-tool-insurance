@@ -1,0 +1,54 @@
+<div
+    class="h-auto min-h-[180px] w-full border border-dashed border-gray-400 rounded-md p-2"
+>
+    <input
+        #fileInput
+        type="file"
+        multiple
+        accept="image/*"
+        class="hidden"
+        (change)="onFilesSelected($event)"
+    />
+
+    <div
+        class="p-2"
+        (click)="onClick()"
+        (drop)="onFileDropped($event)"
+        (dragover)="$event.preventDefault()"
+    >
+        @if(imgSelected.length > 0) {
+        <div
+            cdkDropList
+            cdkDropListOrientation="mixed"
+            (cdkDropListDropped)="drop($event)"
+            class="flex flex-wrap gap-3 p-1"
+        >
+            @for(img of imgSelected; track img.url || img.id || $index) {
+            <div
+                cdkDrag
+                class="relative w-42 h-42 border border-gray-300 rounded-md overflow-hidden cursor-pointer"
+            >
+                <img
+                    [src]="img.url"
+                    alt="Image"
+                    class="w-full h-full object-cover"
+                />
+                <button
+                    (click)="onRemoveImage($event, img)"
+                    class="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md hover:bg-gray-200"
+                    type="button"
+                >
+                    <i class="ri-delete-bin-line text-red-500"></i>
+                </button>
+            </div>
+            }
+        </div>
+        } @else {
+        <div
+            class="flex items-center justify-center h-full min-h-[180px] w-full cursor-pointer"
+        >
+            <p class="font-semibold text-lg">Kéo thả hoặc Click để chọn ảnh</p>
+        </div>
+        }
+    </div>
+</div>
