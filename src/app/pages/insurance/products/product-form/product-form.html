@@ -1,1 +1,340 @@
-<p>product-form works!</p>
+<div class="card !p-5 flex__between sticky top-16 left-0 right-0 z-50">
+    <div class="font-bold text-xl">{{headerTitle}}</div>
+    <p-button
+        label="Lưu"
+        severity="primary"
+        (onClick)="submit()"
+        [disabled]="submitting"
+        [loading]="submitting"
+    ></p-button>
+</div>
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="space-y-8">
+    <div class="card">
+        <div class="font-semibold text-xl mb-4">Thông tin cơ bản</div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-8">
+                <p-floatlabel variant="in" class="!w-full">
+                    <input
+                        pInputText
+                        id="title"
+                        formControlName="title"
+                        class="w-full"
+                        autocomplete="off"
+                        [invalid]="isInvalid('title')"
+                    />
+                    <label for="title">Tiêu đề bài viết (*)</label>
+                </p-floatlabel>
+                <!-- Short content (inline editor) -->
+                <div>
+                    <label for="excerpt" class="mb-4">Tóm tắt ngắn</label>
+                    <app-texteditor-common
+                        [height]="'150px'"
+                        formControlName="excerpt"
+                        [invalid]="isInvalid('excerpt')"
+                        [placeholder]="'Tóm tắt ngắn...'"
+                    ></app-texteditor-common>
+                </div>
+                <div class="!space-y-3">
+                    <label for="shortContent" class="">Nội dung đầu</label>
+                    <app-texteditor-common
+                        [height]="'250px'"
+                        formControlName="shortContent"
+                        [invalid]="isInvalid('shortContent')"
+                        [placeholder]="'Nội dung đầu...'"
+                    ></app-texteditor-common>
+                </div>
+
+                <div>
+                    <label for="content">Nội dung chi tiết (*)</label>
+                    <app-texteditor-common
+                        [height]="'450px'"
+                        formControlName="content"
+                        [invalid]="isInvalid('content')"
+                        [placeholder]="'Nội dung chi tiết...'"
+                    ></app-texteditor-common>
+                </div>
+                <p-floatlabel variant="in">
+                    <input
+                        pInputText
+                        id="videoUrl"
+                        class="w-full"
+                        formControlName="videoUrl"
+                        [invalid]="isInvalid('videoUrl') || (form.get('videoUrl')?.errors?.['youtubeUrl'] && (form.get('videoUrl')?.touched || form.get('videoUrl')?.dirty))"
+                        autocomplete="off"
+                    />
+                    <label for="videoUrl">URL: Video Youtube</label>
+                    @if(form.get('videoUrl')?.errors?.['youtubeUrl'] &&
+                    (form.get('videoUrl')?.touched ||
+                    form.get('videoUrl')?.dirty)){
+                    <p class="text-sm text-red-600 !mb-0 mt-1">
+                        URL không hợp lệ - nhập link YouTube
+                        (youtube.com/watch?v=... hoặc youtu.be/...)
+                    </p>
+                    }
+                </p-floatlabel>
+            </div>
+            <div class="lg:col-span-1 space-y-6">
+                <div class="w-full">
+                    <label class="featuredImage">Chọn icon (*)</label>
+                    <img
+                        [src]="displayFeaturedImage"
+                        class="h-[150px] w-auto aspect-square overflow-hidden object-cover cursor-pointer mt-3 rounded-md mx-auto"
+                        (click)="onFeaturedImageClick()"
+                        [ngClass]="{
+                            'border border-red-500': isInvalid('featuredImage')
+                        }"
+                        alt=""
+                    />
+                </div>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-select
+                        inputId="categoryId"
+                        [options]="items()"
+                        [filter]="true"
+                        filterBy="name"
+                        optionLabel="name"
+                        optionValue="id"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="categoryId"
+                    />
+                    <label for="categoryId">Chọn danh mục bài viết (*)</label>
+                </p-floatlabel>
+                <p-floatlabel class="w-full" variant="in">
+
+                  <p-multiselect
+                        inputId="taggedCategoryIds"
+                        formControlName="taggedCategoryIds"
+                        [options]="items()"
+                        optionLabel="name"
+                        optionValue="id"
+                        [showClear]="true"
+                        selectionMode="multiple"
+                        [filter]="true"
+                        class="w-full"
+                    ></p-multiselect>
+                    <label for="taggedCategoryIds">Danh mục gán thẻ</label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-select
+                        inputId="status"
+                        [options]="statusOptions"
+                        optionLabel="name"
+                        optionValue="code"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="status"
+                    />
+                    <label for="status">Chọn trạng thái bài viết</label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-select
+                        inputId="postType"
+                        [options]="postTypeOptions"
+                        optionLabel="name"
+                        optionValue="code"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="postType"
+                    />
+                    <label for="postType">Chọn loại bài viết</label>
+                </p-floatlabel>
+
+                <p-floatlabel variant="in">
+                    <p-datepicker
+                        inputId="scheduledAt"
+                        class="w-full"
+                        formControlName="scheduledAt"
+                        showIcon
+                        [showTime]="true"
+                        [hourFormat]="'24'"
+                        iconDisplay="input"
+                        dateFormat="dd.mm.yy"
+                        [invalid]="isInvalid('scheduledAt')"
+                    />
+                    <label for="scheduledAt">Thời gian lên bài dự kiến</label>
+                </p-floatlabel>
+
+                @if(hasDateRangeError()){
+                <p class="text-sm text-red-600 !mb-0">
+                    Thời gian hết hạn phải lớn hơn thời gian lên bài dự kiến.
+                </p>
+                }
+                <p-floatlabel variant="in">
+                    <p-datepicker
+                        inputId="expiredAt"
+                        class="w-full"
+                        formControlName="expiredAt"
+                        showIcon
+                        [showTime]="true"
+                        [hourFormat]="'24'"
+                        dateFormat="dd.mm.yy"
+                        iconDisplay="input"
+                        [invalid]="isInvalid('expiredAt')"
+                    />
+                    <label for="expiredAt">Thời gian hết hạn</label>
+                </p-floatlabel>
+
+                <p-floatlabel variant="in">
+                    <p-autocomplete
+                        (completeMethod)="searchTargetAudience($event)"
+                        multiple
+                        fluid
+                        inputId="targetAudience"
+                        formControlName="targetAudience"
+                        [typeahead]="false"
+                    />
+                    <label for="targetAudience"
+                        >Đối tượng mục tiêu (Enter để hoàn thành tag)</label
+                    >
+                </p-floatlabel>
+
+                <p-floatlabel variant="in">
+                    <p-autocomplete
+                        (completeMethod)="searchMetaKeywords($event)"
+                        multiple
+                        fluid
+                        inputId="metaKeywords"
+                        formControlName="metaKeywords"
+                        [typeahead]="false"
+                    />
+                    <label for="metaKeywords"
+                        >Từ khóa tìm kiếm nội bộ (Enter để hoàn thành
+                        tag)</label
+                    >
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-multiselect
+                        inputId="relatedProductIds"
+                        formControlName="relatedProductIds"
+                        [options]="productOptions()"
+                        optionLabel="name"
+                        optionValue="id"
+                        [showClear]="true"
+                        selectionMode="multiple"
+                        [filter]="true"
+                        class="w-full"
+                    ></p-multiselect>
+                    <label for="relatedProductIds">Sản phẩm liên quan</label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <input
+                        pInputText
+                        id="priority"
+                        formControlName="priority"
+                        type="number"
+                        class="w-full"
+                        autocomplete="off"
+                        [invalid]="isInvalid('priority')"
+                    />
+                    <label for="priority">Độ ưu tiên </label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-select
+                        inputId="isHighlighted"
+                        [options]="booleanOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="isHighlighted"
+                    />
+                    <label for="isHighlighted">Có phải bài viết nổi bật?</label>
+                </p-floatlabel>
+
+                <p-floatlabel class="w-full" variant="in">
+                    <p-select
+                        inputId="isFeatured"
+                        [options]="booleanOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        class="w-full"
+                        variant="filled"
+                        formControlName="isFeatured"
+                    />
+                    <label for="isFeatured">Có xuất hiện ở trang chủ?</label>
+                </p-floatlabel>
+
+                <p-floatlabel variant="in">
+                    <textarea
+                        pTextarea
+                        id="note"
+                        formControlName="note"
+                        rows="7"
+                        class="h-full w-full"
+                    ></textarea>
+                    <label for="note">Ghi chú nội bộ</label>
+                </p-floatlabel>
+
+                @if(isEditMode()){
+                <div class="flex__middle w-full gap-4">
+                    <p-floatlabel variant="in" class="!w-full">
+                        <input
+                            pInputText
+                            id="createdAt"
+                            disabled
+                            [value]="createdAt ? (createdAt | date:'HH:mm dd/MM/yyyy':'Asia/Ho_Chi_Minh') : ''"
+                            class="w-full"
+                            autocomplete="off"
+                        />
+                        <label for="createdAt">Ngày tạo</label>
+                    </p-floatlabel>
+                    <p-floatlabel variant="in" class="!w-full">
+                        <input
+                            pInputText
+                            id="updatedAt"
+                            disabled
+                            [value]="updatedAt ? (updatedAt | date:'HH:mm dd/MM/yyyy':'Asia/Ho_Chi_Minh') : ''"
+                            class="w-full"
+                            autocomplete="off"
+                        />
+                        <label for="updatedAt">Cập nhật mới nhất</label>
+                    </p-floatlabel>
+                </div>
+                <div class="flex__middle w-full gap-4">
+                    <p-floatlabel variant="in" class="!w-full">
+                        <input
+                            pInputText
+                            id="createdAt"
+                            disabled
+                            [value]="createdBy"
+                            class="w-full"
+                            autocomplete="off"
+                        />
+                        <label for="createdAt">Người tạo</label>
+                    </p-floatlabel>
+                    <p-floatlabel variant="in" class="!w-full">
+                        <input
+                            pInputText
+                            id="updatedAt"
+                            disabled
+                            [value]="updatedBy"
+                            class="w-full"
+                            autocomplete="off"
+                        />
+                        <label for="updatedAt">Người cập nhật</label>
+                    </p-floatlabel>
+                </div>
+                }
+            </div>
+        </div>
+    </div>
+    <div>
+        <app-seo
+            [initialValue]="seoData"
+            [parentName]="form.get('title')?.value"
+            [segment]="'post'"
+            [createMode]="!isEditMode()"
+            (valueChange)="seoData = $event"
+            (statusChange)="seoStatus = $event"
+        ></app-seo>
+    </div>
+</form>
+

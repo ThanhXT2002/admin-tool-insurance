@@ -60,7 +60,6 @@ interface AutoCompleteCompleteEvent {
         ButtonModule,
         Seo,
         TexteditorCommon,
-        TreeSelect,
         CommonModule,
         AutoComplete,
         DatePickerModule,

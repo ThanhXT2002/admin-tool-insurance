@@ -24,7 +24,6 @@ export interface Product {
     tags?: string[] | null;
     isPromotion?: boolean | null;
     promotionDetails?: string | null;
-    features?: any[] | null;
     metaKeywords?: string[] | null;
     note?: string | null;
     seoMeta?: Seo | null;
@@ -43,9 +42,9 @@ export interface ProductCreateDto {
     targetLink?: string;
     targetFile?: string;
     imgs?: File[] | string[] | null; // allow files or existing URLs
-    sku?: string;
+    sku: string;
     details?: string;
-    icon?: string;
+    icon: string;
     priority?: number;
     isHighlighted?: boolean;
     isFeatured?: boolean;
@@ -53,7 +52,6 @@ export interface ProductCreateDto {
     tags?: string[];
     isPromotion?: boolean;
     promotionDetails?: string;
-    features?: any[];
     metaKeywords?: string[];
     note?: string;
     active?: boolean;
