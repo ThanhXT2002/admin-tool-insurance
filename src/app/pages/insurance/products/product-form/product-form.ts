@@ -43,7 +43,7 @@ import { MultiSelect } from 'primeng/multiselect';
 import { toIsoOrUndefined } from '../../../../utils/dateTimeHelper';
 import { InputNumber } from 'primeng/inputnumber';
 import { Tag } from 'primeng/tag';
-import { DragDropImgList } from "../../components/drag-drop-img-list/drag-drop-img-list";
+import { DragDropImgList } from '../../components/drag-drop-img-list/drag-drop-img-list';
 
 interface AutoCompleteCompleteEvent {
     originalEvent: Event;
@@ -53,22 +53,22 @@ interface AutoCompleteCompleteEvent {
 @Component({
     selector: 'app-product-form',
     imports: [
-    ReactiveFormsModule,
-    InputTextModule,
-    FloatLabelModule,
-    TextareaModule,
-    Select,
-    ToggleSwitchModule,
-    ButtonModule,
-    Seo,
-    TexteditorCommon,
-    CommonModule,
-    AutoComplete,
-    DatePickerModule,
-    MultiSelect,
-    InputNumber,
-    DragDropImgList
-],
+        ReactiveFormsModule,
+        InputTextModule,
+        FloatLabelModule,
+        TextareaModule,
+        Select,
+        ToggleSwitchModule,
+        ButtonModule,
+        Seo,
+        TexteditorCommon,
+        CommonModule,
+        AutoComplete,
+        DatePickerModule,
+        MultiSelect,
+        InputNumber,
+        DragDropImgList
+    ],
     encapsulation: ViewEncapsulation.None,
     templateUrl: './product-form.html',
     styleUrl: './product-form.scss'
@@ -87,7 +87,6 @@ export class ProductForm implements OnInit, OnDestroy {
     headerTitle!: string;
     isEditMode = signal(false);
     form!: FormGroup;
-
 
     // product options for relatedProductIds select
     productOptions = signal<Product[]>([]);
@@ -159,7 +158,7 @@ export class ProductForm implements OnInit, OnDestroy {
                 isPromotion: [false],
                 promotionDetails: [''],
                 tags: [undefined],
-                imgs: [null, Validators.required],
+                imgs: [[], this.imgsValidator],
                 icon: [null, Validators.required],
                 metaKeywords: ['']
             },
@@ -172,8 +171,15 @@ export class ProductForm implements OnInit, OnDestroy {
                 ? 'Cập Nhật Sản Phẩm'
                 : 'Thêm Sản Phẩm';
         });
+    }
 
-
+    // Validator: imgs must have at least 1 image
+    private imgsValidator(control: AbstractControl) {
+        const value = control.value;
+        if (!value || !Array.isArray(value) || value.length === 0) {
+            return { required: true };
+        }
+        return null;
     }
 
     // Validator: optional YouTube URL validator
@@ -341,6 +347,25 @@ export class ProductForm implements OnInit, OnDestroy {
                 } catch (err) {}
             }
 
+            // Load existing images for drag-drop component
+            if (
+                Array.isArray((post as any).imgs) &&
+                (post as any).imgs.length > 0
+            ) {
+                try {
+                    const existingImages = (post as any).imgs.map(
+                        (imgUrl: string) => ({
+                            url: imgUrl,
+                            isNew: false,
+                            name: imgUrl.split('/').pop() || 'image'
+                        })
+                    );
+                    this.form.get('imgs')?.setValue(existingImages);
+                } catch (err) {
+                    console.warn('Error loading existing images:', err);
+                }
+            }
+
             // SEO meta
             if (post.seoMeta) {
                 this.seoData = post.seoMeta;
@@ -375,7 +400,6 @@ export class ProductForm implements OnInit, OnDestroy {
             } catch (ignore) {}
         }
     }
-
 
     private async loadProducts() {
         try {
@@ -470,6 +494,9 @@ export class ProductForm implements OnInit, OnDestroy {
             seoMeta: this.seoData
         };
 
+        // Process imgs data from drag-drop component
+        this.processImgsData(payload);
+
         // normalize relations
         this.normalizeRelations(payload);
 
@@ -480,14 +507,47 @@ export class ProductForm implements OnInit, OnDestroy {
             logged.featuredImage = f
                 ? '[File]'
                 : (payload.featuredImage ?? null);
+
+            // Mask imgs files for logging
+            if (payload.imgsFiles && payload.imgsFiles.length > 0) {
+                logged.imgsFiles = `[${payload.imgsFiles.length} files]`;
+            }
         } catch (err) {}
         console.log('Prepared post payload (preview):', logged);
         console.log(
             'Featured image file object:',
             this.form.get('featuredImage')?.value ?? null
         );
+        console.log('Images data:', {
+            imgsFiles: payload.imgsFiles?.length || 0,
+            imgsKeep: payload.imgsKeep?.length || 0
+        });
 
         return payload;
+    }
+
+    // Process imgs data from drag-drop component
+    private processImgsData(payload: any) {
+        const imgsData = this.form.get('imgs')?.value || [];
+
+        // Separate new files and existing images
+        payload.imgsFiles = [];
+        payload.imgsKeep = [];
+
+        if (Array.isArray(imgsData)) {
+            imgsData.forEach((item: any) => {
+                if (item.isNew && item.file) {
+                    // New file to upload
+                    payload.imgsFiles.push(item.file);
+                } else if (item.url && !item.isNew) {
+                    // Existing image to keep
+                    payload.imgsKeep.push(item.url);
+                }
+            });
+        }
+
+        // Remove the original imgs field as we now have imgsFiles and imgsKeep
+        delete payload.imgs;
     }
 
     // Normalize category/taggedCategory/relatedProduct values to plain ids (in-place)

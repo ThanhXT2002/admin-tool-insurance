@@ -106,10 +106,33 @@ export class DragDropImgList implements OnInit, ControlValueAccessor {
 
     private addFiles(files: File[]) {
         for (const f of files) {
-            if (this.maxFiles && this.imgSelected.length >= this.maxFiles)
+            // Check max files limit
+            if (this.maxFiles && this.imgSelected.length >= this.maxFiles) {
+                console.warn(`Maximum ${this.maxFiles} files allowed`);
                 break;
+            }
+
+            // Validate file type
+            if (!f.type.startsWith('image/')) {
+                console.warn(`File ${f.name} is not an image`);
+                continue;
+            }
+
+            // Check file size (max 5MB)
+            const maxSizeInBytes = 5 * 1024 * 1024;
+            if (f.size > maxSizeInBytes) {
+                console.warn(`File ${f.name} is too large (max 5MB)`);
+                continue;
+            }
+
             const url = URL.createObjectURL(f);
-            this.imgSelected.push({ url, file: f, isNew: true });
+            this.imgSelected.push({
+                url,
+                file: f,
+                isNew: true,
+                name: f.name,
+                size: f.size
+            });
         }
         this.emitChange();
     }
@@ -134,31 +157,13 @@ export class DragDropImgList implements OnInit, ControlValueAccessor {
         this.removeImage(item);
     }
 
-    drop(event: CdkDragDrop<string[]>) {
-        const previousIndex = event.previousIndex;
-        const currentIndex = event.currentIndex;
-
-        console.log(`Drag drop: from ${previousIndex} to ${currentIndex}`);
-
-        if (previousIndex !== currentIndex) {
-            // Create a copy for better change detection
-            const itemsCopy = [...this.imgSelected];
-
-            moveItemInArray(itemsCopy, previousIndex, currentIndex);
-
-            // Update the array reference
-            this.imgSelected = itemsCopy;
-
-            console.log(
-                'Updated order:',
-                this.imgSelected.map((img, i) => ({
-                    index: i,
-                    url: img.url?.substring(0, 50) + '...'
-                }))
-            );
-
-            this.emitChange();
-        }
+    drop(event: CdkDragDrop<any[]>) {
+        moveItemInArray(
+            this.imgSelected,
+            event.previousIndex,
+            event.currentIndex
+        );
+        this.emitChange();
     }
 
     private emitChange() {

@@ -55,8 +55,21 @@
                     ></app-texteditor-common>
                 </div>
 
-                <app-drag-drop-img-list></app-drag-drop-img-list>
-                
+                <div>
+                    <label for="imgs" class="block mb-2"
+                        >Danh sách hình ảnh sản phẩm</label
+                    >
+                    <app-drag-drop-img-list
+                        formControlName="imgs"
+                        [maxFiles]="10"
+                        [class]="isInvalid('imgs') ? 'border-red-500' : ''"
+                    ></app-drag-drop-img-list>
+                    @if(isInvalid('imgs')) {
+                    <small class="text-red-500 mt-1"
+                        >Vui lòng thêm ít nhất 1 hình ảnh</small
+                    >
+                    }
+                </div>
             </div>
             <div class="lg:col-span-1 space-y-6">
                 <div class="w-full">
@@ -106,7 +119,7 @@
                         rows="5"
                         class="h-full w-full"
                     ></textarea>
-                      <label for="promotionDetails">Chi tiết khuyến mãi</label>
+                    <label for="promotionDetails">Chi tiết khuyến mãi</label>
                 </p-floatlabel>
 
                 <p-floatlabel variant="in">
