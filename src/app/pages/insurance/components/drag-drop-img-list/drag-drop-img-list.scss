@@ -1,46 +1,46 @@
 /* Google Angular CDK Drag-Drop styles for mixed orientation */
 :host {
-  display: block;
+    display: block;
 }
 
 /* CDK Drop List for mixed orientation (flex wrap) */
 .cdk-drop-list {
-  min-height: 60px;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  flex-wrap: wrap;
+    min-height: 60px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
 }
 
 /* CDK Drag item */
 .cdk-drag {
-  position: relative;
-  z-index: 1;
+    position: relative;
+    z-index: 1;
 }
 
 /* CDK Drag Preview - shown when dragging */
 .cdk-drag-preview {
-  box-sizing: border-box;
-  border-radius: inherit;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  opacity: 0.9;
-  transform: rotate(2deg);
+    box-sizing: border-box;
+    border-radius: inherit;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    opacity: 0.9;
+    transform: rotate(2deg);
 }
 
 /* CDK Drag Placeholder - shown in original position */
 .cdk-drag-placeholder {
-  background: rgba(59, 130, 246, 0.1);
-  border: 2px dashed #3b82f6;
-  opacity: 0.6;
-  transition: transform 250ms cubic-bezier(0.25, 0.8, 0.25, 1);
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px dashed #3b82f6;
+    opacity: 0.6;
+    transition: transform 250ms cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 /* Improved drag animations */
 .cdk-drag-animating {
-  transition: transform 250ms cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: transform 250ms cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 /* Drop list while dragging */
 .cdk-drop-list.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
-  transition: transform 250ms cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: transform 250ms cubic-bezier(0.25, 0.8, 0.25, 1);
 }
