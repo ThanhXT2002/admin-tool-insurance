@@ -174,6 +174,25 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
         return payload;
     }
 
+    // Hydrate store state from query parameters (only supported API params)
+    hydrateFromQueryParams(queryParams: any): Partial<ProductListState> | null {
+        if (!queryParams || Object.keys(queryParams).length === 0) return null;
+
+        const parsed: Partial<ProductListState> = {};
+
+        if (queryParams.page) parsed.page = Number(queryParams.page) || 1;
+        if (queryParams.limit) parsed.limit = Number(queryParams.limit) || 10;
+        if (queryParams.keyword) parsed.keyword = queryParams.keyword;
+        if (queryParams.active === 'true') parsed.active = true;
+        else if (queryParams.active === 'false') parsed.active = false;
+
+        if (Object.keys(parsed).length > 0) {
+            this.load(parsed, { skipSync: true });
+            return parsed;
+        }
+        return null;
+    }
+
     private syncQueryParamsToUrl() {
         const q = this.snapshot();
         const params: any = {};

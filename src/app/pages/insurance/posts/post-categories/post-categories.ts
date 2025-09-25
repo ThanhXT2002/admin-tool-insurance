@@ -37,7 +37,7 @@ import { PostCategory } from '@/interfaces/post-category.interface';
         ToggleSwitch,
         Select
     ],
-    providers: [ConfirmationService, MessageService],
+    providers: [ConfirmationService],
     templateUrl: './post-categories.html',
     styleUrl: './post-categories.scss'
 })
@@ -97,8 +97,6 @@ export class PostCategories implements OnInit, OnDestroy {
     private destroy$ = new Subject<void>();
     private skipNextLazyLoad = false;
     private searchTimeout: any;
-
-    selectedItem: PostCategory | null = null;
 
     statusOptions = [
         { name: 'Tất cả trạng thái', code: undefined },

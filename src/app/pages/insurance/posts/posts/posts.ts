@@ -96,7 +96,6 @@ export class Posts implements OnInit, OnDestroy {
         this.totalRecords = t;
     });
 
-    selectedItem: Post | null = null;
 
     statusOptions = [
         { name: 'Tất cả trạng thái', code: undefined },
@@ -629,7 +628,7 @@ export class Posts implements OnInit, OnDestroy {
     errorImg(event: Event) {
         const target = event?.target as HTMLImageElement | null;
         if (!target) return;
-        const fallback = 'assets/images/np-img.webp';
+        const fallback = 'assets/images/no-img.webp';
         if (target.src && !target.src.endsWith(fallback)) target.src = fallback;
     }
 

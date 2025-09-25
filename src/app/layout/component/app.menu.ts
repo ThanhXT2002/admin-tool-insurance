@@ -27,6 +27,10 @@ export class AppMenu {
                 items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/'] }]
             },
             {
+                label: 'Quản lý sản phẩm',
+                items: [{ label: 'QL Sản Phẩm - Dịch Vụ', icon: 'pi pi-fw pi-box', routerLink: ['/insurance/products'] }]
+            },
+            {
                 label: 'Quản Lý Bài Viết',
                 // <i class="ri-newspaper-line"></i>
                 items: [

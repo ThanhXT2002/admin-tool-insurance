@@ -7,6 +7,8 @@ import { Permissions } from './users/permissions/permissions';
 import { PostCategoryForm } from './posts/post-category-form/post-category-form';
 import { NestedPostCate } from './posts/nested-post-cate/nested-post-cate';
 import { PostForm } from './posts/post-form/post-form';
+import { Products } from './products/products/products';
+import { ProductForm } from './products/product-form/product-form';
 
 
 export default [
@@ -20,4 +22,7 @@ export default [
     { path: 'users', component: Users },
     { path: 'user-roles', component: UserRoles },
     { path: 'permissions', component: Permissions },
+    { path: 'products', component: Products },
+    { path: 'product/create', component: ProductForm },
+    { path: 'product/update/:id', component: ProductForm },
 ] as Routes;
