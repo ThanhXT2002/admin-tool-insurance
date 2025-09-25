@@ -79,8 +79,21 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
     }
 
     async create(payload: any) {
+        let toSend: any = payload;
+        // If payload contains File or imgs File[] or icon File, convert to FormData
+        try {
+            const hasFile =
+                (payload && payload.icon instanceof File) ||
+                (payload &&
+                    Array.isArray(payload.imgs) &&
+                    payload.imgs.some((i: any) => i instanceof File));
+            if (hasFile) {
+                toSend = this.api.buildFormData(payload);
+            }
+        } catch {}
+
         const res: any = await this.run(() =>
-            firstValueFrom(this.api.create(payload))
+            firstValueFrom(this.api.create(toSend))
         );
         const created = res.data as Product;
         this._state.update((s) => ({
@@ -92,8 +105,18 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
     }
 
     async update(id: number, payload: any) {
+        let toSend: any = payload;
+        try {
+            const hasFile =
+                (payload && payload.icon instanceof File) ||
+                (payload &&
+                    Array.isArray(payload.imgs) &&
+                    payload.imgs.some((i: any) => i instanceof File));
+            if (hasFile) toSend = this.api.buildFormData(payload);
+        } catch {}
+
         const res: any = await this.run(() =>
-            firstValueFrom(this.api.update(id, payload))
+            firstValueFrom(this.api.update(id, toSend))
         );
         const updated = res.data as Product;
         this._state.update((s) => ({

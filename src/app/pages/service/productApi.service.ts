@@ -83,7 +83,8 @@ export class ProductApiService {
     }
 
     // Build FormData for create/update when uploading images
-    private buildFormData(payload: any): FormData {
+    // made public so callers (stores/components) can reuse when they need to send files
+    public buildFormData(payload: any): FormData {
         const fd = new FormData();
         for (const key of Object.keys(payload)) {
             const val = payload[key];
@@ -99,6 +100,17 @@ export class ProductApiService {
                             fd.append('imgs', item);
                         else fd.append('imgs', JSON.stringify(item));
                     }
+                }
+                continue;
+            }
+
+            // special-case single icon file (keep original format)
+            if (key === 'icon') {
+                // allow sending string (existing URL) or File for new upload
+                if (val instanceof File) {
+                    fd.append('icon', val, val.name);
+                } else if (typeof val === 'string') {
+                    fd.append('icon', val);
                 }
                 continue;
             }
