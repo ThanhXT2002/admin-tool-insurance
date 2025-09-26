@@ -31,19 +31,16 @@ import { TexteditorCommon } from '../../components/texteditor-common/texteditor-
 import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
 import { PostCategory } from '@/interfaces/post-category.interface';
 import { PostCategoryService } from '@/pages/service/post-category.service';
-import { firstValueFrom, Subscription } from 'rxjs';
-import { Post } from '@/interfaces/post.interface';
-import { TreeSelect } from 'primeng/treeselect';
-import { DatePickerModule } from 'primeng/datepicker';
-import { AutoComplete } from 'primeng/autocomplete';
 import { ProductApiService } from '@/pages/service/productApi.service';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { Product } from '@/interfaces/product.interface';
-import { PostStore } from '@/store/post/post.store';
+import { ProductStore } from '@/store/product/product.store';
 import { MultiSelect } from 'primeng/multiselect';
-import { toIsoOrUndefined } from '../../../../utils/dateTimeHelper';
 import { InputNumber } from 'primeng/inputnumber';
 import { Tag } from 'primeng/tag';
 import { DragDropImgList } from '../../components/drag-drop-img-list/drag-drop-img-list';
+import { AutoComplete } from 'primeng/autocomplete';
+import { environment } from 'src/environments/environment';
 
 interface AutoCompleteCompleteEvent {
     originalEvent: Event;
@@ -64,7 +61,6 @@ interface AutoCompleteCompleteEvent {
         TexteditorCommon,
         CommonModule,
         AutoComplete,
-        DatePickerModule,
         MultiSelect,
         InputNumber,
         DragDropImgList
@@ -79,35 +75,28 @@ export class ProductForm implements OnInit, OnDestroy {
     private messageService = inject(MessageService);
     private route = inject(ActivatedRoute);
     private router = inject(Router);
-    private postStore = inject(PostStore);
+    private productStore = inject(ProductStore);
 
     currentId = signal<number | undefined>(undefined);
-    private previewFeaturedImage = signal<string | null>(null);
+    private previewIcon = signal<string | null>(null);
 
     headerTitle!: string;
     isEditMode = signal(false);
     form!: FormGroup;
 
-    // product options for relatedProductIds select
-    productOptions = signal<Product[]>([]);
-    private postCategoryService = inject(PostCategoryService);
-    private facadePostCategory = inject(PostCategoryFacade);
-    private productApi = inject(ProductApiService);
     private _subs = new Subscription();
     seoData: any = null;
     seoStatus: 'VALID' | 'INVALID' | 'PENDING' = 'PENDING';
     @ViewChild(Seo) seoComp?: Seo;
 
-    itemTargetAudience!: any[] | undefined;
-
-    // submitting flag used to disable UI while creating/updating
+    // Cờ đánh dấu đang submit để vô hiệu hóa UI trong quá trình tạo/cập nhật
     submitting = false;
 
-    // edit mode fields
+    // Các trường hiển thị khi chế độ chỉnh sửa
     createdAt?: string | null = null;
     updatedAt?: string | null = null;
 
-    // edit mode fields
+    // Các trường hiển thị khi chế độ chỉnh sửa
     createdBy?: string | null = null;
     updatedBy?: string | null = null;
 
@@ -121,10 +110,6 @@ export class ProductForm implements OnInit, OnDestroy {
         { name: 'Không hoạt động', code: false }
     ];
 
-    saleOnlineOptions = [
-        { name: 'Có', code: true },
-        { name: 'Không', code: false }
-    ];
     promotionOptions = [
         { name: 'Có khuyến mãi', code: true },
         { name: 'Không có khuyến mãi', code: false }
@@ -137,33 +122,30 @@ export class ProductForm implements OnInit, OnDestroy {
     ];
 
     constructor() {
-        this.form = this.fb.group(
-            {
-                name: ['', [Validators.required]],
-                description: [''],
-                shortContent: [''],
-                content: ['', [Validators.required]],
-                price: [undefined, [Validators.min(0)]],
-                coverage: [undefined],
-                term: [''],
-                targetLink: [''],
-                targetFile: [''],
-                details: [''],
-                active: [true, [Validators.required]],
-                note: [''],
-                priority: [0],
-                isHighlighted: [false],
-                isFeatured: [false],
-                isSaleOnline: [false],
-                isPromotion: [false],
-                promotionDetails: [''],
-                tags: [undefined],
-                imgs: [[], this.imgsValidator],
-                icon: [null, Validators.required],
-                metaKeywords: ['']
-            },
-            { validators: this.dateRangeValidator() }
-        );
+        this.form = this.fb.group({
+            name: ['', [Validators.required]],
+            description: [''],
+            shortContent: [''],
+            content: ['', [Validators.required]],
+            price: [undefined, [Validators.min(0)]],
+            coverage: [undefined],
+            term: [''],
+            targetLink: [''],
+            targetFile: [''],
+            details: [''],
+            active: [true, [Validators.required]],
+            note: [''],
+            priority: [0],
+            isHighlighted: [false],
+            isFeatured: [false],
+            isSaleOnline: [false],
+            isPromotion: [false],
+            promotionDetails: [''],
+            tags: [undefined],
+            imgs: [[], this.imgsValidator],
+            icon: [null, Validators.required],
+            metaKeywords: ['']
+        });
 
         // Effect: cập nhật tiêu đề header khi chế độ edit/create thay đổi
         effect(() => {
@@ -173,7 +155,7 @@ export class ProductForm implements OnInit, OnDestroy {
         });
     }
 
-    // Validator: imgs must have at least 1 image
+    // Validator: imgs phải có ít nhất 1 hình ảnh
     private imgsValidator(control: AbstractControl) {
         const value = control.value;
         if (!value || !Array.isArray(value) || value.length === 0) {
@@ -182,213 +164,297 @@ export class ProductForm implements OnInit, OnDestroy {
         return null;
     }
 
-    // Validator: optional YouTube URL validator
-    // Accepts empty value. If provided, must match common YouTube URL formats.
-    youtubeUrlValidator(control: AbstractControl) {
-        const v = control.value;
-        if (!v) return null;
-        try {
-            const s = String(v).trim();
-            // common patterns: https://www.youtube.com/watch?v=..., https://youtu.be/...
-            const ytRegex =
-                /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[A-Za-z0-9_-]{6,}/i;
-            return ytRegex.test(s) ? null : { youtubeUrl: true };
-        } catch (err) {
-            return { youtubeUrl: true };
+    // ===== CÁC HÀM TEST DATA (CHỈ DÙNG TRONG DEVELOPMENT) =====
+
+    // Điền dữ liệu test nếu đang ở development và chế độ create
+    private fillTestDataIfNeeded(): void {
+        if (!environment.production && !this.isEditMode()) {
+            setTimeout(() => this.fillTestData(), 100); // Delay nhỏ để đảm bảo form đã khởi tạo
         }
     }
 
-    // Validator: expiredAt must be greater than scheduledAt (if both provided)
-    private dateRangeValidator(): ValidatorFn {
-        return (group: AbstractControl) => {
-            const scheduled = group.get('scheduledAt')?.value;
-            const expired = group.get('expiredAt')?.value;
-            if (!scheduled || !expired) {
-                // clear any previous error
-                group.get('expiredAt')?.setErrors(null);
-                return null;
-            }
+    // 🧪 HÀM TIỆN ÍCH: Gọi từ console để điền dữ liệu test bất kỳ lúc nào
+    // Sử dụng: window.fillTestData() trong browser console
+    private setupTestDataHelper(): void {
+        if (!environment.production) {
+            (window as any).fillTestData = () => {
+                this.fillTestData();
+                console.log('✅ Đã điền lại dữ liệu test từ console helper');
+            };
+            console.log(
+                '🧪 Test helper đã sẵn sàng! Gõ "fillTestData()" trong console để điền dữ liệu test'
+            );
+        }
+    }
 
-            const s = new Date(scheduled).getTime();
-            const e = new Date(expired).getTime();
-            if (isNaN(s) || isNaN(e)) {
-                group.get('expiredAt')?.setErrors(null);
-                return null;
-            }
+    // Điền dữ liệu test vào form
+    private fillTestData(): void {
+        const testData = this.generateTestData();
+        this.form.patchValue(testData);
 
-            if (e <= s) {
-                group.get('expiredAt')?.setErrors({ dateRange: true });
-                return { dateRange: true };
-            }
+        // Điền dữ liệu cho các trường đặc biệt
+        this.fillTestTags();
+        this.fillTestMetaKeywords();
+        this.fillTestSeoData();
 
-            // valid -> clear error
-            group.get('expiredAt')?.setErrors(null);
-            return null;
+        console.log('✅ Đã điền dữ liệu test vào form (Development mode)');
+    }
+
+    // Tạo dữ liệu test ngẫu nhiên
+    private generateTestData(): any {
+        const productTypes = [
+            'Bảo hiểm ô tô',
+            'Bảo hiểm sức khỏe',
+            'Bảo hiểm nhân thọ',
+            'Bảo hiểm du lịch',
+            'Bảo hiểm tài sản'
+        ];
+        const randomType =
+            productTypes[Math.floor(Math.random() * productTypes.length)];
+        const randomId = Math.floor(Math.random() * 1000);
+
+        return {
+            name: `${randomType} ${randomId}`,
+            description: `Mô tả chi tiết cho ${randomType.toLowerCase()} với các tính năng ưu việt`,
+            shortContent: `Tóm tắt về ${randomType.toLowerCase()} dành cho khách hàng`,
+            content: this.generateRandomContent(randomType),
+            price: Math.floor(Math.random() * 10000000) + 500000, // 500k - 10.5M
+            coverage: Math.floor(Math.random() * 500000000) + 10000000, // 10M - 510M
+            term: this.getRandomTerm(),
+            targetLink: `https://example.com/${randomType.toLowerCase().replace(/\s+/g, '-')}-${randomId}`,
+            targetFile: `https://example.com/${randomType.toLowerCase().replace(/\s+/g, '-')}-${randomId}`,
+            details: `Chi tiết đầy đủ về ${randomType.toLowerCase()} bao gồm điều khoản và điều kiện`,
+            note: `Ghi chú cho ${randomType} - cập nhật ${new Date().toLocaleDateString('vi-VN')}`,
+            priority: Math.floor(Math.random() * 10),
+            isHighlighted: Math.random() > 0.7,
+            isFeatured: Math.random() > 0.8,
+            isSaleOnline: Math.random() > 0.5,
+            isPromotion: Math.random() > 0.6,
+            promotionDetails:
+                Math.random() > 0.6
+                    ? `Khuyến mãi đặc biệt ${Math.floor(Math.random() * 50)}% off`
+                    : '',
+            active: true
         };
     }
 
-    // hasDateRangeError() moved to bottom (keeps runtime checks centralized)
+    // Tạo nội dung ngẫu nhiên cho content
+    private generateRandomContent(productType: string): string {
+        const benefits = [
+            'Bảo vệ toàn diện cho gia đình',
+            'Quy trình giải quyết bồi thường nhanh chóng',
+            'Hỗ trợ 24/7 trong trường hợp khẩn cấp',
+            'Phí bảo hiểm cạnh tranh',
+            'Mạng lưới hỗ trợ rộng khắp cả nước'
+        ];
+
+        const features = [
+            'Không giới hạn số lần khám chữa bệnh',
+            'Được áp dụng tại tất cả bệnh viện công và tư',
+            'Thanh toán trực tiếp không cần ứng trước',
+            'Bồi thường lên đến 100% chi phí điều trị',
+            'Miễn thẩm định y tế cho người dưới 50 tuổi'
+        ];
+
+        return `
+            <h2>Giới thiệu về ${productType}</h2>
+            <p>Sản phẩm ${productType.toLowerCase()} được thiết kế đặc biệt để đáp ứng nhu cầu bảo vệ của khách hàng Việt Nam.</p>
+
+            <h3>Lợi ích nổi bật</h3>
+            <ul>
+                ${benefits
+                    .slice(0, 3)
+                    .map((benefit) => `<li>${benefit}</li>`)
+                    .join('')}
+            </ul>
+
+            <h3>Tính năng chính</h3>
+            <ul>
+                ${features
+                    .slice(0, 3)
+                    .map((feature) => `<li>${feature}</li>`)
+                    .join('')}
+            </ul>
+
+            <p><strong>Liên hệ ngay hôm nay để được tư vấn chi tiết!</strong></p>
+        `;
+    }
+
+    // Lấy kỳ hạn ngẫu nhiên
+    private getRandomTerm(): string {
+        const terms = ['1Y', '2Y', '3Y'];
+        return terms[Math.floor(Math.random() * terms.length)];
+    }
+
+    // Điền test tags
+    private fillTestTags(): void {
+        const sampleTags = [
+            'bảo hiểm',
+            'sức khỏe',
+            'gia đình',
+            'an toàn',
+            'tiết kiệm',
+            'ưu đãi'
+        ];
+        const randomTags = sampleTags
+            .sort(() => Math.random() - 0.5)
+            .slice(0, Math.floor(Math.random() * 4) + 2); // 2-5 tags
+
+        this.form.get('tags')?.setValue(randomTags);
+    }
+
+    // Điền test meta keywords
+    private fillTestMetaKeywords(): void {
+        const sampleKeywords = [
+            'bảo hiểm online',
+            'mua bảo hiểm',
+            'bảo hiểm giá rẻ',
+            'bảo hiểm uy tín',
+            'claims bảo hiểm',
+            'tư vấn bảo hiểm'
+        ];
+        const randomKeywords = sampleKeywords
+            .sort(() => Math.random() - 0.5)
+            .slice(0, Math.floor(Math.random() * 3) + 3); // 3-5 keywords
+
+        this.form.get('metaKeywords')?.setValue(randomKeywords);
+    }
+
+    // Điền test SEO data
+    private fillTestSeoData(): void {
+        const productName = this.form.get('name')?.value || 'Sản phẩm bảo hiểm';
+        this.seoData = {
+            title: `${productName} - Bảo hiểm uy tín, giá tốt`,
+            description: `Mua ${productName.toLowerCase()} với mức giá cạnh tranh, quy trình đơn giản. Tư vấn miễn phí 24/7.`,
+            keywords: `${productName.toLowerCase()}, bảo hiểm online, mua bảo hiểm`,
+            ogTitle: `${productName} - Ưu đãi đặc biệt`,
+            ogDescription: `Khám phá ${productName.toLowerCase()} với nhiều ưu đãi hấp dẫn`,
+            ogImage: 'https://example.com/og-image.jpg'
+        };
+        this.seoStatus = 'VALID';
+    }
 
     ngOnInit(): void {
-        // Load category tree for treeselects
+        // Điền dữ liệu test nếu ở chế độ develop và create mode
+        this.fillTestDataIfNeeded();
 
-        // Load related products (up to 100 items)
-        this.loadProducts();
+        // Setup helper cho console (development only)
+        this.setupTestDataHelper();
 
-        // Real-time date range validation: subscribe to changes
-        const scheduledCtrl = this.form.get('scheduledAt');
-        const expiredCtrl = this.form.get('expiredAt');
-        if (scheduledCtrl) {
-            this._subs.add(
-                scheduledCtrl.valueChanges.subscribe(() =>
-                    this.validateDateRange()
-                )
-            );
-        }
-        if (expiredCtrl) {
-            this._subs.add(
-                expiredCtrl.valueChanges.subscribe(() =>
-                    this.validateDateRange()
-                )
-            );
-        }
+        // Xử lý route parameter để load dữ liệu edit
+        this.handleRouteParams();
+    }
 
-        // If route contains an id param -> load post for edit
+    // Xử lý route parameter để xác định chế độ edit và tải dữ liệu
+    private handleRouteParams(): void {
         try {
             const idParam = this.route.snapshot.paramMap.get('id');
             if (idParam) {
+                this.isEditMode.set(true);
                 const id = Number(idParam);
                 if (!isNaN(id)) {
                     this.currentId.set(id);
-                    this.isEditMode.set(true);
-                    // load details and populate form
-                    this.loadPostForEdit(id).catch((err) => {
-                        console.error('Failed to load post for edit', err);
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Lỗi',
-                            detail: 'Không thể tải chi tiết bài viết'
+                    this.loadProductForEdit(id)
+                        .then(() => {
+                            console.log(
+                                'Tải sản phẩm thành công để chỉnh sửa:',
+                                this.form.value
+                            );
+                        })
+                        .catch((err) => {
+                            console.error(
+                                'Không thể tải sản phẩm để chỉnh sửa',
+                                err
+                            );
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Lỗi',
+                                detail: 'Không thể tải chi tiết sản phẩm'
+                            });
                         });
-                    });
+                } else {
+                    console.warn('Tham số id không hợp lệ');
                 }
             }
         } catch (err) {
-            // ignore
+            // bỏ qua
         }
     }
 
-    // Load post detail and populate the form for update
-    private async loadPostForEdit(id: number) {
+    // Tải chi tiết sản phẩm và điền dữ liệu vào form để cập nhật
+    private async loadProductForEdit(id: number) {
         this.loadingService.show();
         try {
-            const post: Post = await this.postStore.fetchById(id);
-            if (!post) throw new Error('Post not found');
+            const product: Product = await firstValueFrom(
+                this.productStore.fetchById(id) as any
+            );
+            if (!product) throw new Error('Không tìm thấy sản phẩm');
 
-            // basic fields
-            this.form.get('title')?.setValue(post.title ?? '');
-            this.form.get('excerpt')?.setValue(post.excerpt ?? '');
-            this.form.get('shortContent')?.setValue(post.shortContent ?? '');
-            this.form.get('content')?.setValue(post.content ?? '');
-            this.form.get('status')?.setValue(post.status ?? 'DRAFT');
-            this.form.get('videoUrl')?.setValue(post.videoUrl ?? '');
-            this.form.get('note')?.setValue(post.note ?? '');
-            this.form.get('priority')?.setValue(post.priority ?? 0);
-            this.form.get('isHighlighted')?.setValue(!!post.isHighlighted);
-            this.form.get('isFeatured')?.setValue(!!post.isFeatured);
-            this.form.get('postType')?.setValue(post.postType ?? 'ARTICLE');
+            // Ánh xạ các trường của Product interface vào form controls bằng patchValue
+            this.form.patchValue({
+                name: product.name ?? '',
+                description: product.description ?? '',
+                shortContent: product.shortContent ?? '',
+                content: product.content ?? '',
+                price: product.price ?? null,
+                coverage: product.coverage ?? null,
+                term: product.term ?? '',
+                targetLink: product.targetLink ?? '',
+                targetFile: product.targetFile ?? '',
+                details: product.details ?? '',
+                note: product.note ?? '',
+                priority: product.priority ?? 0,
+                isHighlighted: !!product.isHighlighted,
+                isFeatured: !!product.isFeatured,
+                isSaleOnline: !!product.isSaleOnline,
+                isPromotion: !!product.isPromotion,
+                promotionDetails: product.promotionDetails ?? '',
+                active: !!product.active
+            });
 
-            // category: API returns full category object
-            if (post.category && post.category.id != null) {
-                this.form.get('categoryId')?.setValue(post.category.id);
-            }
+            // Các mảng dữ liệu
+            if (Array.isArray(product.tags))
+                this.form.get('tags')?.setValue(product.tags);
+            if (Array.isArray(product.metaKeywords))
+                this.form.get('metaKeywords')?.setValue(product.metaKeywords);
 
-            // tagged categories -> set ids array
-            if (Array.isArray(post.taggedCategories)) {
-                this.form
-                    .get('taggedCategoryIds')
-                    ?.setValue(post.taggedCategories.map((c: any) => c.id));
-            }
-
-            // related products -> set array of ids
-            if (Array.isArray(post.relatedProducts)) {
-                this.form
-                    .get('relatedProductIds')
-                    ?.setValue(post.relatedProducts.map((p: any) => p.id));
-            }
-
-            // dates: convert ISO -> Date for datepicker
-            try {
-                this.form
-                    .get('scheduledAt')
-                    ?.setValue(
-                        post.scheduledAt ? new Date(post.scheduledAt) : ''
-                    );
-            } catch (err) {}
-            try {
-                this.form
-                    .get('expiredAt')
-                    ?.setValue(post.expiredAt ? new Date(post.expiredAt) : '');
-            } catch (err) {}
-
-            // targetAudience and metaKeywords are arrays
-            if (Array.isArray(post.targetAudience))
-                this.form.get('targetAudience')?.setValue(post.targetAudience);
-            if (Array.isArray(post.metaKeywords))
-                this.form.get('metaKeywords')?.setValue(post.metaKeywords);
-
-            // featured image: backend returns URL -> use as preview and set control to string
-            if (post.featuredImage) {
+            // Icon: backend trả về URL -> sử dụng làm preview và set control thành string
+            if (product.icon) {
                 try {
-                    this.previewFeaturedImage.set(post.featuredImage as any);
-                    // set form control to URL so buildFormData can send existing URL
-                    this.form
-                        .get('featuredImage')
-                        ?.setValue(post.featuredImage);
+                    this.previewIcon.set(product.icon as any);
+                    this.form.get('icon')?.setValue(product.icon);
                 } catch (err) {}
             }
 
-            // Load existing images for drag-drop component
-            if (
-                Array.isArray((post as any).imgs) &&
-                (post as any).imgs.length > 0
-            ) {
+            // Tải hình ảnh hiện có cho drag-drop component
+            if (Array.isArray(product.imgs) && product.imgs.length > 0) {
                 try {
-                    const existingImages = (post as any).imgs.map(
-                        (imgUrl: string) => ({
-                            url: imgUrl,
-                            isNew: false,
-                            name: imgUrl.split('/').pop() || 'image'
+                    const existingImages = product.imgs.map(
+                        (url: string, index: number) => ({
+                            id: `existing-${index}`,
+                            url: url,
+                            file: null // hình ảnh hiện có, không có file object
                         })
                     );
                     this.form.get('imgs')?.setValue(existingImages);
                 } catch (err) {
-                    console.warn('Error loading existing images:', err);
+                    console.warn('Không thể tải hình ảnh hiện có:', err);
                 }
             }
 
             // SEO meta
-            if (post.seoMeta) {
-                this.seoData = post.seoMeta;
+            if (product.seoMeta) {
+                this.seoData = product.seoMeta;
                 this.seoStatus = 'VALID';
-                // if Seo component exposes a setter we could call it, but keep data in seoData
-                try {
-                    // @ts-ignore - optional helper if Seo component implements setData
-                    if (
-                        this.seoComp &&
-                        typeof (this.seoComp as any).setData === 'function'
-                    )
-                        (this.seoComp as any).setData(post.seoMeta);
-                } catch (err) {}
             }
 
-            // audit fields for display
-            this.createdAt = post.createdAt ?? null;
-            this.updatedAt = post.updatedAt ?? null;
-            // createdBy/updatedBy aren't in the typed Post interface; read defensively
-            this.createdBy = (post as any)?.createdBy ?? null;
-            this.updatedBy = (post as any)?.updatedBy ?? null;
+            // Các trường audit để hiển thị
+            this.createdAt = product.createdAt ?? null;
+            this.updatedAt = product.updatedAt ?? null;
+            this.createdBy = (product as any)?.createdBy ?? null;
+            this.updatedBy = (product as any)?.updatedBy ?? null;
 
-            // mark form as pristine since we loaded remote data
+            // Đánh dấu form là pristine vì chúng ta đã tải dữ liệu từ remote
             try {
                 this.form.markAsPristine();
                 this.form.markAsUntouched();
@@ -396,44 +462,34 @@ export class ProductForm implements OnInit, OnDestroy {
         } finally {
             try {
                 this.loadingService.hide();
-                console.log('form value', this.form.value);
+                console.log(
+                    'Giá trị form sản phẩm sau khi tải:',
+                    this.form.value
+                );
             } catch (ignore) {}
         }
     }
 
-    private async loadProducts() {
-        try {
-            const resp: any = await firstValueFrom(
-                this.productApi.getAll({ limit: 100 }) as any
-            );
-            const payload: any = resp?.data;
-            const rows: Product[] = Array.isArray(payload?.rows)
-                ? payload.rows
-                : [];
-            this.productOptions.set(rows);
-        } catch (err) {
-            console.error('Failed to load related products', err);
-            this.productOptions.set([]);
-        }
-    }
-
     ngOnDestroy(): void {
-        // Revoke object URL if we created one to avoid memory leak
+        // Thu hồi object URL nếu chúng ta đã tạo để tránh memory leak
         try {
-            const url = this.previewFeaturedImage();
+            const url = this.previewIcon();
             if (url && url.startsWith('blob:')) URL.revokeObjectURL(url);
         } catch (err) {
-            // ignore
+            // bỏ qua
         }
         try {
             this._subs.unsubscribe();
         } catch (err) {
-            // ignore
+            // bỏ qua
         }
     }
 
     async submit() {
-        console.log('[PostForm] form submit, form value:', this.form.value);
+        console.log(
+            '[ProductForm] Submit form, giá trị form:',
+            this.form.value
+        );
         this.form.markAllAsTouched();
         const childValid = this.seoComp
             ? this.seoComp.validate()
@@ -451,7 +507,7 @@ export class ProductForm implements OnInit, OnDestroy {
 
         const payload = this.buildPayload();
 
-        // show loading
+        // Hiển thị loading
         this.submitting = true;
         this.loadingService.show();
 
@@ -460,13 +516,13 @@ export class ProductForm implements OnInit, OnDestroy {
             this.handleSaveSuccess(result);
         } catch (err: any) {
             console.error(
-                '[PostForm] submit error, form before handling error:',
+                '[ProductForm] Lỗi submit, giá trị form trước khi xử lý lỗi:',
                 this.form.value,
                 err
             );
             this.handleSaveError(err);
             console.log(
-                '[PostForm] submit error handled, form after handling error:',
+                '[ProductForm] Đã xử lý lỗi submit, giá trị form sau khi xử lý lỗi:',
                 this.form.value
             );
             return;
@@ -478,47 +534,30 @@ export class ProductForm implements OnInit, OnDestroy {
         }
     }
 
-    // Build payload and normalize dates
+    // Xây dựng payload cho Product
     private buildPayload(): any {
-        const normalizedScheduled = toIsoOrUndefined(
-            this.form.get('scheduledAt')?.value
-        );
-        const normalizedExpired = toIsoOrUndefined(
-            this.form.get('expiredAt')?.value
-        );
-
         const payload: any = {
             ...this.form.value,
-            scheduledAt: normalizedScheduled,
-            expiredAt: normalizedExpired,
             seoMeta: this.seoData
         };
 
-        // Process imgs data from drag-drop component
+        // Xử lý dữ liệu imgs từ drag-drop component
         this.processImgsData(payload);
 
-        // normalize relations
-        this.normalizeRelations(payload);
-
-        // mask file for logs
+        // Che giấu file cho logs
         const logged = { ...payload };
         try {
-            const f = this.form.get('featuredImage')?.value;
-            logged.featuredImage = f
-                ? '[File]'
-                : (payload.featuredImage ?? null);
+            const f = this.form.get('icon')?.value;
+            logged.icon = f ? '[File]' : (payload.icon ?? null);
 
-            // Mask imgs files for logging
+            // Che giấu imgs files cho logging
             if (payload.imgsFiles && payload.imgsFiles.length > 0) {
                 logged.imgsFiles = `[${payload.imgsFiles.length} files]`;
             }
         } catch (err) {}
-        console.log('Prepared post payload (preview):', logged);
-        console.log(
-            'Featured image file object:',
-            this.form.get('featuredImage')?.value ?? null
-        );
-        console.log('Images data:', {
+        console.log('Đã chuẩn bị payload sản phẩm (preview):', logged);
+        console.log('Icon file object:', this.form.get('icon')?.value ?? null);
+        console.log('Dữ liệu hình ảnh:', {
             imgsFiles: payload.imgsFiles?.length || 0,
             imgsKeep: payload.imgsKeep?.length || 0
         });
@@ -526,86 +565,38 @@ export class ProductForm implements OnInit, OnDestroy {
         return payload;
     }
 
-    // Process imgs data from drag-drop component
+    // Xử lý dữ liệu imgs từ drag-drop component
     private processImgsData(payload: any) {
         const imgsData = this.form.get('imgs')?.value || [];
 
-        // Separate new files and existing images
+        // Tách file mới và hình ảnh hiện có
         payload.imgsFiles = [];
         payload.imgsKeep = [];
 
         if (Array.isArray(imgsData)) {
             imgsData.forEach((item: any) => {
                 if (item.isNew && item.file) {
-                    // New file to upload
+                    // File mới để upload
                     payload.imgsFiles.push(item.file);
                 } else if (item.url && !item.isNew) {
-                    // Existing image to keep
+                    // Hình ảnh hiện có để giữ lại
                     payload.imgsKeep.push(item.url);
                 }
             });
         }
 
-        // Remove the original imgs field as we now have imgsFiles and imgsKeep
+        // Xóa trường imgs gốc vì giờ chúng ta có imgsFiles và imgsKeep
         delete payload.imgs;
     }
 
-    // Normalize category/taggedCategory/relatedProduct values to plain ids (in-place)
-    private normalizeRelations(payload: any) {
-        try {
-            const rawCat = this.form.get('categoryId')?.value;
-            if (rawCat == null || rawCat === '') payload.categoryId = undefined;
-            else if (typeof rawCat === 'number') payload.categoryId = rawCat;
-            else if (typeof rawCat === 'string' && !isNaN(Number(rawCat)))
-                payload.categoryId = Number(rawCat);
-            else if (rawCat && typeof rawCat === 'object')
-                payload.categoryId = rawCat.id ?? rawCat.data?.id;
-
-            const rawTagged = this.form.get('taggedCategoryIds')?.value;
-            if (Array.isArray(rawTagged)) {
-                payload.taggedCategoryIds = rawTagged
-                    .map((it: any) => {
-                        if (it == null) return it;
-                        if (typeof it === 'number') return it;
-                        if (typeof it === 'string' && !isNaN(Number(it)))
-                            return Number(it);
-                        if (typeof it === 'object')
-                            return it.id ?? it.data?.id ?? null;
-                        return null;
-                    })
-                    .filter((v: any) => v != null);
-            } else {
-                payload.taggedCategoryIds = undefined;
-            }
-
-            const rawRelated = this.form.get('relatedProductIds')?.value;
-            if (Array.isArray(rawRelated)) {
-                payload.relatedProductIds = rawRelated
-                    .map((it: any) => {
-                        if (it == null) return it;
-                        if (typeof it === 'number') return it;
-                        if (typeof it === 'string' && !isNaN(Number(it)))
-                            return Number(it);
-                        if (typeof it === 'object') return it.id ?? null;
-                        return null;
-                    })
-                    .filter((v: any) => v != null);
-            } else {
-                payload.relatedProductIds = undefined;
-            }
-        } catch (err) {
-            console.warn('Failed to normalize category/related values', err);
-        }
-    }
-
-    // perform save and return the created/updated record or null on update
+    // Thực hiện lưu và trả về record đã tạo/cập nhật hoặc null khi update
     private async performSave(payload: any): Promise<any> {
         if (this.isEditMode() && this.currentId()) {
             const id = this.currentId() as number;
-            const updated = await this.postStore.update(id, payload);
+            const updated = await this.productStore.update(id, payload);
             return { action: 'update', record: updated };
         } else {
-            const created = await this.postStore.create(payload);
+            const created = await this.productStore.create(payload);
             return { action: 'create', record: created };
         }
     }
@@ -615,41 +606,41 @@ export class ProductForm implements OnInit, OnDestroy {
             this.messageService.add({
                 severity: 'success',
                 summary: 'Cập nhật',
-                detail: 'Cập nhật bài viết thành công'
+                detail: 'Cập nhật sản phẩm thành công'
             });
         } else {
             this.messageService.add({
                 severity: 'success',
                 summary: 'Tạo',
-                detail: 'Tạo bài viết thành công'
+                detail: 'Tạo sản phẩm thành công'
             });
         }
-        // navigate back to posts list on success
+        // Chuyển hướng về danh sách sản phẩm khi thành công
         try {
             this.router
-                .navigate(['/insurance/posts'], { relativeTo: this.route })
+                .navigate(['/insurance/products'], { relativeTo: this.route })
                 .catch((navErr) =>
                     console.warn(
-                        'Chuyển hướng đến danh sách bài viết thất bại',
+                        'Chuyển hướng đến danh sách sản phẩm thất bại',
                         navErr
                     )
                 );
         } catch (navErr) {
             console.warn(
-                'Chuyển hướng đến danh sách bài viết thất bại',
+                'Chuyển hướng đến danh sách sản phẩm thất bại',
                 navErr
             );
         }
     }
 
     private handleSaveError(err: any) {
-        console.error('Error saving post:', err);
+        console.error('Lỗi khi lưu sản phẩm:', err);
         this.messageService.add({
             severity: 'error',
             summary: 'Lỗi',
-            detail: err?.error?.errors ?? 'Có lỗi xảy ra khi lưu bài viết'
+            detail: err?.error?.errors ?? 'Có lỗi xảy ra khi lưu sản phẩm'
         });
-        // ensure loading / submitting are turned off immediately on failure
+        // Đảm bảo loading / submitting được tắt ngay lập tức khi thất bại
         this.submitting = false;
         try {
             this.loadingService.hide();
@@ -677,63 +668,8 @@ export class ProductForm implements OnInit, OnDestroy {
         );
     }
 
-    private validateDateRange() {
-        try {
-            const sc = this.form.get('scheduledAt');
-            const ec = this.form.get('expiredAt');
-            if (!sc || !ec) return;
-            const sVal = sc.value;
-            const eVal = ec.value;
-            if (!sVal || !eVal) {
-                // clear dateRange error
-                const curErr = ec.errors;
-                if (curErr && (curErr as any)['dateRange']) {
-                    // remove dateRange only
-                    const copy = { ...curErr };
-                    delete (copy as any).dateRange;
-                    if (Object.keys(copy).length === 0) ec.setErrors(null);
-                    else ec.setErrors(copy);
-                }
-                return;
-            }
-
-            const s = new Date(sVal);
-            const e = new Date(eVal);
-            if (isNaN(s.getTime()) || isNaN(e.getTime())) {
-                // not comparable
-                return;
-            }
-
-            if (e <= s) {
-                // set dateRange error on expiredAt
-                const prev = ec.errors || {};
-                ec.setErrors({ ...prev, dateRange: true });
-                // mark touched so UI shows invalid immediately
-                try {
-                    ec.markAsTouched();
-                } catch (err) {}
-            } else {
-                // remove dateRange error only
-                const prev = ec.errors;
-                if (prev && (prev as any)['dateRange']) {
-                    const copy = { ...prev };
-                    delete (copy as any).dateRange;
-                    if (Object.keys(copy).length === 0) ec.setErrors(null);
-                    else ec.setErrors(copy);
-                }
-            }
-        } catch (err) {
-            // ignore
-        }
-    }
-
-    hasDateRangeError() {
-        const ec = this.form.get('expiredAt');
-        return !!(ec && ec.errors && (ec.errors as any).dateRange);
-    }
-
-    onFeaturedImageClick(): void {
-        // allow user to pick a single image file, preview it and attach to the form
+    onFeaturedIconClick(): void {
+        // Cho phép người dùng chọn một file hình ảnh, preview và đính kèm vào form
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
@@ -741,20 +677,20 @@ export class ProductForm implements OnInit, OnDestroy {
             const file: File = event.target.files && event.target.files[0];
             if (!file) return;
 
-            // revoke previous blob URL if any
+            // Thu hồi blob URL trước đó nếu có
             try {
-                const prev = this.previewFeaturedImage();
+                const prev = this.previewIcon();
                 if (prev && prev.startsWith('blob:')) URL.revokeObjectURL(prev);
             } catch (err) {
-                // ignore
+                // bỏ qua
             }
 
-            // create object URL preview and set to signal
+            // Tạo object URL preview và set vào signal
             const url = URL.createObjectURL(file);
-            this.previewFeaturedImage.set(url);
+            this.previewIcon.set(url);
 
-            // attach File to form control so PostService.buildFormData will include it
-            this.form.get('featuredImage')?.setValue(file);
+            // Đính kèm File vào form control để ProductService.buildFormData sẽ bao gồm nó
+            this.form.get('icon')?.setValue(file);
         };
         input.click();
     }
@@ -766,14 +702,8 @@ export class ProductForm implements OnInit, OnDestroy {
         return this.form.get('metaKeywords');
     }
 
-    // Displayed featured image: preview when available, otherwise store featured image
-    get displayFeaturedImage(): string {
-        return this.previewFeaturedImage() ?? this.featuredImageUrl!;
-    }
-
-    get featuredImageUrl(): string | undefined {
-        // const profile = this.authStore.profile();
-        // return profile?.featuredImageUrl ?? 'assets/images/featured-image-default.webp';
-        return 'assets/images/no-img.webp';
+    // Hình ảnh nổi bật hiển thị: preview khi có sẵn, ngược lại là hình ảnh mặc định
+    get displayFeaturedIcon(): string {
+        return this.previewIcon() ?? 'assets/images/no-img.webp';
     }
 }

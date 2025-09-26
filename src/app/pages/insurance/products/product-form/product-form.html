@@ -73,13 +73,13 @@
             </div>
             <div class="lg:col-span-1 space-y-6">
                 <div class="w-full">
-                    <label class="featuredImage">Chọn icon (*)</label>
+                    <label class="icon">Chọn icon (*)</label>
                     <img
-                        [src]="displayFeaturedImage"
+                        [src]="displayFeaturedIcon"
                         class="h-[150px] w-auto aspect-square overflow-hidden object-cover cursor-pointer mt-3 rounded-md mx-auto"
-                        (click)="onFeaturedImageClick()"
+                        (click)="onFeaturedIconClick()"
                         [ngClass]="{
-                            'border border-red-500': isInvalid('featuredImage')
+                            'border border-red-500': isInvalid('icon')
                         }"
                         alt=""
                     />
@@ -88,9 +88,9 @@
                 <p-floatlabel class="w-full" variant="in">
                     <p-select
                         inputId="isSaleOnline"
-                        [options]="saleOnlineOptions"
-                        optionLabel="name"
-                        optionValue="code"
+                        [options]="booleanOptions"
+                        optionLabel="label"
+                        optionValue="value"
                         class="w-full"
                         variant="filled"
                         formControlName="isSaleOnline"
@@ -335,7 +335,7 @@
     <div>
         <app-seo
             [initialValue]="seoData"
-            [parentName]="form.get('title')?.value"
+            [parentName]="form.get('name')?.value"
             [segment]="'post'"
             [createMode]="!isEditMode()"
             (valueChange)="seoData = $event"

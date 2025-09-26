@@ -273,18 +273,20 @@ export class PostForm implements OnInit, OnDestroy {
             const post: Post = await this.postStore.fetchById(id);
             if (!post) throw new Error('Post not found');
 
-            // basic fields
-            this.form.get('title')?.setValue(post.title ?? '');
-            this.form.get('excerpt')?.setValue(post.excerpt ?? '');
-            this.form.get('shortContent')?.setValue(post.shortContent ?? '');
-            this.form.get('content')?.setValue(post.content ?? '');
-            this.form.get('status')?.setValue(post.status ?? 'DRAFT');
-            this.form.get('videoUrl')?.setValue(post.videoUrl ?? '');
-            this.form.get('note')?.setValue(post.note ?? '');
-            this.form.get('priority')?.setValue(post.priority ?? 0);
-            this.form.get('isHighlighted')?.setValue(!!post.isHighlighted);
-            this.form.get('isFeatured')?.setValue(!!post.isFeatured);
-            this.form.get('postType')?.setValue(post.postType ?? 'ARTICLE');
+            // basic fields using patchValue
+            this.form.patchValue({
+                title: post.title ?? '',
+                excerpt: post.excerpt ?? '',
+                shortContent: post.shortContent ?? '',
+                content: post.content ?? '',
+                status: post.status ?? 'DRAFT',
+                videoUrl: post.videoUrl ?? '',
+                note: post.note ?? '',
+                priority: post.priority ?? 0,
+                isHighlighted: !!post.isHighlighted,
+                isFeatured: !!post.isFeatured,
+                postType: post.postType ?? 'ARTICLE'
+            });
 
             // category: API returns full category object
             if (post.category && post.category.id != null) {
@@ -374,11 +376,11 @@ export class PostForm implements OnInit, OnDestroy {
     private async loadCategories() {
         try {
             this.facadePostCategory.load({
-                    page: undefined,
-                    limit: 500,
-                    keyword: '',
-                    active: undefined
-                });
+                page: undefined,
+                limit: 500,
+                keyword: '',
+                active: undefined
+            });
         } catch (err) {
             console.error('Failed to load categories for treeselect', err);
             this.items.set([]);
@@ -716,12 +718,6 @@ export class PostForm implements OnInit, OnDestroy {
 
     // Displayed featured image: preview when available, otherwise store featured image
     get displayFeaturedImage(): string {
-        return this.previewFeaturedImage() ?? this.featuredImageUrl!;
-    }
-
-    get featuredImageUrl(): string | undefined {
-        // const profile = this.authStore.profile();
-        // return profile?.featuredImageUrl ?? 'assets/images/featured-image-default.webp';
-        return 'assets/images/no-img.webp';
+        return this.previewFeaturedImage() ?? 'assets/images/no-img.webp';
     }
 }
