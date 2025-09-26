@@ -86,19 +86,37 @@ export class ProductApiService {
     // made public so callers (stores/components) can reuse when they need to send files
     public buildFormData(payload: any): FormData {
         const fd = new FormData();
+        let imgsKeepAppended = false;
         for (const key of Object.keys(payload)) {
             const val = payload[key];
             if (val === undefined || val === null) continue;
             if (key === 'id') continue;
 
+            // If imgsKeep was already appended while handling 'imgs', skip it here to avoid duplicates
+            if (key === 'imgsKeep' && imgsKeepAppended) continue;
+
             if (key === 'imgs') {
                 if (Array.isArray(val)) {
+                    const keep: any[] = [];
                     for (const item of val) {
-                        if (item instanceof File)
+                        if (item instanceof File) {
+                            // New files to upload
                             fd.append('imgs', item, item.name);
-                        else if (typeof item === 'string')
-                            fd.append('imgs', item);
-                        else fd.append('imgs', JSON.stringify(item));
+                        } else if (typeof item === 'string') {
+                            // Existing URLs -> collect in imgsKeep
+                            keep.push(item);
+                        } else if (
+                            item &&
+                            typeof item === 'object' &&
+                            item.url
+                        ) {
+                            // If frontend uses object shape, prefer url or id
+                            keep.push(item);
+                        }
+                    }
+                    if (keep.length > 0) {
+                        fd.append('imgsKeep', JSON.stringify(keep));
+                        imgsKeepAppended = true;
                     }
                 }
                 continue;

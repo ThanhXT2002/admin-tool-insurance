@@ -424,8 +424,13 @@ export class ProductForm implements OnInit, OnDestroy {
                         (url: string, index: number) => ({
                             id: `existing-${index}`,
                             url: url,
-                            file: null // hình ảnh hiện có, không có file object
+                            file: null, // hình ảnh hiện có, không có file object
+                            isNew: false // đánh dấu rõ ràng là ảnh cũ
                         })
+                    );
+                    console.log(
+                        '[loadProductForEdit] Setting existing images:',
+                        existingImages
                     );
                     this.form.get('imgs')?.setValue(existingImages);
                 } catch (err) {
@@ -563,25 +568,64 @@ export class ProductForm implements OnInit, OnDestroy {
 
     // Xử lý dữ liệu imgs từ drag-drop component
     private processImgsData(payload: any) {
+        console.log(
+            '[processImgsData] Starting with imgs data:',
+            this.form.get('imgs')?.value
+        );
+
         const imgsData = this.form.get('imgs')?.value || [];
 
-        // Tạo mảng imgs mới với cả Files và URLs
-        payload.imgs = [];
+        // We prepare two things for the server:
+        // - payload.imgs: an array containing only File objects (new uploads)
+        // - payload.imgsKeep: an ordered array describing the desired final order. Each item is either
+        //    - a string/url or object for existing images to keep, or
+        //    - a placeholder object { __newIndex: n } indicating where the nth new file should be inserted.
+        // This allows the backend to interleave new uploads into the final imgs list according to user ordering.
+
+        const files: File[] = [];
+        const imgsKeep: any[] = [];
+        let newFileIndex = 0;
 
         if (Array.isArray(imgsData)) {
-            imgsData.forEach((item: any) => {
+            imgsData.forEach((item: any, index: number) => {
+                console.log(
+                    `[processImgsData] Processing item ${index}:`,
+                    item
+                );
                 if (item.isNew && item.file) {
-                    // File mới để upload - thêm File object
-                    payload.imgs.push(item.file);
+                    // New file: add to files array and push a placeholder into imgsKeep
+                    files.push(item.file);
+                    imgsKeep.push({ __newIndex: newFileIndex });
+                    console.log(
+                        `[processImgsData] Added new file placeholder at index ${newFileIndex}`
+                    );
+                    newFileIndex += 1;
                 } else if (item.url && !item.isNew) {
-                    // Hình ảnh hiện có để giữ lại - thêm URL string
-                    payload.imgs.push(item.url);
+                    // Existing image: keep its URL (or object) in imgsKeep
+                    // Preserve object shape if provided (may include id or metadata)
+                    if (typeof item === 'string') imgsKeep.push(item);
+                    else if (item.url) imgsKeep.push(item.url);
+                    else imgsKeep.push(item);
+                    console.log(
+                        '[processImgsData] Added existing image URL to keep'
+                    );
                 }
             });
         }
 
-        // Giữ field imgs để buildFormData có thể xử lý
-        // (buildFormData sẽ tự động phân biệt File vs string)
+        console.log(
+            `[processImgsData] Result: ${files.length} files, ${imgsKeep.length} imgsKeep items`
+        );
+        console.log(
+            '[processImgsData] Files:',
+            files.map((f) => f.name)
+        );
+        console.log('[processImgsData] imgsKeep:', imgsKeep);
+
+        // Attach results to payload so buildFormData will append files under 'imgs'
+        // and imgsKeep will be serialized as JSON by buildFormData.
+        if (files.length > 0) payload.imgs = files;
+        if (imgsKeep.length > 0) payload.imgsKeep = imgsKeep;
     }
 
     // Thực hiện lưu và trả về record đã tạo/cập nhật hoặc null khi update
