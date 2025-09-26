@@ -196,8 +196,6 @@ export class ProductForm implements OnInit, OnDestroy {
         this.fillTestTags();
         this.fillTestMetaKeywords();
         this.fillTestSeoData();
-
-        console.log('✅ Đã điền dữ liệu test vào form (Development mode)');
     }
 
     // Tạo dữ liệu test ngẫu nhiên
@@ -377,10 +375,11 @@ export class ProductForm implements OnInit, OnDestroy {
     private async loadProductForEdit(id: number) {
         this.loadingService.show();
         try {
-            const product: Product = await firstValueFrom(
-                this.productStore.fetchById(id) as any
-            );
+            // ProductStore.fetchById() đã return Promise<Product>, không cần firstValueFrom
+            const product: Product = await this.productStore.fetchById(id);
             if (!product) throw new Error('Không tìm thấy sản phẩm');
+
+            console.log('✅ Đã tải được sản phẩm:', product);
 
             // Ánh xạ các trường của Product interface vào form controls bằng patchValue
             this.form.patchValue({
