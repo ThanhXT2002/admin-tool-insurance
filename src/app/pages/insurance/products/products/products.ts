@@ -412,6 +412,7 @@ export class Products implements OnInit, OnDestroy {
 
     async toggleChangeStatus(item: Product) {
         if (!item) return;
+        // Toggle 'active' status (keep existing behavior)
         const newStatus = !item.active;
         try {
             await this.productStore.batchActive([item.id], newStatus);
@@ -425,6 +426,26 @@ export class Products implements OnInit, OnDestroy {
                 severity: 'error',
                 summary: 'Lỗi',
                 detail: err?.message || 'Cập nhật trạng thái thất bại'
+            });
+        }
+    }
+
+    // New: quick toggle for isSaleOnline flag (separate from active)
+    async toggleIsSaleOnline(item: Product) {
+        if (!item) return;
+        const newVal = !item.isSaleOnline;
+        try {
+            await this.productStore.updateIsSaleOnline(item.id, newVal);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Thành công',
+                detail: `Cập nhật bán online thành công`
+            });
+        } catch (err: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Lỗi',
+                detail: err?.message || 'Cập nhật bán online thất bại'
             });
         }
     }

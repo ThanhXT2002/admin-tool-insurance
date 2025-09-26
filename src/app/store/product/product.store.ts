@@ -187,6 +187,20 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
         return true;
     }
 
+    async updateIsSaleOnline(id: number, isSaleOnline: boolean) {
+        const res: any = await this.run(() =>
+            firstValueFrom(this.api.patchIsSaleOnline(id, isSaleOnline))
+        );
+        const updated = res?.data as Product;
+        if (updated && updated.id) {
+            this._state.update((s) => ({
+                ...s,
+                rows: s.rows.map((r) => (r.id === updated.id ? updated : r))
+            }));
+        }
+        return updated;
+    }
+
     async loadMore() {
         const q = this.snapshot();
         const nextPage = (q.page || 1) + 1;

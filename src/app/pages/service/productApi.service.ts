@@ -82,6 +82,14 @@ export class ProductApiService {
         });
     }
 
+    // Quick patch for isSaleOnline flag
+    patchIsSaleOnline(id: number, isSaleOnline: boolean) {
+        return this.http.patch<ApiResponse<Product>>(
+            `${this.base}/${id}/isSaleOnline`,
+            { isSaleOnline }
+        );
+    }
+
     // Build FormData for create/update when uploading images
     // made public so callers (stores/components) can reuse when they need to send files
     public buildFormData(payload: any): FormData {
