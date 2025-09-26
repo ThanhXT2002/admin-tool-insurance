@@ -74,7 +74,8 @@
             <div class="lg:col-span-1 space-y-6">
                 <div class="w-full">
                     <label class="icon">Chọn icon (*)</label>
-                    <img
+                    <div class="bg-gray-400 rounded-md">
+                       <img
                         [src]="displayFeaturedIcon"
                         class="h-[150px] w-auto aspect-square overflow-hidden object-cover cursor-pointer mt-3 rounded-md mx-auto"
                         (click)="onFeaturedIconClick()"
@@ -83,6 +84,8 @@
                         }"
                         alt=""
                     />
+                    </div>
+
                 </div>
 
                 <p-floatlabel class="w-full" variant="in">
