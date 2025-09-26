@@ -335,14 +335,13 @@ export class ProductForm implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        // Xử lý route parameter để load dữ liệu edit
+        this.handleRouteParams();
         // Điền dữ liệu test nếu ở chế độ develop và create mode
         this.fillTestDataIfNeeded();
 
         // Setup helper cho console (development only)
         this.setupTestDataHelper();
-
-        // Xử lý route parameter để load dữ liệu edit
-        this.handleRouteParams();
     }
 
     // Xử lý route parameter để xác định chế độ edit và tải dữ liệu
@@ -354,24 +353,17 @@ export class ProductForm implements OnInit, OnDestroy {
                 const id = Number(idParam);
                 if (!isNaN(id)) {
                     this.currentId.set(id);
-                    this.loadProductForEdit(id)
-                        .then(() => {
-                            console.log(
-                                'Tải sản phẩm thành công để chỉnh sửa:',
-                                this.form.value
-                            );
-                        })
-                        .catch((err) => {
-                            console.error(
-                                'Không thể tải sản phẩm để chỉnh sửa',
-                                err
-                            );
-                            this.messageService.add({
-                                severity: 'error',
-                                summary: 'Lỗi',
-                                detail: 'Không thể tải chi tiết sản phẩm'
-                            });
+                    this.loadProductForEdit(id).catch((err) => {
+                        console.error(
+                            'Không thể tải sản phẩm để chỉnh sửa',
+                            err
+                        );
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Lỗi',
+                            detail: 'Không thể tải chi tiết sản phẩm'
                         });
+                    });
                 } else {
                     console.warn('Tham số id không hợp lệ');
                 }
@@ -551,15 +543,20 @@ export class ProductForm implements OnInit, OnDestroy {
             logged.icon = f ? '[File]' : (payload.icon ?? null);
 
             // Che giấu imgs files cho logging
-            if (payload.imgsFiles && payload.imgsFiles.length > 0) {
-                logged.imgsFiles = `[${payload.imgsFiles.length} files]`;
+            if (payload.imgs && payload.imgs.length > 0) {
+                logged.imgs = `[${payload.imgs.length} items: ${payload.imgs.filter((i: any) => i instanceof File).length} files + ${payload.imgs.filter((i: any) => typeof i === 'string').length} urls]`;
             }
         } catch (err) {}
         console.log('Đã chuẩn bị payload sản phẩm (preview):', logged);
         console.log('Icon file object:', this.form.get('icon')?.value ?? null);
         console.log('Dữ liệu hình ảnh:', {
-            imgsFiles: payload.imgsFiles?.length || 0,
-            imgsKeep: payload.imgsKeep?.length || 0
+            totalImages: payload.imgs?.length || 0,
+            newFiles:
+                payload.imgs?.filter((img: any) => img instanceof File)
+                    ?.length || 0,
+            existingUrls:
+                payload.imgs?.filter((img: any) => typeof img === 'string')
+                    ?.length || 0
         });
 
         return payload;
@@ -569,24 +566,23 @@ export class ProductForm implements OnInit, OnDestroy {
     private processImgsData(payload: any) {
         const imgsData = this.form.get('imgs')?.value || [];
 
-        // Tách file mới và hình ảnh hiện có
-        payload.imgsFiles = [];
-        payload.imgsKeep = [];
+        // Tạo mảng imgs mới với cả Files và URLs
+        payload.imgs = [];
 
         if (Array.isArray(imgsData)) {
             imgsData.forEach((item: any) => {
                 if (item.isNew && item.file) {
-                    // File mới để upload
-                    payload.imgsFiles.push(item.file);
+                    // File mới để upload - thêm File object
+                    payload.imgs.push(item.file);
                 } else if (item.url && !item.isNew) {
-                    // Hình ảnh hiện có để giữ lại
-                    payload.imgsKeep.push(item.url);
+                    // Hình ảnh hiện có để giữ lại - thêm URL string
+                    payload.imgs.push(item.url);
                 }
             });
         }
 
-        // Xóa trường imgs gốc vì giờ chúng ta có imgsFiles và imgsKeep
-        delete payload.imgs;
+        // Giữ field imgs để buildFormData có thể xử lý
+        // (buildFormData sẽ tự động phân biệt File vs string)
     }
 
     // Thực hiện lưu và trả về record đã tạo/cập nhật hoặc null khi update

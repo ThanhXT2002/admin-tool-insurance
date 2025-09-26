@@ -216,11 +216,7 @@ export class PostForm implements OnInit, OnDestroy {
         };
     }
 
-    // hasDateRangeError() moved to bottom (keeps runtime checks centralized)
-
     ngOnInit(): void {
-        // Load category tree for treeselects
-
         // Load related products (up to 100 items)
         this.loadProducts();
 
