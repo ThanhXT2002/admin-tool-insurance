@@ -49,6 +49,10 @@ export class AppMenu {
                 ]
             },
             {
+                label: 'Liên Hệ',
+                items: [{ label: 'Danh Sách Liên Hệ', icon: 'pi pi-address-book', routerLink: ['/insurance/contact'] }]
+            },
+            {
                 label: 'UI Components',
                 items: [
                     { label: 'Form Layout', icon: 'pi pi-fw pi-id-card', routerLink: ['/uikit/formlayout'] },

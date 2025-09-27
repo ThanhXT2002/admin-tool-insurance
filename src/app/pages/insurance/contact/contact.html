@@ -1,0 +1,88 @@
+<p-table
+    #dt
+    [value]="rows()"
+    [rows]="limit()"
+    [paginator]="true"
+    [lazy]="true"
+    (onLazyLoad)="onLazyLoad($event)"
+    [globalFilterFields]="['name','email','message']"
+    [tableStyle]="{ 'max-width': '100%' }"
+    [rowHover]="true"
+    dataKey="id"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} contacts"
+    [showCurrentPageReport]="true"
+    [rowsPerPageOptions]="[10, 20, 30]"
+    [totalRecords]="total()"
+    [loading]="loading()"
+>
+    <ng-template #caption>
+        <div class="flex__between flex-col lg:flex-row gap-2">
+            <div class="flex__between w-full lg:w-auto">
+                <h5 class="!mb-0 text-nowrap">Danh Sách Liên Hệ</h5>
+            </div>
+            <div class="flex__end flex-wrap gap-2 !w-full">
+                <p-iconfield class="w-full lg:w-[50%]">
+                    <p-inputicon class="pi pi-search" />
+                    <input
+                        class="w-full"
+                        pInputText
+                        type="text"
+                        [value]="currentKeyword() || ''"
+                        (input)="onGlobalFilter(dt, $event)"
+                        placeholder="Tìm kiếm tên, email hoặc nội dung..."
+                    />
+                </p-iconfield>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template #header>
+        <tr>
+            <th>Thông tin</th>
+            <th>Nội dung</th>
+            <th>Thời gian</th>
+            <th><p class="text-center text-nowrap">Thao tác</p></th>
+        </tr>
+    </ng-template>
+
+    <ng-template #body let-item>
+        <tr>
+            <td>
+              <div>
+                <p class="mb-0!"><strong class="mr-1">Tên:</strong>{{ item.name || 'N/A' }}</p>
+                <p class="mb-0!"><strong class="mr-1">Email:</strong>{{ item.email || 'N/A' }}</p>
+              </div>
+            </td>
+            <td>{{ item.message }}</td>
+            <td>{{ item.createdAt | date: 'short' }}</td>
+            <td>
+              <div class="flex__middle">
+                  <p-button
+                        icon="pi pi-eye"
+                        class="mr-2"
+                        [rounded]="true"
+                        [outlined]="true"
+                        (click)="viewItem(item)"
+                    />
+              </div>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+
+<p-dialog
+    header="Chi tiết liên hệ"
+    [(visible)]="showDetail"
+    [modal]="true"
+    [style]="{ width: '600px' }"
+    (onHide)="closeDetail()"
+>
+    <div *ngIf="detailItem">
+        <p><strong>Tên:</strong> {{ detailItem.name || 'N/A' }}</p>
+        <p><strong>Email:</strong> {{ detailItem.email || 'N/A' }}</p>
+        <p><strong>IP:</strong> {{ detailItem.ip || 'N/A' }}</p>
+        <p><strong>Agent:</strong> {{ detailItem.userAgent || 'N/A' }}</p>
+        <p><strong>Nội dung:</strong></p>
+        <p>{{ detailItem.message }}</p>
+    </div>
+</p-dialog>

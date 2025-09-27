@@ -9,6 +9,7 @@ import { NestedPostCate } from './posts/nested-post-cate/nested-post-cate';
 import { PostForm } from './posts/post-form/post-form';
 import { Products } from './products/products/products';
 import { ProductForm } from './products/product-form/product-form';
+import { Contact } from './contact/contact';
 
 
 export default [
@@ -25,4 +26,5 @@ export default [
     { path: 'products', component: Products },
     { path: 'product/create', component: ProductForm },
     { path: 'product/update/:id', component: ProductForm },
+    { path: 'contact', component: Contact },
 ] as Routes;
