@@ -13,8 +13,7 @@ import {
     FormGroup,
     ReactiveFormsModule,
     Validators,
-    AbstractControl,
-    ValidatorFn
+    AbstractControl
 } from '@angular/forms';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { InputTextModule } from 'primeng/inputtext';
@@ -28,16 +27,10 @@ import { LoadingService } from '@/layout/service/loading.service';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { TexteditorCommon } from '../../components/texteditor-common/texteditor-common';
-import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
-import { PostCategory } from '@/interfaces/post-category.interface';
-import { PostCategoryService } from '@/pages/service/post-category.service';
-import { ProductApiService } from '@/pages/service/productApi.service';
-import { firstValueFrom, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { Product } from '@/interfaces/product.interface';
 import { ProductStore } from '@/store/product/product.store';
-import { MultiSelect } from 'primeng/multiselect';
 import { InputNumber } from 'primeng/inputnumber';
-import { Tag } from 'primeng/tag';
 import { DragDropImgList } from '../../components/drag-drop-img-list/drag-drop-img-list';
 import { AutoComplete } from 'primeng/autocomplete';
 import { environment } from 'src/environments/environment';
@@ -61,7 +54,6 @@ interface AutoCompleteCompleteEvent {
         TexteditorCommon,
         CommonModule,
         AutoComplete,
-        MultiSelect,
         InputNumber,
         DragDropImgList
     ],
@@ -124,7 +116,7 @@ export class ProductForm implements OnInit, OnDestroy {
     constructor() {
         this.form = this.fb.group({
             name: ['', [Validators.required]],
-            description: [''],
+            description: ['',[Validators.required]],
             shortContent: [''],
             content: ['', [Validators.required]],
             price: [undefined, [Validators.min(0)]],

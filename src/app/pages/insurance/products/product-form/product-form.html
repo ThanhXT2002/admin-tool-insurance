@@ -25,16 +25,18 @@
                     />
                     <label for="name">Tiêu đề bài viết (*)</label>
                 </p-floatlabel>
-                <!-- Short content (inline editor) -->
-                <div>
-                    <label for="description" class="mb-4">Mô tả</label>
-                    <app-texteditor-common
-                        [height]="'150px'"
+
+                <p-floatlabel variant="in">
+                    <textarea
+                        pTextarea
+                        id="description"
                         formControlName="description"
+                        rows="7"
                         [invalid]="isInvalid('description')"
-                        [placeholder]="'Tóm tắt ngắn...'"
-                    ></app-texteditor-common>
-                </div>
+                        class="h-full w-full"
+                    ></textarea>
+                    <label for="description">Ghi chú nội bộ (*)</label>
+                </p-floatlabel>
                 <div class="!space-y-3">
                     <label for="shortContent" class="">Nội dung ngắn</label>
                     <app-texteditor-common
