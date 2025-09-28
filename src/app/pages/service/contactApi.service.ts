@@ -40,10 +40,4 @@ export class ContactApiService {
         >(`${this.base}`, { params });
     }
 
-    /**
-     * Lấy chi tiết contact theo id
-     */
-    getById(id: number) {
-        return this.http.get<ApiResponse<ContactItem>>(`${this.base}/${id}`);
-    }
 }
