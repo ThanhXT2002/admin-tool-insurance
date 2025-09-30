@@ -6,6 +6,7 @@
     "dev": "ng serve --port=4666 --host=0.0.0.0",
     "start": "ng serve --port=4666 --host=0.0.0.0",
     "build": "ng build",
+     "build:vercel": "node generate-env.js && ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "format": "prettier --write \"**/*.{js,mjs,ts,mts,d.ts,html}\" --cache",
     "test": "ng test"

@@ -1,9 +1,11 @@
 {
-    "rewrites": [
-        {
-            "source": "/:path*",
-            "destination": "/index.html"
-        }
-    ],
-    "trailingSlash": false
+  "buildCommand": "npm ci --legacy-peer-deps && npm run build:vercel",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" }
+      ]
+    }
+  ]
 }
