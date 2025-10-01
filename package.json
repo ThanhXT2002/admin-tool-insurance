@@ -6,7 +6,7 @@
     "dev": "ng serve --port=4666 --host=0.0.0.0",
     "start": "ng serve --port=4666 --host=0.0.0.0",
     "build": "ng build",
-     "build:vercel": "node generate-env.js && ng build --configuration production",
+    "build:vercel": "node generate-env.js && ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "format": "prettier --write \"**/*.{js,mjs,ts,mts,d.ts,html}\" --cache",
     "test": "ng test"
@@ -27,6 +27,7 @@
     "@ckeditor/ckeditor5-build-inline": "^41.4.2",
     "@ckeditor/ckeditor5-editor-classic": "^46.1.1",
     "@ckeditor/ckeditor5-editor-inline": "^46.1.1",
+    "@fortawesome/fontawesome-free": "^7.0.1",
     "@ngrx/effects": "^20.0.1",
     "@ngrx/signals": "^20.0.1",
     "@ngrx/store": "^20.0.1",
