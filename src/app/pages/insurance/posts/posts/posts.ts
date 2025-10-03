@@ -81,6 +81,14 @@ export class Posts implements OnInit, OnDestroy {
         this.totalRecords = t;
     });
 
+    private _loadingEffect = effect(() => {
+        const items = this.postStore.rows();
+        // Nếu có data và đang loading, tắt loading
+        if (items.length > 0 && this.loading) {
+            this.loading = false;
+        }
+    });
+
     statusOptions = [
         { name: 'Tất cả trạng thái', code: undefined },
         { name: 'Đang hoạt động', code: 'PUBLISHED' },
@@ -229,7 +237,7 @@ export class Posts implements OnInit, OnDestroy {
             this.loadData(this.currentKeyword);
         } else if (hasUrlParams && !cacheMatched) {
             // Có URL params nhưng cache không match -> store đã tự load trong hydrateFromQueryParams
-            this.loading = false;
+            this.loading = true; // Hiển thị loading vì store đang gọi API
         } else {
             // Có cache data phù hợp -> không cần gọi API
             this.loading = false;
@@ -247,6 +255,8 @@ export class Posts implements OnInit, OnDestroy {
         try {
             if (typeof (this as any)._totalEffect === 'function')
                 (this as any)._totalEffect();
+            if (typeof (this as any)._loadingEffect === 'function')
+                (this as any)._loadingEffect();
         } catch (_) {}
     }
 
@@ -522,12 +532,11 @@ export class Posts implements OnInit, OnDestroy {
         // Load data với store cache logic sẽ tự xử lý duplicate calls
         this.loading = true;
         this._isLoadingInFlight = true;
-        try {
-            this.postStore.load(params);
-        } finally {
-            this._isLoadingInFlight = false;
+
+        this.postStore.load(params).finally(() => {
             this.loading = false;
-        }
+            this._isLoadingInFlight = false;
+        });
     }
 
     // Lọc theo category khi người dùng click vào tên category trong danh sách

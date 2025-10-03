@@ -78,6 +78,14 @@ export class Products implements OnInit, OnDestroy {
         this.totalRecords = t;
     });
 
+    private _loadingEffect = effect(() => {
+        const items = this.productStore.rows();
+        // Nếu có data và đang loading, tắt loading
+        if (items.length > 0 && this.loading) {
+            this.loading = false;
+        }
+    });
+
     // selectedItem: Product | null = null;
 
     statusOptions = [
@@ -123,6 +131,8 @@ export class Products implements OnInit, OnDestroy {
             this.limit = parsed.limit ?? 10;
             this.currentKeyword = parsed.keyword ?? undefined;
             this.active = parsed.active ?? undefined;
+            // Hiển thị loading vì store đang gọi API
+            this.loading = true;
         }
 
         this.selectedStatus =
@@ -162,6 +172,8 @@ export class Products implements OnInit, OnDestroy {
         try {
             if (typeof (this as any)._totalEffect === 'function')
                 (this as any)._totalEffect();
+            if (typeof (this as any)._loadingEffect === 'function')
+                (this as any)._loadingEffect();
         } catch (_) {}
     }
 
@@ -242,7 +254,7 @@ export class Products implements OnInit, OnDestroy {
         this.router.navigate(['/insurance/product/update', id]);
     }
 
-    async changeStatus() {
+    changeStatus() {
         if (!this._initialized) return;
 
         // Đồng bộ this.active với selectedStatus.code
@@ -259,12 +271,11 @@ export class Products implements OnInit, OnDestroy {
         // Load data với store cache logic sẽ tự xử lý duplicate calls
         this.loading = true;
         this._isLoadingInFlight = true;
-        try {
-            await this.productStore.load(params);
-        } finally {
-            this._isLoadingInFlight = false;
+
+        this.productStore.load(params).finally(() => {
             this.loading = false;
-        }
+            this._isLoadingInFlight = false;
+        });
     }
 
     deleteItem(item: Product) {
