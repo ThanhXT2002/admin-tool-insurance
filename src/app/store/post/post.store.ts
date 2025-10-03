@@ -34,6 +34,9 @@ export class PostStore extends BaseStoreSignal<PostListState> {
     private postService = inject(PostService);
     private router = inject(Router);
 
+    // Cache để tránh gọi API trùng lặp
+    private _lastApiCall: string | null = null;
+
     // Các signal suy diễn (derived)
     public rows = this.select((s) => s.rows);
     public total = this.select((s) => s.total);
@@ -77,6 +80,26 @@ export class PostStore extends BaseStoreSignal<PostListState> {
         }
 
         const q = this.snapshot();
+
+        // Tạo cache key từ params để tránh gọi API trùng lặp
+        const cacheKey = JSON.stringify({
+            page: q.page,
+            limit: q.limit,
+            keyword: q.keyword,
+            status: q.status,
+            categoryId: q.categoryId,
+            postType: q.postType,
+            isFeatured: q.isFeatured,
+            isHighlighted: q.isHighlighted
+        });
+
+        // Nếu API call giống hệt lần trước và có data, bỏ qua
+        if (this._lastApiCall === cacheKey && q.rows.length > 0) {
+            return { rows: q.rows, total: q.total };
+        }
+
+        this._lastApiCall = cacheKey;
+
         const result: any = await this.run(() =>
             firstValueFrom(
                 this.postService.getAll({
@@ -144,11 +167,12 @@ export class PostStore extends BaseStoreSignal<PostListState> {
 
         // Ki\u1ec3m tra cache
         const currentState = this.snapshot();
+        const hasCachedData = currentState.rows.length > 0;
+        const hasUrlParams = Object.keys(parsed).length > 0;
 
         // So s\u00e1nh filter: URL params vs cache filter
-        // CHÚ Ý: N\u1ebfu URL kh\u00f4ng c\u00f3 params, parsed.status = undefined, etc.
-        // N\u1ebfu cache c\u00f3 filter -> kh\u00f4ng kh\u1edbp -> c\u1ea7n reset
         const filterMatches =
+            hasCachedData &&
             currentState.currentFilter?.status === parsed.status &&
             currentState.currentFilter?.categoryId === parsed.categoryId &&
             currentState.currentFilter?.postType === parsed.postType &&
@@ -158,13 +182,21 @@ export class PostStore extends BaseStoreSignal<PostListState> {
             currentState.currentFilter?.keyword === parsed.keyword;
 
         if (!filterMatches) {
-            // Filter kh\u00f4ng kh\u1edbp -> g\u1ecdi API \u0111\u1ec3 load data m\u1edbi
-            // call load which will patch state and fetch data
-            // but skip syncing back to the router since we're hydrating from the router
+            // Kh\u00f4ng c\u00f3 cache ho\u1eb7c filter kh\u00f4ng kh\u1edbp -> g\u1ecdi API
             this.load(parsed, { skipSync: true });
         }
 
-        return parsed;
+        // N\u1ebfu kh\u00f4ng c\u00f3 URL params nh\u01b0ng c\u00f3 cache data, sync URL v\u1edbi cache
+        if (!hasUrlParams && hasCachedData) {
+            this.syncQueryParamsToUrl();
+        }
+
+        // Return parsed v\u1edbi th\u00f4ng tin v\u1ec1 vi\u1ec7c c\u00f3 match cache hay kh\u00f4ng
+        return {
+            ...parsed,
+            _cacheMatched: filterMatches,
+            _hasCachedData: hasCachedData
+        } as any;
     }
 
     // Lấy chi tiết một bài viết theo id (gọi backend)

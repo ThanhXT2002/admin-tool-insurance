@@ -67,7 +67,7 @@
     [value]="items()"
     [rows]="limit"
     [paginator]="true"
-    [first]="(page - 1) * limit"
+    [first]="first"
     [lazy]="true"
     (onLazyLoad)="onLazyLoad($event)"
     [globalFilterFields]="['title','excerpt','content']"
@@ -184,7 +184,8 @@
                 </div>
             </td>
             <td>
-                <p class="flex__middle text-nowrap px-2 py-1 rounded-full "
+                <p
+                    class="flex__middle text-nowrap px-2 py-1 rounded-full"
                     [ngClass]="getBgColorForStatus(item.status)"
                 >
                     {{ getStatusName(item.status) }}

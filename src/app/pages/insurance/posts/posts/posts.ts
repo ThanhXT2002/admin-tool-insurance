@@ -61,6 +61,7 @@ export class Posts implements OnInit, OnDestroy {
 
     page = 1;
     limit = 10;
+    first = 0; // Index của record đầu tiên cho PrimeNG paginator
     active: boolean | undefined = undefined;
     currentKeyword: string | undefined = undefined;
     @ViewChild('dt') dt!: Table;
@@ -74,14 +75,6 @@ export class Posts implements OnInit, OnDestroy {
     private _suppressApplyParamsLoad = false;
     // Đặt true sau khi hydrate/load ban đầu hoàn tất để bỏ qua các sự kiện ngModelChange sinh ra trong khởi tạo
     private _initialized = false;
-    // Lưu giá trị bộ lọc đã sync lần cuối để tránh điều hướng trùng lặp
-    private _lastSyncedFilters: {
-        status?: any;
-        postType?: any;
-        isHighlighted?: any;
-        isFeatured?: any;
-        keyword?: any;
-    } = {};
 
     private _totalEffect = effect(() => {
         const t = this.postStore.total();
@@ -122,54 +115,90 @@ export class Posts implements OnInit, OnDestroy {
     selectedIsFeatured = this.featuredOptions[0];
 
     ngOnInit() {
-        const queryParams = this.route.snapshot.queryParams;
-        this.page = Number(queryParams['page']) || 1;
-        this.limit = Number(queryParams['limit']) || 10;
-        this.currentKeyword = queryParams['keyword'] || undefined;
-
-        if (queryParams['active'] === 'true') {
-            this.active = true;
-        } else if (queryParams['active'] === 'false') {
-            this.active = false;
-        } else {
-            this.active = undefined;
-        }
-
-        this.selectedStatus =
-            this.statusOptions.find((opt) => opt.code === this.active) ||
-            this.statusOptions[0];
-
-        // Khi hydrate từ query params ban đầu, chặn subscription của route
-        // để tránh applyParams gọi load trùng lặp (hydrate đã gọi load)
+        // Hydrate from query params and prevent duplicate load
         this._suppressApplyParamsLoad = true;
-        // đồng bộ store từ query params hiện tại khi khởi tạo thông qua helper của store
         const parsed =
             this.postStore.hydrateFromQueryParams(
                 this.route.snapshot.queryParams as any
             ) || {};
 
-        // cập nhật các trường UI cục bộ từ các giá trị đã phân tích
-        this.page = parsed.page ?? this.page;
-        this.limit = parsed.limit ?? this.limit;
-        this.currentKeyword = parsed.keyword ?? this.currentKeyword;
-        this.selectedStatus =
-            this.statusOptions.find((opt) => opt.code === parsed.status) ||
-            this.selectedStatus;
-        // đồng bộ các trường UI select khác từ query params đã phân tích
-        this.selectedPostType =
-            this.postTypeOptions.find((opt) => opt.code === parsed.postType) ||
-            this.selectedPostType;
-        this.selectedIsHighlighted =
-            this.highlightedOptions.find(
-                (opt) => opt.code === parsed.isHighlighted
-            ) || this.selectedIsHighlighted;
-        this.selectedIsFeatured =
-            this.featuredOptions.find(
-                (opt) => opt.code === parsed.isFeatured
-            ) || this.selectedIsFeatured;
+        // Update local UI fields from parsed values
+        const storeState = this.postStore.snapshot();
+        const hasUrlParams = Object.keys(parsed).length > 0;
+        const cacheMatched = (parsed as any)?._cacheMatched;
+        const hasCachedData = (parsed as any)?._hasCachedData;
 
-        // ghi lại các bộ lọc đã được đồng bộ ban đầu
-        this._lastSyncedFilters = this.buildCurrentFilters();
+        if (!hasUrlParams && hasCachedData) {
+            // Không có URL params nhưng có cache data
+            // Sử dụng cache data (store đã tự sync URL)
+            this.page = storeState.page || 1;
+            this.limit = storeState.limit || 10;
+            this.currentKeyword =
+                storeState.currentFilter?.keyword ?? undefined;
+            this.selectedStatus =
+                this.statusOptions.find(
+                    (opt) => opt.code === storeState.currentFilter?.status
+                ) || this.statusOptions[0];
+            this.selectedPostType =
+                this.postTypeOptions.find(
+                    (opt) => opt.code === storeState.currentFilter?.postType
+                ) || this.postTypeOptions[0];
+            this.selectedIsHighlighted =
+                this.highlightedOptions.find(
+                    (opt) =>
+                        opt.code === storeState.currentFilter?.isHighlighted
+                ) || this.highlightedOptions[0];
+            this.selectedIsFeatured =
+                this.featuredOptions.find(
+                    (opt) => opt.code === storeState.currentFilter?.isFeatured
+                ) || this.featuredOptions[0];
+        } else if (hasUrlParams && cacheMatched) {
+            // Có URL params và cache khớp - sử dụng cache data
+            this.page = storeState.page || 1;
+            this.limit = storeState.limit || 10;
+            this.currentKeyword =
+                storeState.currentFilter?.keyword ?? undefined;
+            this.selectedStatus =
+                this.statusOptions.find(
+                    (opt) => opt.code === storeState.currentFilter?.status
+                ) || this.statusOptions[0];
+            this.selectedPostType =
+                this.postTypeOptions.find(
+                    (opt) => opt.code === storeState.currentFilter?.postType
+                ) || this.postTypeOptions[0];
+            this.selectedIsHighlighted =
+                this.highlightedOptions.find(
+                    (opt) =>
+                        opt.code === storeState.currentFilter?.isHighlighted
+                ) || this.highlightedOptions[0];
+            this.selectedIsFeatured =
+                this.featuredOptions.find(
+                    (opt) => opt.code === storeState.currentFilter?.isFeatured
+                ) || this.featuredOptions[0];
+        } else {
+            // Có URL params và cache không khớp hoặc không có cache - store đã tự load data
+            this.page = parsed.page ?? 1;
+            this.limit = parsed.limit ?? 10;
+            this.currentKeyword = parsed.keyword ?? undefined;
+            this.selectedStatus =
+                this.statusOptions.find((opt) => opt.code === parsed.status) ||
+                this.statusOptions[0];
+            this.selectedPostType =
+                this.postTypeOptions.find(
+                    (opt) => opt.code === parsed.postType
+                ) || this.postTypeOptions[0];
+            this.selectedIsHighlighted =
+                this.highlightedOptions.find(
+                    (opt) => opt.code === parsed.isHighlighted
+                ) || this.highlightedOptions[0];
+            this.selectedIsFeatured =
+                this.featuredOptions.find(
+                    (opt) => opt.code === parsed.isFeatured
+                ) || this.featuredOptions[0];
+        }
+
+        // Đồng bộ first index với page cho PrimeNG paginator
+        this.first = (this.page - 1) * this.limit;
 
         // Bỏ qua sự kiện onLazyLoad đầu tiên của PrimeNG có thể được phát trong khi khởi tạo bảng
         // và ghi đè giá trị page từ query params. Thông thường một lần bỏ qua là đủ,
@@ -193,21 +222,17 @@ export class Posts implements OnInit, OnDestroy {
                 this.loadData(keyword);
             });
 
-        // Nếu hydrateFromQueryParams đã cung cấp filter (parsed not empty),
-        // thì store.load đã được gọi trong hydrate -> không gọi loadData thêm lần nữa.
-        // Nếu không có query params, chỉ gọi loadData khi store hiện tại không có dữ liệu
-        if (!parsed || Object.keys(parsed).length === 0) {
-            const currentRows = this.postStore.rows();
-            if (
-                !currentRows ||
-                (Array.isArray(currentRows) && currentRows.length === 0)
-            ) {
-                // store empty -> tải dữ liệu từ API
-                this.loadData(this.currentKeyword);
-            } else {
-                // store đã có dữ liệu -> không cần gọi API, đảm bảo loading=false
-                this.loading = false;
-            }
+        // Nếu store đã load data (cacheMatched hoặc đã có params) thì không cần gọi API thêm
+        // Chỉ gọi API khi: không có URL params + không có cache data phù hợp
+        if (!hasUrlParams && !hasCachedData) {
+            // Không có URL params và không có cache data -> load trang đầu tiên
+            this.loadData(this.currentKeyword);
+        } else if (hasUrlParams && !cacheMatched) {
+            // Có URL params nhưng cache không match -> store đã tự load trong hydrateFromQueryParams
+            this.loading = false;
+        } else {
+            // Có cache data phù hợp -> không cần gọi API
+            this.loading = false;
         }
 
         // cho phép các handler thay đổi select chỉ chạy sau khi hydrate/tải ban đầu hoàn tất
@@ -300,6 +325,8 @@ export class Posts implements OnInit, OnDestroy {
         const first = Number(event.first) || 0;
         const rows = Number(event.rows) || this.limit;
         const newPage = Math.floor(first / rows) + 1;
+
+        this.first = first;
         this.page = newPage;
         this.limit = rows;
         this.loading = true;
@@ -374,10 +401,9 @@ export class Posts implements OnInit, OnDestroy {
         const ids = this.idsFromSelected();
         try {
             await this.postStore.publishMultiple(ids);
-            // clear selection and table internals, update last-synced filters, reload
+            // clear selection and table internals, reload
             this.clearSelectionAndDt();
             op?.hide?.();
-            this.updateLastSyncedFilters();
             this.reloadCurrentData();
             this.messageService.add({
                 severity: 'success',
@@ -400,7 +426,6 @@ export class Posts implements OnInit, OnDestroy {
             await this.postStore.unpublishMultiple(ids);
             this.clearSelectionAndDt();
             op?.hide?.();
-            this.updateLastSyncedFilters();
             this.reloadCurrentData();
             this.messageService.add({
                 severity: 'success',
@@ -423,7 +448,6 @@ export class Posts implements OnInit, OnDestroy {
             await this.postStore.archiveMultiple(ids);
             this.clearSelectionAndDt();
             op?.hide?.();
-            this.updateLastSyncedFilters();
             this.reloadCurrentData();
             this.messageService.add({
                 severity: 'success',
@@ -477,37 +501,33 @@ export class Posts implements OnInit, OnDestroy {
 
     changeStatus() {
         if (!this._initialized) return;
-        // tránh phản ứng với các thay đổi trùng với bộ lọc đã đồng bộ lần cuối
-        const currentFilters = this.buildCurrentFilters();
-        const equal =
-            String(currentFilters.status) ===
-                String(this._lastSyncedFilters.status) &&
-            String(currentFilters.postType) ===
-                String(this._lastSyncedFilters.postType) &&
-            String(currentFilters.isHighlighted) ===
-                String(this._lastSyncedFilters.isHighlighted) &&
-            String(currentFilters.isFeatured) ===
-                String(this._lastSyncedFilters.isFeatured) &&
-            String(currentFilters.keyword || '') ===
-                String(this._lastSyncedFilters.keyword || '');
-        if (equal) return;
 
-        // Xây dựng tham số load từ các lựa chọn hiện tại và từ khóa (dùng helper chung)
-        const params: any = this.buildFilterParams(undefined, {
+        // Build load params from current selections and keyword
+        const params: any = {
             page: 1,
             limit: this.limit,
-            keyword: this.currentKeyword ?? undefined
-        });
+            keyword: this.currentKeyword ?? undefined,
+            status: this.selectedStatus?.code,
+            postType: this.selectedPostType?.code,
+            isFeatured:
+                this.selectedIsFeatured?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsFeatured?.code),
+            isHighlighted:
+                this.selectedIsHighlighted?.code === undefined
+                    ? undefined
+                    : Boolean(this.selectedIsHighlighted?.code)
+        };
 
-        // ngăn subscription của route kích hoạt load lần thứ hai
-        // ngăn subscription của route kích hoạt load lần thứ hai
-        this._suppressApplyParamsLoad = true;
-
-        // cập nhật bộ lọc đã đồng bộ lần cuối để applyParams thấy cùng giá trị
-        this.updateLastSyncedFilters();
-
-        // shared loader + navigation
-        this.applyFiltersAndNavigate(params);
+        // Load data với store cache logic sẽ tự xử lý duplicate calls
+        this.loading = true;
+        this._isLoadingInFlight = true;
+        try {
+            this.postStore.load(params);
+        } finally {
+            this._isLoadingInFlight = false;
+            this.loading = false;
+        }
     }
 
     // Lọc theo category khi người dùng click vào tên category trong danh sách
@@ -525,9 +545,6 @@ export class Posts implements OnInit, OnDestroy {
 
         // ngăn subscription của route kích hoạt load lần thứ hai
         this._suppressApplyParamsLoad = true;
-
-        // cập nhật bộ lọc đã đồng bộ lần cuối
-        this.updateLastSyncedFilters();
 
         this.applyFiltersAndNavigate(params);
     }
@@ -675,6 +692,9 @@ export class Posts implements OnInit, OnDestroy {
             this.featuredOptions.find((opt) => opt.code === newIsFeatured) ||
             this.featuredOptions[0];
 
+        // Đồng bộ first index với page cho PrimeNG paginator
+        this.first = (this.page - 1) * this.limit;
+
         // Nếu một handler đã trigger load và đặt flag suppress, thì không tải lại ở đây
         if (this._suppressApplyParamsLoad) {
             this._suppressApplyParamsLoad = false;
@@ -728,26 +748,6 @@ export class Posts implements OnInit, OnDestroy {
         } catch (_) {}
     }
 
-    private updateLastSyncedFilters(): void {
-        this._lastSyncedFilters = this.buildCurrentFilters();
-    }
-
-    private buildCurrentFilters() {
-        return {
-            status: this.selectedStatus?.code ?? undefined,
-            postType: this.selectedPostType?.code ?? undefined,
-            isHighlighted:
-                this.selectedIsHighlighted?.code === undefined
-                    ? undefined
-                    : Boolean(this.selectedIsHighlighted?.code),
-            isFeatured:
-                this.selectedIsFeatured?.code === undefined
-                    ? undefined
-                    : Boolean(this.selectedIsFeatured?.code),
-            keyword: this.currentKeyword ?? undefined
-        };
-    }
-
     private reloadCurrentData(): void {
         this.loadData(this.currentKeyword);
     }
@@ -799,8 +799,7 @@ export class Posts implements OnInit, OnDestroy {
                         { skipSync: true }
                     )
                     .finally(() => {
-                        // đảm bảo UI đồng bộ
-                        this.updateLastSyncedFilters();
+                        // UI đã được đồng bộ tự động
                     });
             });
     }
