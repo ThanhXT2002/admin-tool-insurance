@@ -6,7 +6,8 @@ import {
     Input,
     Output,
     OnInit,
-    OnChanges
+    OnChanges,
+    effect
 } from '@angular/core';
 
 import {
@@ -18,8 +19,10 @@ import {
 import { InputTextModule } from 'primeng/inputtext';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { Select } from 'primeng/select';
+import { TreeSelect } from 'primeng/treeselect';
 import { DrawerModule } from 'primeng/drawer';
 import { CommonModule } from '@angular/common';
+import { TreeNode } from 'primeng/api';
 import { MessageService } from 'primeng/api';
 import { MenuItemStore } from '@/store/menu/menuItem.store';
 import { MenuItemDto } from '@/interfaces/menu.interface';
@@ -32,9 +35,9 @@ import { MenuItemDto } from '@/interfaces/menu.interface';
         InputTextModule,
         FloatLabelModule,
         Select,
+        TreeSelect,
         CommonModule
     ],
-    providers: [MessageService],
     templateUrl: './menu-item-form.html',
     styleUrl: './menu-item-form.scss'
 })
@@ -60,6 +63,8 @@ export class MenuItemForm implements OnInit, OnChanges {
         { label: 'Không', value: false }
     ];
 
+    parentOptions: TreeNode[] = [];
+    selectedParentId: number | null = null; // Store actual parent ID for submission
     submitting = false;
     private waitingForResult = false;
 
@@ -77,6 +82,27 @@ export class MenuItemForm implements OnInit, OnChanges {
             expanded: [false],
             active: [true]
         });
+
+        // Effect to rebuild parent options when store data changes
+        effect(() => {
+            const items = this.menuItemStore.items();
+            if (items && items.length > 0) {
+                this.buildParentOptions();
+                this.cdr.markForCheck();
+            }
+        });
+
+        // Debug: Listen to parentId changes
+        this.form.get('parentId')?.valueChanges.subscribe((value) => {
+            console.log('TreeSelect parentId value changed:', {
+                value,
+                type: typeof value,
+                isObject: typeof value === 'object',
+                isArray: Array.isArray(value),
+                hasKey: value?.key,
+                stringified: JSON.stringify(value)
+            });
+        });
     }
 
     ngOnInit(): void {
@@ -84,35 +110,40 @@ export class MenuItemForm implements OnInit, OnChanges {
     }
 
     ngOnChanges(): void {
-        // Patch form whenever inputs change (categoryId, dataEdit, isEditMode)
-        console.log('MenuItemForm ngOnChanges:', {
-            categoryId: this.categoryId,
-            isEditMode: this.isEditMode,
-            hasDataEdit: !!this.dataEdit
-        });
-        this.patchFromEdit();
+        // Build parent options first
+        this.buildParentOptions();
+
+        // Delay patchFromEdit to ensure parentOptions is built
+        setTimeout(() => {
+            this.patchFromEdit();
+        }, 0);
     }
 
     private patchFromEdit() {
         if (!this.form || !this.categoryId) {
-            console.log('MenuItemForm patchFromEdit skipped:', {
-                hasForm: !!this.form,
-                categoryId: this.categoryId
-            });
             return; // Wait for categoryId to be set
         }
-
-        console.log(
-            'MenuItemForm patchFromEdit executing with categoryId:',
-            this.categoryId
-        );
 
         if (this.isEditMode && this.dataEdit) {
             // dataEdit is TreeNode structure with data property
             const data = this.dataEdit.data || this.dataEdit;
+
+            // Handle parentId properly for TreeSelect
+            let parentIdValue = null;
+            if (data.parentId && data.parentId !== 0) {
+                // Tìm TreeNode tương ứng với parentId
+                const parentNode = this.findTreeNodeByParentId(data.parentId);
+                if (parentNode) {
+                    // TreeSelect needs the actual TreeNode object, not just the key
+                    parentIdValue = parentNode;
+                    console.log('Found parent node for TreeSelect:', parentNode);
+                }
+
+            }
+
+            // Set regular form values first
             this.form.patchValue({
-                categoryId: this.categoryId, // Always use categoryId from Input
-                parentId: data.parentId || null,
+                categoryId: this.categoryId,
                 label: data.label || null,
                 icon: data.icon || null,
                 url: data.url || null,
@@ -123,11 +154,33 @@ export class MenuItemForm implements OnInit, OnChanges {
                 expanded: data.expanded ?? false,
                 active: data.active ?? true
             });
+
+            // Handle TreeSelect separately with delay to avoid timing issues
+            setTimeout(() => {
+                const parentControl = this.form.get('parentId');
+                if (parentControl) {
+                    console.log('Setting TreeSelect value:', {
+                        parentIdValue,
+                        type: typeof parentIdValue,
+                        parentOptions: this.parentOptions.length
+                    });
+                    
+                    if (parentIdValue) {
+                        parentControl.setValue(parentIdValue);
+                        console.log('Set TreeSelect value:', parentIdValue);
+                    } else {
+                        parentControl.setValue(null);
+                        console.log('Set TreeSelect value to null');
+                    }
+                    
+                    // Force change detection
+                    this.cdr.detectChanges();
+                }
+            }, 200); // Increase delay slightly
         } else {
             // Create mode - set default values
             this.form.patchValue({
-                categoryId: this.categoryId, // Use categoryId from Input
-                parentId: null,
+                categoryId: this.categoryId,
                 label: null,
                 icon: null,
                 url: null,
@@ -138,6 +191,12 @@ export class MenuItemForm implements OnInit, OnChanges {
                 expanded: false,
                 active: true
             });
+
+            // Handle TreeSelect separately
+            const parentControl = this.form.get('parentId');
+            if (parentControl) {
+                parentControl.setValue(null);
+            }
         }
         this.cdr.markForCheck();
     }
@@ -149,7 +208,50 @@ export class MenuItemForm implements OnInit, OnChanges {
         }
 
         this.submitting = true;
-        const payload: MenuItemDto = { ...this.form.value };
+        const formValue = { ...this.form.value };
+
+        // Debug TreeSelect form value
+        console.log('TreeSelect form value debug:', {
+            parentId: formValue.parentId,
+            type: typeof formValue.parentId,
+            isArray: Array.isArray(formValue.parentId),
+            hasKey: formValue.parentId?.key,
+            stringified: JSON.stringify(formValue.parentId)
+        });
+
+        // Handle different TreeSelect return types
+        let parentIdValue = null;
+        if (formValue.parentId) {
+            if (
+                typeof formValue.parentId === 'string' &&
+                formValue.parentId !== ''
+            ) {
+                // If it's a string key
+                parentIdValue = parseInt(formValue.parentId, 10);
+            } else if (
+                typeof formValue.parentId === 'object' &&
+                formValue.parentId.key
+            ) {
+                // If TreeSelect returns the full node object with key property
+                parentIdValue = parseInt(formValue.parentId.key, 10);
+            } else if (typeof formValue.parentId === 'number') {
+                // If it's already a number
+                parentIdValue = formValue.parentId;
+            } else if (Array.isArray(formValue.parentId) && formValue.parentId.length > 0) {
+                // If TreeSelect returns array (shouldn't happen in single mode but handle it)
+                const firstItem = formValue.parentId[0];
+                if (typeof firstItem === 'object' && firstItem.key) {
+                    parentIdValue = parseInt(firstItem.key, 10);
+                } else if (typeof firstItem === 'string') {
+                    parentIdValue = parseInt(firstItem, 10);
+                }
+            }
+        }
+
+        formValue.parentId = parentIdValue;
+
+        const payload: MenuItemDto = formValue;
+        console.log('payload', payload);
 
         try {
             if (this.isEditMode && this.dataEdit) {
@@ -207,6 +309,83 @@ export class MenuItemForm implements OnInit, OnChanges {
         this.patchFromEdit(); // Reset to default values
     }
 
+    /**
+     * Build parent options from store data, excluding current item when editing
+     */
+    private buildParentOptions() {
+        const storeItems = this.menuItemStore.items();
+        if (!storeItems || storeItems.length === 0) {
+            this.parentOptions = [];
+            return;
+        }
+
+        // Get current item ID if editing
+        const currentItemId =
+            this.isEditMode && this.dataEdit
+                ? this.dataEdit.data?.id || this.dataEdit.id
+                : null;
+
+        // Convert to TreeNode structure and filter out current item
+        this.parentOptions = this.buildTreeNodes(storeItems, currentItemId);
+    }
+
+    /**
+     * Convert MenuItem[] to TreeNode[] for TreeSelect, excluding specified itemId
+     */
+    private buildTreeNodes(items: any[], excludeId?: number): TreeNode[] {
+        return items
+            .filter((item) => item.id !== excludeId) // Exclude current item
+            .map((item) => {
+                const node: TreeNode = {
+                    key: item.id.toString(),
+                    label: item.label,
+                    data: item.id, // Store just the ID for easy access
+                    icon: item.icon || undefined,
+                    leaf: !item.children || item.children.length === 0,
+                    children:
+                        item.children && item.children.length > 0
+                            ? this.buildTreeNodes(item.children, excludeId)
+                            : undefined
+                };
+                return node;
+            });
+    }
+
+    /**
+     * Tìm TreeNode theo parentId từ parentOptions
+     */
+    private findTreeNodeByParentId(
+        parentId: number | string,
+        nodes: TreeNode[] = this.parentOptions
+    ): TreeNode | null {
+        if (!nodes || nodes.length === 0) {
+            return null;
+        }
+
+        const searchId = parentId.toString();
+
+        for (const node of nodes) {
+            if (node.key === searchId) {
+                console.log('Found TreeNode for parentId:', parentId, node);
+                return node;
+            }
+
+            // Tìm trong children nếu có
+            if (node.children && node.children.length > 0) {
+                const found = this.findTreeNodeByParentId(
+                    parentId,
+                    node.children
+                );
+                if (found) {
+                    return found;
+                }
+            }
+        }
+
+        console.log('TreeNode not found for parentId:', parentId);
+        return null;
+    }
+
     isInvalid(controlName: string) {
         const control = this.form.get(controlName);
         return !!(
@@ -214,5 +393,40 @@ export class MenuItemForm implements OnInit, OnChanges {
             control.invalid &&
             (control.touched || control.dirty)
         );
+    }
+
+    /**
+     * Helper method to extract parent ID from TreeSelect value
+     */
+    private extractParentId(treeSelectValue: any): number | null {
+        if (!treeSelectValue) {
+            return null;
+        }
+
+        // Handle different value types from TreeSelect
+        if (typeof treeSelectValue === 'string') {
+            const parsed = parseInt(treeSelectValue, 10);
+            return isNaN(parsed) ? null : parsed;
+        }
+
+        if (typeof treeSelectValue === 'number') {
+            return treeSelectValue;
+        }
+
+        if (typeof treeSelectValue === 'object') {
+            if (treeSelectValue.key) {
+                const parsed = parseInt(treeSelectValue.key, 10);
+                return isNaN(parsed) ? null : parsed;
+            }
+            if (treeSelectValue.data && treeSelectValue.data.id) {
+                return treeSelectValue.data.id;
+            }
+        }
+
+        if (Array.isArray(treeSelectValue) && treeSelectValue.length > 0) {
+            return this.extractParentId(treeSelectValue[0]);
+        }
+
+        return null;
     }
 }

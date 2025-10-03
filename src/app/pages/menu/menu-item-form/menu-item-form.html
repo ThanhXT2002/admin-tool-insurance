@@ -1,101 +1,124 @@
-<p-drawer [visible]="isShow" (visibleChange)="onVisibleChange($event)" position="right" styleClass="max-w-[350px] !w-[100%] !md:w-full" [header]="isEditMode ? 'Cập thông tin Menu Item' : 'Thêm Menu Item' ">
+<p-drawer
+    [visible]="isShow"
+    (visibleChange)="onVisibleChange($event)"
+    position="right"
+    styleClass="max-w-[350px] !w-[100%] !md:w-full"
+    [header]="isEditMode ? 'Cập thông tin Menu Item' : 'Thêm Menu Item' "
+>
     <form [formGroup]="form" (ngSubmit)="submit()" class="py-3 space-y-6">
-       <p-floatlabel variant="in" class="!w-full">
-                <input
-                    pInputText
-                    id="label"
-                    formControlName="label"
-                    class="w-full"
-                    autocomplete="off"
-                    [invalid]="isInvalid('label')"
-                />
-                <label for="label">Label Menu (*)</label>
-            </p-floatlabel>
-            <p-floatlabel variant="in" class="!w-full">
-                <input
-                    pInputText
-                    id="parentId"
-                    formControlName="parentId"
-                    class="w-full"
-                    autocomplete="off"
-                />
-                <label for="parentId">Parent ID</label>
-            </p-floatlabel>
-            <p-floatlabel variant="in" class="!w-full">
-                <input
-                    pInputText
-                    id="icon"
-                    formControlName="icon"
-                    class="w-full"
-                    autocomplete="off"
+        <p-floatlabel variant="in" class="!w-full">
+            <input
+                pInputText
+                id="label"
+                formControlName="label"
+                class="w-full"
+                autocomplete="off"
+                [invalid]="isInvalid('label')"
+            />
+            <label for="label">Label Menu (*)</label>
+        </p-floatlabel>
+        <p-floatlabel variant="in" class="!w-full">
+            <p-treeselect
+                inputId="parentId"
+                formControlName="parentId"
+                [options]="parentOptions"
+                class="w-full"
+                [filter]="true"
+                filterPlaceholder="Tìm kiếm..."
+                emptyMessage="Không có dữ liệu"
+                [showClear]="true"
+                [metaKeySelection]="false"
+                display="comma"
+                selectionMode="single"
+                placeholder="Chọn menu cha"
+                [resetFilterOnHide]="true"
+                [loading]="parentOptions.length === 0"
+            />
+            <label for="parentId">Menu cha</label>
+        </p-floatlabel>
+        <p-floatlabel variant="in" class="!w-full">
+            <input
+                pInputText
+                id="icon"
+                formControlName="icon"
+                class="w-full"
+                autocomplete="off"
+            />
+            <label for="icon"
+                >Icon (Remix - FontAwesome - Primeng - Chỉ lấy class)</label
+            >
+        </p-floatlabel>
+        <p-floatlabel variant="in" class="!w-full">
+            <input
+                pInputText
+                id="url"
+                formControlName="url"
+                class="w-full"
+                autocomplete="off"
+            />
+            <label for="url">Url (Liên kết bên ngoài)</label>
+        </p-floatlabel>
+        <p-floatlabel variant="in" class="!w-full">
+            <input
+                pInputText
+                id="routerLink"
+                formControlName="routerLink"
+                class="w-full"
+                autocomplete="off"
+            />
+            <label for="routerLink"
+                >RouterLink (điền vào địa chỉ router của FE)</label
+            >
+        </p-floatlabel>
 
-                />
-                <label for="icon">Icon (Remix - FontAwesome - Primeng - Chỉ lấy class)</label>
-            </p-floatlabel>
-            <p-floatlabel variant="in" class="!w-full">
-                <input
-                    pInputText
-                    id="url"
-                    formControlName="url"
-                    class="w-full"
-                    autocomplete="off"
-                />
-                <label for="url">Url (Liên kết bên ngoài)</label>
-            </p-floatlabel>
-            <p-floatlabel variant="in" class="!w-full">
-                <input
-                    pInputText
-                    id="routerLink"
-                    formControlName="routerLink"
-                    class="w-full"
-                    autocomplete="off"
+        <p-floatlabel class="w-full" variant="in">
+            <p-select
+                inputId="expanded"
+                [options]="booleanOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+                variant="filled"
+                formControlName="expanded"
+            />
+            <label for="expanded">Mở menu - dành cho menu cha</label>
+        </p-floatlabel>
 
-                />
-                <label for="routerLink">RouterLink (điền vào địa chỉ router của FE)</label>
-            </p-floatlabel>
+        <p-floatlabel class="w-full" variant="in">
+            <p-select
+                inputId="isBlank"
+                [options]="booleanOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+                variant="filled"
+                formControlName="isBlank"
+            />
+            <label for="isBlank">Mở trong tab mới</label>
+        </p-floatlabel>
 
-            <p-floatlabel class="w-full" variant="in">
-                    <p-select
-                        inputId="expanded"
-                        [options]="booleanOptions"
-                        optionLabel="label"
-                        optionValue="value"
-                        class="w-full"
-                        variant="filled"
-                        formControlName="expanded"
-                    />
-                    <label for="expanded">Mở menu - dành cho menu cha</label>
-                </p-floatlabel>
-
-                <p-floatlabel class="w-full" variant="in">
-                    <p-select
-                        inputId="isBlank"
-                        [options]="booleanOptions"
-                        optionLabel="label"
-                        optionValue="value"
-                        class="w-full"
-                        variant="filled"
-                        formControlName="isBlank"
-                    />
-                    <label for="isBlank">Mở trong tab mới</label>
-                </p-floatlabel>
-
-                <p-floatlabel class="w-full" variant="in">
-                    <p-select
-                        inputId="active"
-                        [options]="booleanOptions"
-                        optionLabel="label"
-                        optionValue="value"
-                        class="w-full"
-                        variant="filled"
-                        formControlName="active"
-                    />
-                    <label for="active">Trạng thái</label>
-                </p-floatlabel>
+        <p-floatlabel class="w-full" variant="in">
+            <p-select
+                inputId="active"
+                [options]="booleanOptions"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+                variant="filled"
+                formControlName="active"
+            />
+            <label for="active">Trạng thái</label>
+        </p-floatlabel>
     </form>
     <ng-template #footer>
-        <button (click)="submit()" class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white">
-            <i class="pi mr-3" [ngClass]="isEditMode? 'pi-pen-to-square':'pi-plus-circle' "></i>
+        <button
+            (click)="submit()"
+            class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white"
+        >
+            <i
+                class="pi mr-3"
+                [ngClass]="isEditMode? 'pi-pen-to-square':'pi-plus-circle' "
+            ></i>
             {{ isEditMode ? 'Cập nhật ngay' : 'Thêm mới' }}
         </button>
     </ng-template>

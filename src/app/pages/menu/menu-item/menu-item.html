@@ -22,35 +22,6 @@
                 (ngModelChange)="changeStatus()"
             />
 
-            <!-- Bulk Actions -->
-            <p-button
-                severity="success"
-                label="Kích hoạt"
-                icon="pi pi-check"
-                outlined
-                class="cursor-pointer"
-                (onClick)="bulkActivate()"
-                [disabled]="!selectedNodes || !selectedNodes.length"
-            />
-            <p-button
-                severity="secondary"
-                label="Vô hiệu hóa"
-                icon="pi pi-times"
-                outlined
-                class="cursor-pointer"
-                (onClick)="bulkDeactivate()"
-                [disabled]="!selectedNodes || !selectedNodes.length"
-            />
-            <p-button
-                severity="danger"
-                label="Xóa nhiều"
-                icon="pi pi-trash"
-                outlined
-                class="cursor-pointer"
-                (onClick)="bulkDelete()"
-                [disabled]="!selectedNodes || !selectedNodes.length"
-            />
-
             <!-- Add New Button -->
             <p-button
                 class="hidden lg:block"
@@ -69,18 +40,15 @@
         [columns]="cols"
         [scrollable]="true"
         [tableStyle]="{ 'min-width': '70rem' }"
-        selectionMode="checkbox"
-        [(selection)]="selectedNodes"
-        (selectionChange)="handleSelectionChange($event)"
         [loading]="loading"
     >
         <ng-template #header let-columns>
             <tr>
                 <th>Tên Menu</th>
                 <th>URL</th>
-                <th><p class="text-center">Thứ tự</p></th>
-                <th><p class="text-center">Trạng thái</p></th>
-                <th><p class="text-end">Thao tác</p></th>
+                <th class="w-[150px]"><p class="text-center">Thứ tự</p></th>
+                <th class="w-[150px]"><p class="text-center">Trạng thái</p></th>
+                <th class="w-[150px]"><p class="text-end">Thao tác</p></th>
             </tr>
         </ng-template>
 
@@ -91,9 +59,8 @@
             let-columns="columns"
         >
             <tr [ttRow]="rowNode">
-                @for (col of columns; track col.field; let i = $index) {
+                <!-- Tên Menu -->
                 <td>
-                    @if (col.field === 'label') {
                     <div class="flex__start">
                         <p-treetable-toggler
                             [rowNode]="rowNode"
@@ -103,34 +70,46 @@
                         }
                         <span class="text-nowrap">{{ rowData.label }}</span>
                     </div>
-                    } @if (col.field === 'url') {
+                </td>
+
+                <!-- URL -->
+                <td>
                     <div class="text-sm">
                         @if (rowData.url) {
-                        <div>
+                        <div class="flex__start">
                             <i class="pi pi-link mr-1"></i>
-                            {{ rowData.url }}
+                            <span> {{ rowData.url }}</span>
                         </div>
                         } @if (rowData.routerLink) {
-                        <div class="text-blue-500">
+                        <div class="text-blue-500 flex__start">
                             <i class="pi pi-paperclip mr-1"></i>
-                            {{ rowData.routerLink }}
+                            <span> {{ rowData.routerLink }}</span>
                         </div>
                         } @if (!rowData.url && !rowData.routerLink) {
                         <span class="text-gray-400">-</span>
                         }
                     </div>
-                    } @if (col.field === 'order') {
+                </td>
+
+                <!-- Thứ tự -->
+                <td class="w-[150px]">
                     <div class="flex__middle">
                         <span class="font-bold">{{ rowData.order }}</span>
                     </div>
-                    } @if (col.field === 'active') {
+                </td>
+
+                <!-- Trạng thái -->
+                <td class="w-[150px]">
                     <div class="flex__middle">
                         <p-toggleswitch
                             [ngModel]="rowData.active"
                             (onChange)="toggleActive(rowData)"
                         />
                     </div>
-                    } @if (col.field === 'actions') {
+                </td>
+
+                <!-- Thao tác -->
+                <td class="w-[150px]">
                     <div class="flex__end gap-2">
                         <p-button
                             icon="pi pi-pencil"
@@ -148,9 +127,7 @@
                             (click)="deleteItem(rowData)"
                         />
                     </div>
-                    }
                 </td>
-                }
             </tr>
         </ng-template>
     </p-treetable>

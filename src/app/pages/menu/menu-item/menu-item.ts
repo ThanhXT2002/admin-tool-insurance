@@ -68,8 +68,6 @@ export class MenuItem implements OnInit, OnDestroy {
         { field: 'actions', header: 'Thao tác' }
     ];
 
-    selectedNodes: any[] | null = null;
-
     active: boolean | undefined = undefined;
     categoryId!: number;
 
@@ -322,44 +320,6 @@ export class MenuItem implements OnInit, OnDestroy {
         }
     }
 
-    handleSelectionChange(ev: any) {
-        if (!ev) return this.onSelectionChange([]);
-        if (Array.isArray(ev)) return this.onSelectionChange(ev as any[]);
-        return this.onSelectionChange([ev]);
-    }
-
-    onSelectionChange(selection: any[]) {
-        this.selectedNodes = selection || null;
-    }
-
-    private collectIds(node: any, out: number[]) {
-        if (!node) return;
-        const id = node?.data?.id ?? node?.id;
-        if (typeof id === 'number') out.push(id);
-        const children = node?.children ?? node?.children;
-        if (children && children.length) {
-            children.forEach((c: any) => this.collectIds(c, out));
-        }
-    }
-
-    private getSelectedIds(): number[] {
-        const ids: number[] = [];
-        if (!this.selectedNodes || this.selectedNodes.length === 0) return ids;
-        const seen = new Set<number>();
-        const addNode = (n: any) => {
-            const local: number[] = [];
-            this.collectIds(n, local);
-            local.forEach((id) => {
-                if (!seen.has(id)) {
-                    seen.add(id);
-                    ids.push(id);
-                }
-            });
-        };
-        this.selectedNodes.forEach((s) => addNode(s));
-        return ids;
-    }
-
     addNew() {
         console.log('MenuItem addNew called with categoryId:', this.categoryId);
         this.isEditing = false;
@@ -425,123 +385,6 @@ export class MenuItem implements OnInit, OnDestroy {
         } finally {
             this.loading = false;
         }
-    }
-
-    async bulkActivate() {
-        const ids = this.getSelectedIds();
-        if (!ids.length) {
-            this.message.add({
-                severity: 'warn',
-                summary: 'Cảnh báo',
-                detail: 'Vui lòng chọn menu items'
-            });
-            return;
-        }
-        this.confirmation.confirm({
-            message: `Kích hoạt ${ids.length} menu items đã chọn?`,
-            header: 'Xác nhận',
-            icon: 'pi pi-exclamation-triangle',
-            accept: async () => {
-                this.loading = true;
-                try {
-                    await this.itemStore.batchActive(ids, true);
-                    this.message.add({
-                        severity: 'success',
-                        summary: 'Kích hoạt',
-                        detail: 'Đã kích hoạt'
-                    });
-                    await this.loadData();
-                } catch (e) {
-                    console.error(e);
-                    this.message.add({
-                        severity: 'error',
-                        summary: 'Lỗi',
-                        detail: 'Không thể kích hoạt'
-                    });
-                } finally {
-                    this.loading = false;
-                }
-            }
-        });
-    }
-
-    async bulkDeactivate() {
-        const ids = this.getSelectedIds();
-        if (!ids.length) {
-            this.message.add({
-                severity: 'warn',
-                summary: 'Cảnh báo',
-                detail: 'Vui lòng chọn menu items'
-            });
-            return;
-        }
-        this.confirmation.confirm({
-            message: `Vô hiệu hóa ${ids.length} menu items đã chọn?`,
-            header: 'Xác nhận',
-            icon: 'pi pi-exclamation-triangle',
-            accept: async () => {
-                this.loading = true;
-                try {
-                    await this.itemStore.batchActive(ids, false);
-                    this.message.add({
-                        severity: 'success',
-                        summary: 'Vô hiệu hóa',
-                        detail: 'Đã vô hiệu hóa'
-                    });
-                    await this.loadData();
-                } catch (e) {
-                    console.error(e);
-                    this.message.add({
-                        severity: 'error',
-                        summary: 'Lỗi',
-                        detail: 'Không thể vô hiệu hóa'
-                    });
-                } finally {
-                    this.loading = false;
-                }
-            }
-        });
-    }
-
-    async bulkDelete() {
-        const ids = this.getSelectedIds();
-        if (!ids.length) {
-            this.message.add({
-                severity: 'warn',
-                summary: 'Cảnh báo',
-                detail: 'Vui lòng chọn menu items'
-            });
-            return;
-        }
-        this.confirmation.confirm({
-            message: `Xóa ${ids.length} menu items đã chọn? (Bao gồm cả children)`,
-            header: 'Xác nhận xóa',
-            icon: 'pi pi-exclamation-triangle',
-            acceptButtonStyleClass: 'p-button-danger',
-            accept: async () => {
-                this.loading = true;
-                try {
-                    await Promise.all(
-                        ids.map((id) => this.itemStore.delete(id, true))
-                    );
-                    this.message.add({
-                        severity: 'success',
-                        summary: 'Xóa',
-                        detail: 'Đã xóa các menu items'
-                    });
-                    await this.loadData();
-                } catch (e) {
-                    console.error(e);
-                    this.message.add({
-                        severity: 'error',
-                        summary: 'Lỗi',
-                        detail: 'Không thể xóa'
-                    });
-                } finally {
-                    this.loading = false;
-                }
-            }
-        });
     }
 
     /**
