@@ -4,7 +4,8 @@ import {
     OnInit,
     OnDestroy,
     ViewChild,
-    inject
+    inject,
+    effect
 } from '@angular/core';
 import { TreeNode } from 'primeng/api';
 import { TreeTableModule, TreeTable } from 'primeng/treetable';
@@ -23,7 +24,6 @@ import { SelectModule } from 'primeng/select';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MenuItemStore } from '@/store/menu/menuItem.store';
 import { MenuItem as MenuItemInterface } from '@/interfaces/menu.interface';
-import { MenuItemForm } from '../menu-item-form/menu-item-form';
 
 interface Column {
     field: string;
@@ -43,9 +43,7 @@ interface Column {
         IconFieldModule,
         InputIconModule,
         SelectModule,
-        ToggleSwitchModule,
-        CommonModule,
-        MenuItemForm
+        ToggleSwitchModule
     ],
     providers: [ConfirmationService, MessageService],
     templateUrl: './menu-item.html',
@@ -84,6 +82,24 @@ export class MenuItem implements OnInit, OnDestroy {
 
     private destroy$ = new Subject<void>();
 
+    private _loadingEffect = effect(() => {
+        const items = this.itemStore.items();
+        // Nếu có data và đang loading, tắt loading
+        if (items.length > 0 && this.loading) {
+            this.loading = false;
+        }
+    });
+
+    private _dataEffect = effect(() => {
+        const items = this.itemStore.items();
+        console.log('MenuItemComponent: Store data changed', items);
+        // Tự động render khi store data thay đổi
+        this.files = this.toTreeNodes(Array.isArray(items) ? items : []);
+        console.log('MenuItemComponent: TreeNodes generated', this.files);
+        // Force change detection để đảm bảo UI update
+        this.cd.detectChanges();
+    });
+
     @ViewChild('tt') tt!: TreeTable;
 
     ngOnInit() {
@@ -99,49 +115,57 @@ export class MenuItem implements OnInit, OnDestroy {
             return;
         }
 
-        // Read query params và hydrate từ store (sử dụng cache nếu có)
-        const qp = this.route.snapshot.queryParams;
+        // Hydrate from query params và prevent duplicate load
+        const parsed =
+            this.itemStore.hydrateFromQueryParams(
+                this.categoryId,
+                this.route.snapshot.queryParams as any
+            ) || {};
 
-        if (qp['active'] === 'true') this.active = true;
-        else if (qp['active'] === 'false') this.active = false;
-        else this.active = undefined;
+        // Update local UI fields from parsed values
+        const hasUrlParams =
+            Object.keys(this.route.snapshot.queryParams).length > 0;
+        const cacheMatched = (parsed as any)._cacheMatched;
+        const hasCachedData = (parsed as any)._hasCachedData;
+
+        if (!hasUrlParams && hasCachedData) {
+            // Không có URL params nhưng có cache data - sử dụng cache
+            this.active = this.itemStore.currentFilter()?.active;
+            this.loading = false;
+        } else if (hasUrlParams && cacheMatched) {
+            // Có URL params và cache khớp - sử dụng cache data
+            this.active = parsed.active;
+            this.loading = false;
+        } else {
+            // Có URL params và cache không khớp hoặc không có cache - store đã tự load data
+            this.active = parsed.active;
+            // Hiển thị loading vì store đang gọi API
+            this.loading = true;
+        }
 
         this.selectedStatus =
             this.statusOptions.find((opt) => opt.code === this.active) ||
             this.statusOptions[0];
 
-        // Kiểm tra cache trong store
-        const hydrated = this.itemStore.hydrateFromQueryParams(
-            this.categoryId,
-            qp
-        );
-
-        if (hydrated.fromCache) {
-            // Đã có cache -> đồng bộ filter từ store
-            if (hydrated.filter) {
-                this.active = hydrated.filter.active;
-                this.selectedStatus =
-                    this.statusOptions.find(
-                        (opt) => opt.code === this.active
-                    ) || this.statusOptions[0];
-            }
-            // Render từ store, không cần gọi API
-            this.renderFromStore();
-            this.loading = false;
-        } else if (hydrated.needsLoad) {
-            // Không có cache -> gọi API
-            this.loadData();
-        }
-
         // Subscribe to query params changes
         this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((p) => {
             this.applyParams(p);
         });
+
+        // Initial render will be handled by _dataEffect when store data is available
+        // this.renderFromStore(); // Removed - _dataEffect will handle this
     }
 
     ngOnDestroy() {
         this.destroy$.next();
         this.destroy$.complete();
+        // dừng các effect của signal được tạo dưới dạng trường lớp để tránh rò rỉ bộ nhớ
+        try {
+            if (typeof (this as any)._loadingEffect === 'function')
+                (this as any)._loadingEffect();
+            if (typeof (this as any)._dataEffect === 'function')
+                (this as any)._dataEffect();
+        } catch (_) {}
     }
 
     private applyParams(params: any) {
@@ -165,10 +189,10 @@ export class MenuItem implements OnInit, OnDestroy {
 
     /**
      * Render data từ store signal (không gọi API)
+     * Note: _dataEffect sẽ tự động render khi store data thay đổi
      */
     private renderFromStore() {
-        const items = this.itemStore.items();
-        this.files = this.toTreeNodes(Array.isArray(items) ? items : []);
+        // _dataEffect sẽ tự động handle việc này
         this.cd.markForCheck();
     }
 
@@ -178,32 +202,31 @@ export class MenuItem implements OnInit, OnDestroy {
      */
     async loadData() {
         this.loading = true;
-        try {
-            // Xây dựng query: includeChildren luôn true để lấy tree structure
-            const query: { active?: boolean; includeChildren: boolean } = {
-                includeChildren: true
-            };
 
-            // Nếu active không phải undefined, truyền vào query
-            if (this.active !== undefined) {
-                query.active = this.active;
-            }
+        const query: { active?: boolean; includeChildren: boolean } = {
+            includeChildren: true
+        };
 
-            // Gọi store để load data - store sẽ gọi API với query này
-            await this.itemStore.loadByCategory(this.categoryId, query);
-
-            // Render từ store sau khi load xong
-            this.renderFromStore();
-        } catch (e) {
-            console.error('Error loading menu items:', e);
-            this.message.add({
-                severity: 'error',
-                summary: 'Lỗi',
-                detail: 'Không thể tải dữ liệu menu items'
-            });
-        } finally {
-            this.loading = false;
+        if (this.active !== undefined) {
+            query.active = this.active;
         }
+
+        this.itemStore
+            .loadByCategory(this.categoryId, query)
+            .then(() => {
+                this.renderFromStore();
+            })
+            .catch((e) => {
+                console.error('Error loading menu items:', e);
+                this.message.add({
+                    severity: 'error',
+                    summary: 'Lỗi',
+                    detail: 'Không thể tải dữ liệu menu items'
+                });
+            })
+            .finally(() => {
+                this.loading = false;
+            });
     }
 
     /**
@@ -239,8 +262,33 @@ export class MenuItem implements OnInit, OnDestroy {
     changeStatus() {
         this.active = this.selectedStatus.code;
         this.updateQueryParams();
-        // Gọi lại loadData với active mới
-        this.loadData();
+
+        // Load data với proper loading state management
+        this.loading = true;
+        const query: { active?: boolean; includeChildren: boolean } = {
+            includeChildren: true
+        };
+
+        if (this.active !== undefined) {
+            query.active = this.active;
+        }
+
+        this.itemStore
+            .loadByCategory(this.categoryId, query)
+            .then(() => {
+                this.renderFromStore();
+            })
+            .catch((e) => {
+                console.error('Error loading menu items:', e);
+                this.message.add({
+                    severity: 'error',
+                    summary: 'Lỗi',
+                    detail: 'Không thể tải dữ liệu menu items'
+                });
+            })
+            .finally(() => {
+                this.loading = false;
+            });
     }
 
     /**
@@ -259,12 +307,18 @@ export class MenuItem implements OnInit, OnDestroy {
             queryParams.active = null; // null sẽ xóa param khỏi URL
         }
 
-        this.router.navigate([], {
-            relativeTo: this.route,
-            queryParams,
-            queryParamsHandling: 'merge',
-            replaceUrl: true // Không lưu vào browser history
-        });
+        // Kiểm tra xem có thay đổi so với URL hiện tại không
+        const currentParams = this.route.snapshot.queryParams;
+        const needsUpdate = currentParams['active'] !== queryParams.active;
+
+        if (needsUpdate) {
+            this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams,
+                queryParamsHandling: 'merge',
+                replaceUrl: true // Không lưu vào browser history
+            });
+        }
     }
 
     handleSelectionChange(ev: any) {
@@ -321,6 +375,7 @@ export class MenuItem implements OnInit, OnDestroy {
             header: 'Xác nhận xóa',
             icon: 'pi pi-exclamation-triangle',
             accept: async () => {
+                this.loading = true;
                 try {
                     await this.itemStore.delete(rowData.id, true);
                     this.message.add({
@@ -336,12 +391,15 @@ export class MenuItem implements OnInit, OnDestroy {
                         summary: 'Lỗi',
                         detail: 'Không thể xóa menu item'
                     });
+                } finally {
+                    this.loading = false;
                 }
             }
         });
     }
 
     async toggleActive(rowData: any) {
+        this.loading = true;
         try {
             await this.itemStore.update(rowData.id, {
                 ...rowData,
@@ -360,6 +418,8 @@ export class MenuItem implements OnInit, OnDestroy {
                 summary: 'Lỗi',
                 detail: 'Không thể cập nhật trạng thái'
             });
+        } finally {
+            this.loading = false;
         }
     }
 

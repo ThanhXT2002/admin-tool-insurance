@@ -1,4 +1,4 @@
-<p-drawer [visible]="isShow" (visibleChange)="onVisibleChange($event)" position="right" styleClass="max-w-[350px] !w-[100%] !md:w-full" [header]="isEditMode ? 'Cập thông tin Menu' : 'Thêm Menu'">
+<p-drawer [visible]="isShow" (visibleChange)="onVisibleChange($event)" position="right" styleClass="max-w-[350px] !w-[100%] !md:w-full" [header]="isEditMode ? 'Cập thông tin Menu Item' : 'Thêm Menu Item' ">
     <form [formGroup]="form" (ngSubmit)="submit()" class="py-3 space-y-6">
        <p-floatlabel variant="in" class="!w-full">
                 <input
@@ -52,17 +52,6 @@
 
                 />
                 <label for="routerLink">RouterLink (điền vào địa chỉ router của FE)</label>
-            </p-floatlabel>
-            <p-floatlabel variant="in" class="!w-full">
-                <input
-                    pInputText
-                    id="order"
-                    formControlName="order"
-                    class="w-full"
-                    autocomplete="off"
-                    [invalid]="isInvalid('order')"
-                />
-                <label for="order">Vị trí (Nhập vào là số dương hợp lệ)</label>
             </p-floatlabel>
 
             <p-floatlabel class="w-full" variant="in">

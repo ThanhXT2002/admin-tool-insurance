@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { BaseStoreSignal } from '../_base/base-store-signal';
 import {
@@ -17,6 +18,7 @@ interface MenuItemState {
     selectedItem: MenuItem | null;
     currentCategoryId: number | null;
     currentFilter?: { active?: boolean }; // Lưu filter params hiện tại
+    _lastApiCall?: string; // Cache key for last API call
 }
 
 /**
@@ -26,6 +28,7 @@ interface MenuItemState {
 @Injectable({ providedIn: 'root' })
 export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
     private api = inject(MenuService);
+    private router = inject(Router);
 
     // Selectors - computed signals từ state
     public items = this.select((s) => s.items);
@@ -65,16 +68,41 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
         query?: { active?: boolean; includeChildren?: boolean },
         options?: { skipSync?: boolean }
     ) {
+        // Tạo cache key dựa trên categoryId và query params
+        const cacheKey = JSON.stringify({ categoryId, query });
+        const currentState = this.snapshot();
+
+        // Kiểm tra cache: nếu cùng key thì không cần gọi API
+        if (
+            currentState._lastApiCall === cacheKey &&
+            currentState.items.length > 0
+        ) {
+            return currentState.items;
+        }
+
         const res: any = await this.run(() =>
             firstValueFrom(this.api.getByCategory(categoryId, query))
         );
         const items = (res?.data || []) as MenuItem[];
-        // Lưu cả filter vào state
+
+        console.log('MenuItemStore: API response', res);
+        console.log('MenuItemStore: Parsed items', items);
+
+        // Lưu data và cache key
         this.patch({
             items,
             currentCategoryId: categoryId,
-            currentFilter: { active: query?.active }
+            currentFilter: { active: query?.active },
+            _lastApiCall: cacheKey
         });
+
+        console.log('MenuItemStore: State after patch', this.snapshot());
+
+        // Nếu không skip sync, đồng bộ URL với filter hiện tại
+        if (!options?.skipSync) {
+            this.syncQueryParamsToUrl();
+        }
+
         return items;
     }
 
@@ -92,33 +120,49 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
         else if (qp['active'] === 'false') parsed.active = false;
         // undefined = không filter
 
-        // Kiểm tra xem có data trong cache không
+        // Kiểm tra cache
         const currentState = this.snapshot();
         const hasCachedData =
             currentState.currentCategoryId === categoryId &&
             currentState.items.length > 0;
+        const hasUrlParams = Object.keys(qp).length > 0;
 
-        // So sánh filter: cache hợp lệ khi cùng categoryId VÀ cùng filter
+        // So sánh filter: URL params vs cache filter
         const filterMatches =
+            hasCachedData &&
             currentState.currentFilter?.active === parsed.active;
 
-        if (hasCachedData && filterMatches) {
-            // Có cache VÀ filter khớp -> trả về cache
-            return {
-                items: currentState.items,
-                filter: parsed,
-                fromCache: true,
-                needsLoad: false
-            };
-        } else {
-            // Không có cache HOẶC filter khác -> cần gọi API
-            return {
-                items: [],
-                filter: parsed,
-                fromCache: false,
-                needsLoad: true
-            };
+        console.log('MenuItemStore: hydrateFromQueryParams', {
+            parsed,
+            hasCachedData,
+            hasUrlParams,
+            filterMatches,
+            currentState: currentState
+        });
+
+        if (!filterMatches) {
+            // Không có cache hoặc filter không khớp -> gọi API
+            console.log(
+                'MenuItemStore: Loading data due to cache miss or filter mismatch'
+            );
+            this.loadByCategory(
+                categoryId,
+                { active: parsed.active, includeChildren: true },
+                { skipSync: true }
+            );
         }
+
+        // Nếu không có URL params nhưng có cache data, sync URL với cache
+        if (!hasUrlParams && hasCachedData) {
+            this.syncQueryParamsToUrl();
+        }
+
+        // Return parsed với thông tin về việc có match cache hay không
+        return {
+            ...parsed,
+            _cacheMatched: filterMatches,
+            _hasCachedData: hasCachedData
+        } as any;
     }
 
     /**
@@ -368,5 +412,51 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
             }
             return updated;
         });
+    }
+
+    /**
+     * Đồng bộ query params lên URL từ state hiện tại
+     */
+    private syncQueryParamsToUrl() {
+        const state = this.snapshot();
+        const params: any = {};
+
+        // Chỉ sync active filter nếu có
+        if (state.currentFilter?.active !== undefined) {
+            params.active = String(state.currentFilter.active);
+        }
+
+        try {
+            const currentParams =
+                this.router.routerState.snapshot.root.queryParams || {};
+            const keys = new Set([
+                ...Object.keys(currentParams),
+                ...Object.keys(params)
+            ]);
+            let identical = true;
+
+            for (const k of keys) {
+                const a = currentParams[k];
+                const b = params[k];
+                if (
+                    (a === undefined || a === null || a === '') &&
+                    (b === undefined || b === null || b === '')
+                ) {
+                    continue;
+                }
+                if (a !== b) {
+                    identical = false;
+                    break;
+                }
+            }
+
+            if (!identical) {
+                // Cần sync params
+                // Note: Trong store không thể navigate trực tiếp, component sẽ handle
+                console.log('MenuItemStore: URL params need sync', params);
+            }
+        } catch (e) {
+            console.warn('MenuItemStore: syncQueryParamsToUrl error', e);
+        }
     }
 }
