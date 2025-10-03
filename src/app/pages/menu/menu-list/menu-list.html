@@ -1,0 +1,252 @@
+<p-toolbar class="mb-6">
+    <ng-template #start>
+        <h5 class="!mb-0 text-nowrap">Danh Sách Menu</h5>
+    </ng-template>
+
+    <ng-template #end>
+        <p-button
+            class=""
+            label="Mới"
+            icon="pi pi-plus"
+            severity="primary"
+            (onClick)="openNew()"
+        />
+    </ng-template>
+</p-toolbar>
+
+<div class="card flex flex-col lg:flex-row gap-5 md:gap-10">
+    <div class="w-full lg:w-1/3">
+        <p class="font-semibold mb-2 text-red-500">
+            Lưu ý khi thao tác quản lý menu:
+        </p>
+        <ul class="list-disc pl-5 text-[14px] space-y-2 w-full text-justify">
+            <li>
+                Thao tác chỉnh sửa, di chuyển, xóa menu sẽ ảnh hưởng đến cấu
+                trúc hiển thị của toàn bộ hệ thống.
+            </li>
+            <li>
+                Menu dạng cây: khi xóa một menu cha, toàn bộ menu con sẽ bị xóa
+                theo (cascade delete).
+            </li>
+            <li>
+                Thứ tự menu có thể thay đổi bằng thao tác kéo thả hoặc nút di
+                chuyển, cần kiểm tra lại sau khi lưu.
+            </li>
+            <li>
+                Chỉ nên chỉnh sửa menu khi đã xác định rõ cấu trúc và phân quyền
+                truy cập.
+            </li>
+            <li>
+                Thao tác batch (nhiều mục cùng lúc) cần kiểm tra kỹ dữ liệu
+                trước khi thực hiện.
+            </li>
+            <li>
+                Menu liên kết với các chức năng khác (route, quyền truy cập),
+                cần đồng bộ khi cập nhật.
+            </li>
+            <li>
+                Nên sao lưu dữ liệu menu trước khi thực hiện các thao tác lớn.
+            </li>
+        </ul>
+    </div>
+    <div class="space-y-5 w-full lg:w-2/3">
+        <div class="flex flex-col md:flex-row gap-3">
+            <p-select
+                [options]="activeBoolean"
+                [(ngModel)]="selectActive"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+                (ngModelChange)="changeStatus()"
+                placeholder="Chọn trạng thái"
+            />
+            <p-select
+                [options]="includeItemsBoolean"
+                [(ngModel)]="selectIncludeItems"
+                optionValue="value"
+                optionLabel="label"
+                class="w-full"
+                (ngModelChange)="changeStatus()"
+                placeholder="Hiển thị menu items"
+            />
+            <p-select
+                [options]="activeItemsOnlyBoolean"
+                [(ngModel)]="selectActiveItemsOnly"
+                optionLabel="label"
+                optionValue="value"
+                class="w-full"
+                (ngModelChange)="changeStatus()"
+                placeholder="Lọc menu items"
+            />
+        </div>
+
+        <!-- Loading state -->
+        @if (loading) {
+        <div class="flex justify-center items-center p-10">
+            <i class="ri-loader-line text-4xl text-primary animate-spin"></i>
+        </div>
+        }
+
+        <!-- Empty state -->
+        @if (!loading && categories().length === 0) {
+        <div class="text-center py-10">
+            <i class="pi pi-inbox text-6xl text-gray-400 mb-4"></i>
+            <p class="text-gray-500 text-lg">Không có menu nào</p>
+            <p-button
+                label="Tạo menu mới"
+                icon="pi pi-plus"
+                (onClick)="openNew()"
+                class="mt-4"
+            />
+        </div>
+        }
+
+        <!-- <p-panel [toggleable]="true">
+            <ng-template #header>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold">Amy Elsner</span>
+                </div>
+            </ng-template>
+
+            <ng-template #icons>
+                <p-button icon="pi pi-cog" severity="secondary" rounded text />
+            </ng-template>
+            <p class="m-0">
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+                eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+                enim ad minim veniam, quis nostrud exercitation ullamco laboris
+                nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor
+                in reprehenderit in voluptate velit esse cillum dolore eu fugiat
+                nulla pariatur. Excepteur sint occaecat cupidatat non proident,
+                sunt in culpa qui officia deserunt mollit anim id est laborum.
+            </p>
+        </p-panel> -->
+
+        <!-- Menu list -->
+        @if (!loading && categories().length > 0) { @for (category of
+        categories(); track category.id) {
+        <p-panel [toggleable]="true" [collapsed]="false">
+            <ng-template #header>
+                <div class="flex items-center gap-3">
+                    <!-- <p-button
+                    icon="pi pi-plus"
+                    severity="secondary"
+                    [rounded]="true"
+                    [text]="true"
+                    (onClick)="deleteCategory(category)"
+                /> -->
+                    <span class="font-bold text-lg">{{ category.name }}</span>
+                    <!-- @if (!category.active) {
+                    <span
+                        class="px-2 py-1 bg-red-100 text-red-600 text-xs rounded"
+                    >
+                        Không hoạt động
+                    </span>
+                    } @if (category.active) {
+                    <span
+                        class="px-2 py-1 bg-green-100 text-green-600 text-xs rounded"
+                    >
+                        Đang hoạt động
+                    </span>
+                    } -->
+                </div>
+            </ng-template>
+            <ng-template #icons>
+
+                <p-toggleswitch
+                    [ngModel]="category.active"
+                    class="!h-5 mb-[-3px]"
+                    (onChange)="toggleActiveChange(category)"
+                />
+                <p-button
+                    icon="pi pi-plus-circle"
+                    severity="primary"
+                    [rounded]="true"
+                    [text]="true"
+                    (onClick)="addItemToMenu(category.id)"
+                />
+                <p-button
+                    icon="pi pi-pen-to-square"
+                    severity="secondary"
+                    rounded
+                    text
+                    (onClick)="editCategory(category)"
+                />
+                <p-button
+                    icon="pi pi-trash"
+                    severity="danger"
+                    [rounded]="true"
+                    [text]="true"
+                    (onClick)="deleteCategory(category)"
+                />
+            </ng-template>
+
+            <div class="space-y-3">
+                <div class="flex flex-wrap gap-2">
+                    <span class="text-gray-600">
+                        <strong>Key:</strong> {{ category.key }}
+                    </span>
+                    @if (category.position) {
+                    <span class="text-gray-600">
+                        <strong>Vị trí:</strong> {{ category.position }}
+                    </span>
+                    }
+                </div>
+                @if (category.description) {
+                <p class="text-gray-700 m-0">{{ category.description }}</p>
+                } @if (category.menus && category.menus.length > 0) {
+                <div class="border-t pt-3">
+                    <p class="font-semibold">
+                        Menu Items ({{ category.menus.length }})
+                    </p>
+                    <p-tree [value]="category.menus" class="w-full !p-0">
+                        <ng-template let-node pTemplate="default">
+                            <a
+                                [href]="feUrl + node.url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="text-surface-700 dark:text-surface-100 hover:text-primary"
+                            >
+                                {{ node.label }}
+                            </a>
+                        </ng-template>
+                    </p-tree>
+                    <!-- <ul class="space-y-2 pl-5">
+                        @for (item of category.menus; track item.id) {
+                        <li class="flex items-center gap-2">
+                            <i
+                                class="pi pi-circle-fill text-xs text-primary"
+                            ></i>
+                            <span>{{ item.label }}</span>
+                            @if (item.url) {
+                            <span class="text-gray-500 text-sm"
+                                >({{ item.url }})</span
+                            >
+                            }
+                            @if (!item.active) {
+                            <span
+                                class="px-1 py-0.5 bg-red-100 text-red-600 text-xs rounded"
+                            >
+                                Ẩn
+                            </span>
+                            }
+                        </li>
+                        }
+                    </ul> -->
+                </div>
+                }
+            </div>
+        </p-panel>
+        } }
+    </div>
+</div>
+
+<app-menu-form
+    [(isShow)]="isFormOpen"
+    [isEditMode]="isEditing"
+    [dataEdit]="selectedMenu"
+    (saved)="onMenuSaved($event)"
+>
+</app-menu-form>
+
+<p-confirmdialog />

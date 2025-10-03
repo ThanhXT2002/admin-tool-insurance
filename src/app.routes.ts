@@ -13,14 +13,34 @@ export const appRoutes: Routes = [
         canActivate: [authGuard],
         children: [
             { path: '', component: Dashboard },
-            { path: 'uikit', loadChildren: () => import('./app/pages/uikit/uikit.routes') },
-            { path: 'insurance', loadChildren: () => import('./app/pages/insurance/insurance.routes') },
+            {
+                path: 'uikit',
+                loadChildren: () => import('./app/pages/uikit/uikit.routes')
+            },
+            {
+                path: 'insurance',
+                loadChildren: () =>
+                    import('./app/pages/insurance/insurance.routes')
+            },
             { path: 'documentation', component: Documentation },
-            { path: 'pages', loadChildren: () => import('./app/pages/pages.routes') }
+            {
+                path: 'pages',
+                loadChildren: () => import('./app/pages/pages.routes')
+            },
+            {
+                path: 'menu',
+                loadChildren: () =>
+                    import('./app/pages/menu/menu.routes')
+            }
         ]
     },
+
     { path: 'landing', component: Landing },
     { path: 'notfound', component: Notfound },
-    { path: 'auth', loadChildren: () => import('./app/pages/auth/auth.routes'), canActivate: [loginGuard] },
+    {
+        path: 'auth',
+        loadChildren: () => import('./app/pages/auth/auth.routes'),
+        canActivate: [loginGuard]
+    },
     { path: '**', redirectTo: '/notfound' }
 ];

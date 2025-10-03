@@ -65,13 +65,7 @@ export class Contact implements OnInit, OnDestroy {
     // dialog detail
     showDetail = false;
     detailItem: any = null;
-
-    private _rowsEffect = effect(() => {
-        // Khi rows thay đổi, dừng loading local
-        const _ = this.contactStore.rows();
-        this.loading.set(false);
-    });
-
+    
     ngOnInit(): void {
         const queryParams = this.route.snapshot.queryParams;
         this.page.set(Number(queryParams['page']) || 1);

@@ -49,8 +49,12 @@ export class AppMenu {
                 ]
             },
             {
-                label: 'Liên Hệ',
+                label: 'QL Liên Hệ',
                 items: [{ label: 'Danh Sách Liên Hệ', icon: 'pi pi-address-book', routerLink: ['/insurance/contact'] }]
+            },
+            {
+                label: 'QL -  Menu - Chuyên Mục',
+                items: [{ label: 'Danh Sách Menu', icon: 'pi pi-sliders-h', routerLink: ['/menu/list'] }]
             },
             {
                 label: 'UI Components',

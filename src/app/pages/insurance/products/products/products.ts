@@ -77,11 +77,6 @@ export class Products implements OnInit, OnDestroy {
         keyword?: any;
     } = {};
 
-    private _rowsEffect = effect(() => {
-        const _ = this.productStore.rows();
-        this.loading = false;
-    });
-
     private _totalEffect = effect(() => {
         const t = this.productStore.total();
         this.totalRecords = t;
@@ -173,10 +168,6 @@ export class Products implements OnInit, OnDestroy {
         clearTimeout(this.searchTimeout);
         // dừng các effect của signal được tạo dưới dạng trường lớp để tránh rò rỉ bộ nhớ
         try {
-            if (typeof (this as any)._rowsEffect === 'function')
-                (this as any)._rowsEffect();
-        } catch (_) {}
-        try {
             if (typeof (this as any)._totalEffect === 'function')
                 (this as any)._totalEffect();
         } catch (_) {}
@@ -229,6 +220,7 @@ export class Products implements OnInit, OnDestroy {
             .load(params, { skipSync: !this._initialized })
             .finally(() => {
                 this._isLoadingInFlight = false;
+                this.loading = false;
             });
     }
 

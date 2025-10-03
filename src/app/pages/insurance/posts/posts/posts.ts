@@ -9,15 +9,12 @@ import {
 } from '@angular/core';
 import { Table, TableModule } from 'primeng/table';
 import { Button } from 'primeng/button';
-import { PostCategoryFacade } from '@/store/postCategory/postCategory.facade';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { RefreshService } from '@/pages/service/refresh.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ConfirmDialog } from 'primeng/confirmdialog';
-import { PostCategoryForm } from '../post-category-form/post-category-form';
-import { ToggleSwitch } from 'primeng/toggleswitch';
 import { FormsModule } from '@angular/forms';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Select } from 'primeng/select';
@@ -86,16 +83,10 @@ export class Posts implements OnInit, OnDestroy {
         keyword?: any;
     } = {};
 
-    private _rowsEffect = effect(() => {
-        const _ = this.postStore.rows();
-        this.loading = false;
-    });
-
     private _totalEffect = effect(() => {
         const t = this.postStore.total();
         this.totalRecords = t;
     });
-
 
     statusOptions = [
         { name: 'Tất cả trạng thái', code: undefined },
@@ -228,10 +219,6 @@ export class Posts implements OnInit, OnDestroy {
         this.destroy$.complete();
         clearTimeout(this.searchTimeout);
         // dừng các effect của signal được tạo dưới dạng trường lớp để tránh rò rỉ bộ nhớ
-        try {
-            if (typeof (this as any)._rowsEffect === 'function')
-                (this as any)._rowsEffect();
-        } catch (_) {}
         try {
             if (typeof (this as any)._totalEffect === 'function')
                 (this as any)._totalEffect();

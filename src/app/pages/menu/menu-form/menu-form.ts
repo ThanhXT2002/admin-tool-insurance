@@ -1,23 +1,53 @@
-import { ChangeDetectorRef, Component, EventEmitter, Input, OnInit, Output, effect } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+    ChangeDetectorRef,
+    Component,
+    EventEmitter,
+    Input,
+    Output,
+    effect,
+
+} from '@angular/core';
+import {
+    FormBuilder,
+    FormGroup,
+    ReactiveFormsModule,
+    Validators
+} from '@angular/forms';
 import { DrawerModule } from 'primeng/drawer';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { InputTextModule } from 'primeng/inputtext';
-import { TextareaModule } from 'primeng/textarea';
 import { ButtonModule } from 'primeng/button';
 import { PermissionsFacade } from '@/store/permissions/permissions.facade';
 import { Permission } from '@/interfaces/permission.interface';
-import { NgClass } from '@angular/common';
+import { CommonModule } from '@angular/common';
+import { PasswordModule } from 'primeng/password';
+import { InputIconModule } from 'primeng/inputicon';
+import { IconFieldModule } from 'primeng/iconfield';
+import { DividerModule } from 'primeng/divider';
+import { TextareaModule } from 'primeng/textarea';
+
 
 @Component({
-    selector: 'app-permission-form',
-    standalone: true,
-    imports: [DrawerModule, ReactiveFormsModule, InputTextModule, FloatLabelModule, TextareaModule, ButtonModule, NgClass],
-    templateUrl: './permission-form.html',
-    styleUrls: ['./permission-form.scss']
+  selector: 'app-menu-form',
+  imports: [
+    DrawerModule,
+        ReactiveFormsModule,
+        InputTextModule,
+        FloatLabelModule,
+        ButtonModule,
+        CommonModule,
+        PasswordModule,
+        InputIconModule,
+        IconFieldModule,
+        DividerModule,
+        TextareaModule
+  ],
+  templateUrl: './menu-form.html',
+  styleUrl: './menu-form.scss'
 })
-export class PermissionForm implements OnInit {
-    @Input() isShow = false;
+export class MenuForm {
+
+  @Input() isShow = false;
     @Output() isShowChange = new EventEmitter<boolean>();
 
     @Input() isEditMode = false;
@@ -103,6 +133,7 @@ export class PermissionForm implements OnInit {
         } else {
             this.facade.create(payload);
         }
+
         // wait for the effect/store result before closing
         this.waitingForResult = true;
     }
@@ -111,4 +142,5 @@ export class PermissionForm implements OnInit {
         const control = this.form.get(controlName);
         return control?.invalid && control.touched;
     }
+
 }
