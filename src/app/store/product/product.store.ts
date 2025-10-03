@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+﻿import { Injectable, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { BaseStoreSignal } from '../_base/base-store-signal';
@@ -25,6 +25,9 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
     private api = inject(ProductApiService);
     private router = inject(Router);
 
+    // Cache để tránh gọi API trùng lặp
+    private _lastApiCall: string | null = null;
+
     public rows = this.select((s) => s.rows);
     public total = this.select((s) => s.total);
     public page = this.select((s) => s.page);
@@ -42,6 +45,9 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
         params?: Partial<ProductListState>,
         options?: { skipSync?: boolean }
     ) {
+        console.log('🔄 ProductStore.load called with:', { params, options });
+        console.trace('Call stack:'); // Hiển thị call stack để biết được gọi từ đâu
+
         if (params) {
             const resettingPage =
                 params.page == null &&
@@ -52,6 +58,22 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
         }
 
         const q = this.snapshot();
+
+        // Tạo cache key từ params để tránh gọi API trùng lặp
+        const cacheKey = JSON.stringify({
+            page: q.page,
+            limit: q.limit,
+            keyword: q.keyword,
+            active: q.active
+        });
+
+        // Nếu API call giống hệt lần trước và có data, bỏ qua
+        if (this._lastApiCall === cacheKey && q.rows.length > 0) {
+            return { rows: q.rows, total: q.total };
+        }
+
+        this._lastApiCall = cacheKey;
+
         const result: any = await this.run(() =>
             firstValueFrom(
                 this.api.getAll({
@@ -269,8 +291,18 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
             this.load(parsed, { skipSync: true });
         }
 
-        // Return parsed (c\u00f3 th\u1ec3 r\u1ed7ng n\u1ebfu kh\u00f4ng c\u00f3 query params)
-        return Object.keys(parsed).length > 0 ? parsed : {};
+        // Nếu không có URL params nhưng có cache data, cần sync URL
+        if (Object.keys(parsed).length === 0 && hasCachedData) {
+            // Sync URL với cache data hiện tại
+            this.syncQueryParamsToUrl();
+        }
+
+        // Return parsed với thông tin về việc có match cache hay không
+        return {
+            ...parsed,
+            _cacheMatched: filterMatches,
+            _hasCachedData: hasCachedData
+        } as any;
     }
 
     private syncQueryParamsToUrl() {

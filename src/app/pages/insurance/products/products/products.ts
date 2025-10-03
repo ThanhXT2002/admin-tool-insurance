@@ -58,6 +58,7 @@ export class Products implements OnInit, OnDestroy {
 
     page = 1;
     limit = 10;
+    first = 0; // Index của record đầu tiên cho PrimeNG paginator
     active: boolean | undefined = undefined;
     currentKeyword: string | undefined = undefined;
     @ViewChild('dt') dt!: Table;
@@ -71,11 +72,6 @@ export class Products implements OnInit, OnDestroy {
     private _suppressApplyParamsLoad = false;
     // Đặt true sau khi hydrate/load ban đầu hoàn tất để bỏ qua các sự kiện ngModelChange sinh ra trong khởi tạo
     private _initialized = false;
-    // Lưu giá trị bộ lọc đã sync lần cuối để tránh điều hướng trùng lặp
-    private _lastSyncedFilters: {
-        active?: any;
-        keyword?: any;
-    } = {};
 
     private _totalEffect = effect(() => {
         const t = this.productStore.total();
@@ -93,23 +89,6 @@ export class Products implements OnInit, OnDestroy {
     selectedStatus = this.statusOptions[0];
 
     ngOnInit() {
-        const queryParams = this.route.snapshot.queryParams;
-        this.page = Number(queryParams['page']) || 1;
-        this.limit = Number(queryParams['limit']) || 10;
-        this.currentKeyword = queryParams['keyword'] || undefined;
-
-        if (queryParams['active'] === 'true') {
-            this.active = true;
-        } else if (queryParams['active'] === 'false') {
-            this.active = false;
-        } else {
-            this.active = undefined;
-        }
-
-        this.selectedStatus =
-            this.statusOptions.find((opt) => opt.code === this.active) ||
-            this.statusOptions[0];
-
         // Hydrate from query params and prevent duplicate load
         this._suppressApplyParamsLoad = true;
         const parsed =
@@ -118,17 +97,40 @@ export class Products implements OnInit, OnDestroy {
             ) || {};
 
         // Update local UI fields from parsed values
-        // Nếu parsed rỗng (không có params), reset về mặc định
-        this.page = parsed.page ?? 1;
-        this.limit = parsed.limit ?? 10;
-        this.currentKeyword = parsed.keyword ?? undefined;
-        this.active = parsed.active ?? undefined;
+        const storeState = this.productStore.snapshot();
+        const hasUrlParams = Object.keys(parsed).length > 0;
+        const cacheMatched = (parsed as any)?._cacheMatched;
+        const hasCachedData = (parsed as any)?._hasCachedData;
+
+        if (!hasUrlParams && hasCachedData) {
+            // Không có URL params nhưng có cache data
+            // Sử dụng cache data (store đã tự sync URL)
+            this.page = storeState.page || 1;
+            this.limit = storeState.limit || 10;
+            this.currentKeyword =
+                storeState.currentFilter?.keyword ?? undefined;
+            this.active = storeState.currentFilter?.active ?? undefined;
+        } else if (hasUrlParams && cacheMatched) {
+            // Có URL params và cache khớp - sử dụng cache data
+            this.page = storeState.page || 1;
+            this.limit = storeState.limit || 10;
+            this.currentKeyword =
+                storeState.currentFilter?.keyword ?? undefined;
+            this.active = storeState.currentFilter?.active ?? undefined;
+        } else {
+            // Có URL params và cache không khớp hoặc không có cache - store đã tự load data
+            this.page = parsed.page ?? 1;
+            this.limit = parsed.limit ?? 10;
+            this.currentKeyword = parsed.keyword ?? undefined;
+            this.active = parsed.active ?? undefined;
+        }
+
         this.selectedStatus =
             this.statusOptions.find((opt) => opt.code === this.active) ||
             this.statusOptions[0];
 
-        // Record initially synced filters
-        this._lastSyncedFilters = this.buildCurrentFilters();
+        // Đồng bộ first index với page cho PrimeNG paginator
+        this.syncFirstWithPage();
 
         // Skip first lazy load events from PrimeNG table initialization
         this.skipLazyLoads += 1;
@@ -224,6 +226,8 @@ export class Products implements OnInit, OnDestroy {
         const first = Number(event.first) || 0;
         const rows = Number(event.rows) || this.limit;
         const newPage = Math.floor(first / rows) + 1;
+
+        this.first = first;
         this.page = newPage;
         this.limit = rows;
         this.loading = true;
@@ -240,17 +244,11 @@ export class Products implements OnInit, OnDestroy {
 
     async changeStatus() {
         if (!this._initialized) return;
-        // Avoid reacting to changes that match last synced filters
-        const currentFilters = this.buildCurrentFilters();
-        const equal =
-            String(currentFilters.active) ===
-                String(this._lastSyncedFilters.active) &&
-            String(currentFilters.keyword || '') ===
-                String(this._lastSyncedFilters.keyword || '');
-        if (equal) return;
+
+        // Đồng bộ this.active với selectedStatus.code
+        this.active = this.selectedStatus?.code;
 
         // Build load params from current selections and keyword
-        // Pass explicit `active` key (can be undefined) so store.patch clears previous value
         const params: any = {
             page: 1,
             limit: this.limit,
@@ -258,35 +256,14 @@ export class Products implements OnInit, OnDestroy {
             active: this.selectedStatus?.code
         };
 
-        // Prevent route subscription from triggering a second load
-        this._suppressApplyParamsLoad = true;
-
-        // Update last synced filters
-        this.updateLastSyncedFilters();
-
-        // Load data but skip store's auto-sync to URL, we'll navigate explicitly to ensure removal of active param
+        // Load data với store cache logic sẽ tự xử lý duplicate calls
         this.loading = true;
         this._isLoadingInFlight = true;
         try {
-            await this.productStore.load(params, { skipSync: true });
+            await this.productStore.load(params);
         } finally {
             this._isLoadingInFlight = false;
             this.loading = false;
-        }
-
-        // Explicitly sync URL to current filters so 'active' is removed when it's undefined
-        const urlParams = this.buildFilterParams(undefined, {
-            page: 1,
-            limit: this.limit,
-            keyword: this.currentKeyword ?? undefined
-        });
-        try {
-            this.router.navigate([], {
-                queryParams: urlParams,
-                replaceUrl: true
-            });
-        } catch (e) {
-            // ignore
         }
     }
 
@@ -440,15 +417,12 @@ export class Products implements OnInit, OnDestroy {
     }
 
     // --- Helper methods to reduce duplication for selection and reload operations ---
-    private updateLastSyncedFilters(): void {
-        this._lastSyncedFilters = this.buildCurrentFilters();
-    }
 
-    private buildCurrentFilters() {
-        return {
-            active: this.selectedStatus?.code,
-            keyword: this.currentKeyword
-        };
+    /**
+     * Đồng bộ first index với page number cho PrimeNG paginator
+     */
+    private syncFirstWithPage(): void {
+        this.first = (this.page - 1) * this.limit;
     }
 
     private reloadCurrentData(): void {
@@ -540,6 +514,9 @@ export class Products implements OnInit, OnDestroy {
         // keep legacy this.active in sync so other handlers (search/navigation) don't re-add stale param
         this.active = this.selectedStatus?.code;
 
+        // Đồng bộ first index với page cho PrimeNG paginator
+        this.syncFirstWithPage();
+
         // Nếu một handler đã trigger load và đặt flag suppress, thì không tải lại ở đây
         if (this._suppressApplyParamsLoad) {
             this._suppressApplyParamsLoad = false;
@@ -572,6 +549,10 @@ export class Products implements OnInit, OnDestroy {
             };
 
             // Gọi store để fetch dữ liệu; truyền skipSync nếu cần để tránh điều hướng URL khi đang hydrate
+            console.log(
+                '🔥 applyParams calling productStore.load with:',
+                paramsToLoad
+            );
             this.productStore.load(paramsToLoad, {
                 skipSync: !!options?.skipSync
             });

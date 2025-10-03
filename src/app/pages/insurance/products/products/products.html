@@ -2,6 +2,7 @@
     #dt
     [value]="items()"
     [rows]="limit"
+    [first]="first"
     [paginator]="true"
     [lazy]="true"
     (onLazyLoad)="onLazyLoad($event)"
@@ -10,7 +11,7 @@
     [(selection)]="selectedItems"
     [rowHover]="true"
     dataKey="id"
-    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} categories"
+    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} products"
     [showCurrentPageReport]="true"
     [rowsPerPageOptions]="[10, 20, 30]"
     [totalRecords]="totalRecords"
