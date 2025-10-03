@@ -22,9 +22,7 @@ import { DrawerModule } from 'primeng/drawer';
 import { CommonModule } from '@angular/common';
 import { MessageService } from 'primeng/api';
 import { MenuItemStore } from '@/store/menu/menuItem.store';
-import {
-    MenuItemDto
-} from '@/interfaces/menu.interface';
+import { MenuItemDto } from '@/interfaces/menu.interface';
 
 @Component({
     selector: 'app-menu-item-form',
@@ -104,7 +102,10 @@ export class MenuItemForm implements OnInit, OnChanges {
             return; // Wait for categoryId to be set
         }
 
-        console.log('MenuItemForm patchFromEdit executing with categoryId:', this.categoryId);
+        console.log(
+            'MenuItemForm patchFromEdit executing with categoryId:',
+            this.categoryId
+        );
 
         if (this.isEditMode && this.dataEdit) {
             // dataEdit is TreeNode structure with data property

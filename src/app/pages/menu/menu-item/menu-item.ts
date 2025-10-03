@@ -174,7 +174,6 @@ export class MenuItem implements OnInit, OnDestroy {
     }
 
     private applyParams(params: any) {
-
         let newActive: boolean | undefined = undefined;
         if (params['active'] === 'true') newActive = true;
         else if (params['active'] === 'false') newActive = false;
