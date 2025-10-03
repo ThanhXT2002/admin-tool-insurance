@@ -4,9 +4,8 @@ import { BaseStoreSignal } from '../_base/base-store-signal';
 import {
     MenuItem,
     MenuItemBatchOrderDto,
-    MenuItemCreateDto,
-    MenuItemReorderDto,
-    MenuItemUpdateDto
+    MenuItemDto,
+    MenuItemReorderDto
 } from '@/interfaces/menu.interface';
 import { MenuService } from '@/pages/service/menu.service';
 
@@ -17,6 +16,7 @@ interface MenuItemState {
     items: MenuItem[];
     selectedItem: MenuItem | null;
     currentCategoryId: number | null;
+    currentFilter?: { active?: boolean }; // Lưu filter params hiện tại
 }
 
 /**
@@ -31,6 +31,7 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
     public items = this.select((s) => s.items);
     public selectedItem = this.select((s) => s.selectedItem);
     public currentCategoryId = this.select((s) => s.currentCategoryId);
+    public currentFilter = this.select((s) => s.currentFilter);
 
     /**
      * Khởi tạo state mặc định
@@ -39,7 +40,8 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
         return {
             items: [],
             selectedItem: null,
-            currentCategoryId: null
+            currentCategoryId: null,
+            currentFilter: undefined
         };
     }
 
@@ -60,14 +62,63 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
      */
     async loadByCategory(
         categoryId: number,
-        query?: { active?: boolean; includeChildren?: boolean }
+        query?: { active?: boolean; includeChildren?: boolean },
+        options?: { skipSync?: boolean }
     ) {
         const res: any = await this.run(() =>
             firstValueFrom(this.api.getByCategory(categoryId, query))
         );
         const items = (res?.data || []) as MenuItem[];
-        this.patch({ items, currentCategoryId: categoryId });
+        // Lưu cả filter vào state
+        this.patch({
+            items,
+            currentCategoryId: categoryId,
+            currentFilter: { active: query?.active }
+        });
         return items;
+    }
+
+    /**
+     * Hydrate store from query params (kiểm tra cache)
+     * @param categoryId - ID của category cần load
+     * @param qp - Query params object từ ActivatedRoute
+     * @returns Object chứa thông tin về cache và filter
+     */
+    hydrateFromQueryParams(categoryId: number, qp: Record<string, any>) {
+        const parsed: { active?: boolean } = {};
+
+        // Parse active filter
+        if (qp['active'] === 'true') parsed.active = true;
+        else if (qp['active'] === 'false') parsed.active = false;
+        // undefined = không filter
+
+        // Kiểm tra xem có data trong cache không
+        const currentState = this.snapshot();
+        const hasCachedData =
+            currentState.currentCategoryId === categoryId &&
+            currentState.items.length > 0;
+
+        // So sánh filter: cache hợp lệ khi cùng categoryId VÀ cùng filter
+        const filterMatches =
+            currentState.currentFilter?.active === parsed.active;
+
+        if (hasCachedData && filterMatches) {
+            // Có cache VÀ filter khớp -> trả về cache
+            return {
+                items: currentState.items,
+                filter: parsed,
+                fromCache: true,
+                needsLoad: false
+            };
+        } else {
+            // Không có cache HOẶC filter khác -> cần gọi API
+            return {
+                items: [],
+                filter: parsed,
+                fromCache: false,
+                needsLoad: true
+            };
+        }
     }
 
     /**
@@ -93,7 +144,7 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
     /**
      * Tạo menu item mới
      */
-    async create(data: MenuItemCreateDto) {
+    async create(data: MenuItemDto) {
         const res: any = await this.run(() =>
             firstValueFrom(this.api.create(data))
         );
@@ -114,7 +165,7 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
     /**
      * Cập nhật menu item
      */
-    async update(id: number, data: MenuItemUpdateDto) {
+    async update(id: number, data: MenuItemDto) {
         const res: any = await this.run(() =>
             firstValueFrom(this.api.update(id, data))
         );
@@ -151,9 +202,7 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
      * Batch active/inactive nhiều menu items
      */
     async batchActive(ids: number[], active: boolean) {
-        await this.run(() =>
-            firstValueFrom(this.api.batchActive(ids, active))
-        );
+        await this.run(() => firstValueFrom(this.api.batchActive(ids, active)));
 
         // Cập nhật active flag (recursive)
         const idSet = new Set(ids);

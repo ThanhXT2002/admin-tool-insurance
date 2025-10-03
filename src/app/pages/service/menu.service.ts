@@ -2,9 +2,8 @@ import { ApiResponse } from '@/interfaces/api-response.interface';
 import {
     MenuItem,
     MenuItemBatchOrderDto,
-    MenuItemCreateDto,
+    MenuItemDto,
     MenuItemReorderDto,
-    MenuItemUpdateDto
 } from '@/interfaces/menu.interface';
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
@@ -74,14 +73,14 @@ export class MenuService {
     /**
      * Tạo menu item mới
      */
-    create(data: MenuItemCreateDto) {
+    create(data: MenuItemDto) {
         return this.http.post<ApiResponse<MenuItem>>(`${this.base}`, data);
     }
 
     /**
      * Cập nhật menu item
      */
-    update(id: number, data: MenuItemUpdateDto) {
+    update(id: number, data: MenuItemDto) {
         return this.http.put<ApiResponse<MenuItem>>(`${this.base}/${id}`, data);
     }
 

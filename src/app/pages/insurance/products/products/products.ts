@@ -118,12 +118,14 @@ export class Products implements OnInit, OnDestroy {
             ) || {};
 
         // Update local UI fields from parsed values
-        this.page = parsed.page ?? this.page;
-        this.limit = parsed.limit ?? this.limit;
-        this.currentKeyword = parsed.keyword ?? this.currentKeyword;
+        // Nếu parsed rỗng (không có params), reset về mặc định
+        this.page = parsed.page ?? 1;
+        this.limit = parsed.limit ?? 10;
+        this.currentKeyword = parsed.keyword ?? undefined;
+        this.active = parsed.active ?? undefined;
         this.selectedStatus =
-            this.statusOptions.find((opt) => opt.code === parsed.active) ||
-            this.selectedStatus;
+            this.statusOptions.find((opt) => opt.code === this.active) ||
+            this.statusOptions[0];
 
         // Record initially synced filters
         this._lastSyncedFilters = this.buildCurrentFilters();
@@ -143,20 +145,8 @@ export class Products implements OnInit, OnDestroy {
                 this.reloadCurrentData();
             });
 
-        // Load data if not already loaded by hydrate
-        if (!parsed || Object.keys(parsed).length === 0) {
-            const hasExistingData = this.productStore.rows().length > 0;
-            if (!hasExistingData) {
-                this.loadData(this.currentKeyword);
-            } else {
-                // sync existing state to URL
-                const current = this.productStore.snapshot();
-                this.page = current.page;
-                this.limit = current.limit;
-                this.currentKeyword = current.keyword;
-                this.active = current.active;
-            }
-        }
+        // hydrateFromQueryParams đã tự động load data khi cần
+        // Không cần kiểm tra thêm
 
         // Allow select change handlers to run after initial hydrate/load
         this._initialized = true;

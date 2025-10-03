@@ -66,7 +66,7 @@ export interface MenuCategoryUpdateDto extends Partial<MenuCategoryCreateDto> {}
 /**
  * DTO tạo MenuItem mới
  */
-export interface MenuItemCreateDto {
+export interface MenuItemDto {
     categoryId: number;
     parentId?: number | null;
     key?: string; // Tự động generate nếu không có
@@ -80,11 +80,6 @@ export interface MenuItemCreateDto {
     expanded?: boolean;
     active?: boolean;
 }
-
-/**
- * DTO cập nhật MenuItem
- */
-export interface MenuItemUpdateDto extends Partial<MenuItemCreateDto> {}
 
 /**
  * DTO reorder menu items (sau drag-drop)

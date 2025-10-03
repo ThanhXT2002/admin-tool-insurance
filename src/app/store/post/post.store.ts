@@ -18,6 +18,15 @@ interface PostListState {
     postType?: string;
     isFeatured?: boolean;
     isHighlighted?: boolean;
+    // Lưu filter params hiện tại để so sánh khi hydrate
+    currentFilter?: {
+        status?: string;
+        categoryId?: number;
+        postType?: string;
+        isFeatured?: boolean;
+        isHighlighted?: boolean;
+        keyword?: string;
+    };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -84,7 +93,19 @@ export class PostStore extends BaseStoreSignal<PostListState> {
         );
         // ApiResponse shape { data: { rows, total } }
         const payload: any = (result as any).data;
-        this.patch({ rows: payload.rows || [], total: payload.total || 0 });
+        // Lưu cả currentFilter vào state
+        this.patch({
+            rows: payload.rows || [],
+            total: payload.total || 0,
+            currentFilter: {
+                status: q.status,
+                categoryId: q.categoryId,
+                postType: q.postType,
+                isFeatured: q.isFeatured,
+                isHighlighted: q.isHighlighted,
+                keyword: q.keyword
+            }
+        });
         return payload;
     }
 
@@ -106,22 +127,38 @@ export class PostStore extends BaseStoreSignal<PostListState> {
     // Accepts an object of string values and converts them to proper types before loading
     hydrateFromQueryParams(qp: Record<string, any>) {
         const parsed: Partial<PostListState> = {};
-        if (qp['page']) parsed.page = Number(qp['page']) || 1;
-        if (qp['limit']) parsed.limit = Number(qp['limit']) || 10;
-        if (qp['keyword']) parsed.keyword = qp['keyword'];
-        if (qp['status']) parsed.status = qp['status'];
-        if (qp['categoryId']) parsed.categoryId = Number(qp['categoryId']);
-        if (qp['postType']) parsed.postType = qp['postType'];
-        if (qp['isFeatured'] !== undefined)
-            parsed.isFeatured = qp['isFeatured'] === 'true';
-        if (qp['isHighlighted'] !== undefined)
-            parsed.isHighlighted = qp['isHighlighted'] === 'true';
 
-        // only call load when parsed contains at least one filter/page/limit value
-        // this prevents hydrateFromQueryParams from triggering an unnecessary
-        // API call when the router queryParams object is empty
-        const hasAny = Object.keys(parsed).length > 0;
-        if (hasAny) {
+        // Parse query params (n\u1ebfu c\u00f3)
+        if (qp && Object.keys(qp).length > 0) {
+            if (qp['page']) parsed.page = Number(qp['page']) || 1;
+            if (qp['limit']) parsed.limit = Number(qp['limit']) || 10;
+            if (qp['keyword']) parsed.keyword = qp['keyword'];
+            if (qp['status']) parsed.status = qp['status'];
+            if (qp['categoryId']) parsed.categoryId = Number(qp['categoryId']);
+            if (qp['postType']) parsed.postType = qp['postType'];
+            if (qp['isFeatured'] !== undefined)
+                parsed.isFeatured = qp['isFeatured'] === 'true';
+            if (qp['isHighlighted'] !== undefined)
+                parsed.isHighlighted = qp['isHighlighted'] === 'true';
+        }
+
+        // Ki\u1ec3m tra cache
+        const currentState = this.snapshot();
+
+        // So s\u00e1nh filter: URL params vs cache filter
+        // CHÚ Ý: N\u1ebfu URL kh\u00f4ng c\u00f3 params, parsed.status = undefined, etc.
+        // N\u1ebfu cache c\u00f3 filter -> kh\u00f4ng kh\u1edbp -> c\u1ea7n reset
+        const filterMatches =
+            currentState.currentFilter?.status === parsed.status &&
+            currentState.currentFilter?.categoryId === parsed.categoryId &&
+            currentState.currentFilter?.postType === parsed.postType &&
+            currentState.currentFilter?.isFeatured === parsed.isFeatured &&
+            currentState.currentFilter?.isHighlighted ===
+                parsed.isHighlighted &&
+            currentState.currentFilter?.keyword === parsed.keyword;
+
+        if (!filterMatches) {
+            // Filter kh\u00f4ng kh\u1edbp -> g\u1ecdi API \u0111\u1ec3 load data m\u1edbi
             // call load which will patch state and fetch data
             // but skip syncing back to the router since we're hydrating from the router
             this.load(parsed, { skipSync: true });

@@ -13,6 +13,11 @@ interface ProductListState {
 
     keyword?: string;
     active?: boolean;
+    // Lưu filter params hiện tại để so sánh khi hydrate
+    currentFilter?: {
+        active?: boolean;
+        keyword?: string;
+    };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -58,7 +63,15 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
             )
         );
         const payload: any = result?.data;
-        this.patch({ rows: payload?.rows || [], total: payload?.total || 0 });
+        // Lưu cả currentFilter vào state
+        this.patch({
+            rows: payload?.rows || [],
+            total: payload?.total || 0,
+            currentFilter: {
+                active: q.active,
+                keyword: q.keyword
+            }
+        });
         return payload;
     }
 
@@ -227,21 +240,37 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
 
     // Hydrate store state from query parameters (only supported API params)
     hydrateFromQueryParams(queryParams: any): Partial<ProductListState> | null {
-        if (!queryParams || Object.keys(queryParams).length === 0) return null;
-
         const parsed: Partial<ProductListState> = {};
 
-        if (queryParams.page) parsed.page = Number(queryParams.page) || 1;
-        if (queryParams.limit) parsed.limit = Number(queryParams.limit) || 10;
-        if (queryParams.keyword) parsed.keyword = queryParams.keyword;
-        if (queryParams.active === 'true') parsed.active = true;
-        else if (queryParams.active === 'false') parsed.active = false;
-
-        if (Object.keys(parsed).length > 0) {
-            this.load(parsed, { skipSync: true });
-            return parsed;
+        // Parse query params (n\u1ebfu c\u00f3)
+        if (queryParams && Object.keys(queryParams).length > 0) {
+            if (queryParams.page) parsed.page = Number(queryParams.page) || 1;
+            if (queryParams.limit)
+                parsed.limit = Number(queryParams.limit) || 10;
+            if (queryParams.keyword) parsed.keyword = queryParams.keyword;
+            if (queryParams.active === 'true') parsed.active = true;
+            else if (queryParams.active === 'false') parsed.active = false;
         }
-        return null;
+
+        // Ki\u1ec3m tra cache
+        const currentState = this.snapshot();
+        const hasCachedData = currentState.rows.length > 0;
+
+        // So s\u00e1nh filter: URL params vs cache filter
+        // CHÚ Ý: N\u1ebfu URL kh\u00f4ng c\u00f3 params, parsed.active = undefined
+        // N\u1ebfu cache c\u00f3 filter (v\u00ed d\u1ee5: active=false) -> kh\u00f4ng kh\u1edbp -> c\u1ea7n reset
+        const filterMatches =
+            hasCachedData &&
+            currentState.currentFilter?.active === parsed.active &&
+            currentState.currentFilter?.keyword === parsed.keyword;
+
+        if (!filterMatches) {
+            // Filter kh\u00f4ng kh\u1edbp -> g\u1ecdi API \u0111\u1ec3 load data m\u1edbi
+            this.load(parsed, { skipSync: true });
+        }
+
+        // Return parsed (c\u00f3 th\u1ec3 r\u1ed7ng n\u1ebfu kh\u00f4ng c\u00f3 query params)
+        return Object.keys(parsed).length > 0 ? parsed : {};
     }
 
     private syncQueryParamsToUrl() {
