@@ -45,8 +45,6 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
         params?: Partial<ProductListState>,
         options?: { skipSync?: boolean }
     ) {
-        console.log('🔄 ProductStore.load called with:', { params, options });
-        console.trace('Call stack:'); // Hiển thị call stack để biết được gọi từ đâu
 
         if (params) {
             const resettingPage =
@@ -124,11 +122,6 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
                 payload.imgs.some((i: any) => i instanceof File);
 
             if (hasIconFile || hasImgsFiles) {
-                console.log('🔧 Detected files, converting to FormData:', {
-                    hasIconFile,
-                    hasImgsFiles,
-                    totalImgs: payload.imgs?.length || 0
-                });
                 toSend = this.api.buildFormData(payload);
             }
         } catch {}
@@ -155,11 +148,6 @@ export class ProductStore extends BaseStoreSignal<ProductListState> {
                 payload.imgs.some((i: any) => i instanceof File);
 
             if (hasIconFile || hasImgsFiles) {
-                console.log('🔧 Detected files, converting to FormData:', {
-                    hasIconFile,
-                    hasImgsFiles,
-                    totalImgs: payload.imgs?.length || 0
-                });
                 toSend = this.api.buildFormData(payload);
             }
         } catch {}

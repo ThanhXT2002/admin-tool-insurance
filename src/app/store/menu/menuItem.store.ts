@@ -85,9 +85,6 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
         );
         const items = (res?.data || []) as MenuItem[];
 
-        console.log('MenuItemStore: API response', res);
-        console.log('MenuItemStore: Parsed items', items);
-
         // Lưu data và cache key
         this.patch({
             items,
@@ -95,8 +92,6 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
             currentFilter: { active: query?.active },
             _lastApiCall: cacheKey
         });
-
-        console.log('MenuItemStore: State after patch', this.snapshot());
 
         // Nếu không skip sync, đồng bộ URL với filter hiện tại
         if (!options?.skipSync) {
@@ -132,19 +127,9 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
             hasCachedData &&
             currentState.currentFilter?.active === parsed.active;
 
-        console.log('MenuItemStore: hydrateFromQueryParams', {
-            parsed,
-            hasCachedData,
-            hasUrlParams,
-            filterMatches,
-            currentState: currentState
-        });
-
         if (!filterMatches) {
             // Không có cache hoặc filter không khớp -> gọi API
-            console.log(
-                'MenuItemStore: Loading data due to cache miss or filter mismatch'
-            );
+
             this.loadByCategory(
                 categoryId,
                 { active: parsed.active, includeChildren: true },
@@ -451,9 +436,7 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
             }
 
             if (!identical) {
-                // Cần sync params
-                // Note: Trong store không thể navigate trực tiếp, component sẽ handle
-                console.log('MenuItemStore: URL params need sync', params);
+                
             }
         } catch (e) {
             console.warn('MenuItemStore: syncQueryParamsToUrl error', e);

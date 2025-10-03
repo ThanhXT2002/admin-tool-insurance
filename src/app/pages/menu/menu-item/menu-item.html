@@ -22,6 +22,35 @@
                 (ngModelChange)="changeStatus()"
             />
 
+            <!-- Bulk Actions -->
+            <p-button
+                severity="success"
+                label="Kích hoạt"
+                icon="pi pi-check"
+                outlined
+                class="cursor-pointer"
+                (onClick)="bulkActivate()"
+                [disabled]="!selectedNodes || !selectedNodes.length"
+            />
+            <p-button
+                severity="secondary"
+                label="Vô hiệu hóa"
+                icon="pi pi-times"
+                outlined
+                class="cursor-pointer"
+                (onClick)="bulkDeactivate()"
+                [disabled]="!selectedNodes || !selectedNodes.length"
+            />
+            <p-button
+                severity="danger"
+                label="Xóa nhiều"
+                icon="pi pi-trash"
+                outlined
+                class="cursor-pointer"
+                (onClick)="bulkDelete()"
+                [disabled]="!selectedNodes || !selectedNodes.length"
+            />
+
             <!-- Add New Button -->
             <p-button
                 class="hidden lg:block"
@@ -128,8 +157,10 @@
     <p-confirmdialog />
 </div>
 
-<!-- <app-menu-item-form
- [(isShow)]="isFormOpen"
+<app-menu-item-form
+    [(isShow)]="isFormOpen"
     [isEditMode]="isEditing"
     [dataEdit]="selectedMenu"
-    (saved)="onMenuSaved($event)"/> -->
+    [categoryId]="categoryId"
+    (saved)="onMenuSaved()"
+/>

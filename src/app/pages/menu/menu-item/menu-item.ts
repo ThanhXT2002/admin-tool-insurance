@@ -24,6 +24,7 @@ import { SelectModule } from 'primeng/select';
 import { ToggleSwitchModule } from 'primeng/toggleswitch';
 import { MenuItemStore } from '@/store/menu/menuItem.store';
 import { MenuItem as MenuItemInterface } from '@/interfaces/menu.interface';
+import { MenuItemForm } from '../menu-item-form/menu-item-form';
 
 interface Column {
     field: string;
@@ -43,7 +44,8 @@ interface Column {
         IconFieldModule,
         InputIconModule,
         SelectModule,
-        ToggleSwitchModule
+        ToggleSwitchModule,
+        MenuItemForm
     ],
     providers: [ConfirmationService, MessageService],
     templateUrl: './menu-item.html',
@@ -80,6 +82,11 @@ export class MenuItem implements OnInit, OnDestroy {
 
     loading = false;
 
+    // Form dialog state
+    isFormOpen = false;
+    isEditing = false;
+    selectedMenu: any = null;
+
     private destroy$ = new Subject<void>();
 
     private _loadingEffect = effect(() => {
@@ -92,10 +99,8 @@ export class MenuItem implements OnInit, OnDestroy {
 
     private _dataEffect = effect(() => {
         const items = this.itemStore.items();
-        console.log('MenuItemComponent: Store data changed', items);
         // Tự động render khi store data thay đổi
         this.files = this.toTreeNodes(Array.isArray(items) ? items : []);
-        console.log('MenuItemComponent: TreeNodes generated', this.files);
         // Force change detection để đảm bảo UI update
         this.cd.detectChanges();
     });
@@ -169,9 +174,6 @@ export class MenuItem implements OnInit, OnDestroy {
     }
 
     private applyParams(params: any) {
-        const newPage = Number(params['page']) || 1;
-        const newLimit = Number(params['limit']) || 10;
-        const newKeyword = params['keyword'] || undefined;
 
         let newActive: boolean | undefined = undefined;
         if (params['active'] === 'true') newActive = true;
@@ -360,13 +362,16 @@ export class MenuItem implements OnInit, OnDestroy {
     }
 
     addNew() {
-        console.log('Open create dialog for category:', this.categoryId);
-        // TODO: Open dialog to create new menu item
+        console.log('MenuItem addNew called with categoryId:', this.categoryId);
+        this.isEditing = false;
+        this.selectedMenu = null;
+        this.isFormOpen = true;
     }
 
     openEdit(rowData: any) {
-        console.log('Open edit dialog for item:', rowData);
-        // TODO: Open dialog to edit menu item
+        this.isEditing = true;
+        this.selectedMenu = rowData;
+        this.isFormOpen = true;
     }
 
     async deleteItem(rowData: any) {
@@ -438,6 +443,7 @@ export class MenuItem implements OnInit, OnDestroy {
             header: 'Xác nhận',
             icon: 'pi pi-exclamation-triangle',
             accept: async () => {
+                this.loading = true;
                 try {
                     await this.itemStore.batchActive(ids, true);
                     this.message.add({
@@ -453,6 +459,8 @@ export class MenuItem implements OnInit, OnDestroy {
                         summary: 'Lỗi',
                         detail: 'Không thể kích hoạt'
                     });
+                } finally {
+                    this.loading = false;
                 }
             }
         });
@@ -473,6 +481,7 @@ export class MenuItem implements OnInit, OnDestroy {
             header: 'Xác nhận',
             icon: 'pi pi-exclamation-triangle',
             accept: async () => {
+                this.loading = true;
                 try {
                     await this.itemStore.batchActive(ids, false);
                     this.message.add({
@@ -488,6 +497,8 @@ export class MenuItem implements OnInit, OnDestroy {
                         summary: 'Lỗi',
                         detail: 'Không thể vô hiệu hóa'
                     });
+                } finally {
+                    this.loading = false;
                 }
             }
         });
@@ -509,6 +520,7 @@ export class MenuItem implements OnInit, OnDestroy {
             icon: 'pi pi-exclamation-triangle',
             acceptButtonStyleClass: 'p-button-danger',
             accept: async () => {
+                this.loading = true;
                 try {
                     await Promise.all(
                         ids.map((id) => this.itemStore.delete(id, true))
@@ -526,8 +538,18 @@ export class MenuItem implements OnInit, OnDestroy {
                         summary: 'Lỗi',
                         detail: 'Không thể xóa'
                     });
+                } finally {
+                    this.loading = false;
                 }
             }
         });
+    }
+
+    /**
+     * Handle form save event - reload data after successful save
+     */
+    onMenuSaved() {
+        // Reload data to reflect changes
+        this.loadData();
     }
 }
