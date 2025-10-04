@@ -18,7 +18,6 @@ import {
 } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { FloatLabelModule } from 'primeng/floatlabel';
-import { Select } from 'primeng/select';
 import { TreeSelect } from 'primeng/treeselect';
 import { DrawerModule } from 'primeng/drawer';
 import { CommonModule } from '@angular/common';
@@ -26,6 +25,7 @@ import { TreeNode } from 'primeng/api';
 import { MessageService } from 'primeng/api';
 import { MenuItemStore } from '@/store/menu/menuItem.store';
 import { MenuItemDto } from '@/interfaces/menu.interface';
+import { Select } from 'primeng/select';
 
 @Component({
     selector: 'app-menu-item-form',
@@ -34,8 +34,8 @@ import { MenuItemDto } from '@/interfaces/menu.interface';
         ReactiveFormsModule,
         InputTextModule,
         FloatLabelModule,
-        Select,
         TreeSelect,
+        Select,
         CommonModule
     ],
     templateUrl: './menu-item-form.html',
@@ -64,7 +64,6 @@ export class MenuItemForm implements OnInit, OnChanges {
     ];
 
     parentOptions: TreeNode[] = [];
-    selectedParentId: number | null = null; // Store actual parent ID for submission
     submitting = false;
     private waitingForResult = false;
 
@@ -90,18 +89,6 @@ export class MenuItemForm implements OnInit, OnChanges {
                 this.buildParentOptions();
                 this.cdr.markForCheck();
             }
-        });
-
-        // Debug: Listen to parentId changes
-        this.form.get('parentId')?.valueChanges.subscribe((value) => {
-            console.log('TreeSelect parentId value changed:', {
-                value,
-                type: typeof value,
-                isObject: typeof value === 'object',
-                isArray: Array.isArray(value),
-                hasKey: value?.key,
-                stringified: JSON.stringify(value)
-            });
         });
     }
 
@@ -136,9 +123,7 @@ export class MenuItemForm implements OnInit, OnChanges {
                 if (parentNode) {
                     // TreeSelect needs the actual TreeNode object, not just the key
                     parentIdValue = parentNode;
-                    console.log('Found parent node for TreeSelect:', parentNode);
                 }
-
             }
 
             // Set regular form values first
@@ -159,24 +144,14 @@ export class MenuItemForm implements OnInit, OnChanges {
             setTimeout(() => {
                 const parentControl = this.form.get('parentId');
                 if (parentControl) {
-                    console.log('Setting TreeSelect value:', {
-                        parentIdValue,
-                        type: typeof parentIdValue,
-                        parentOptions: this.parentOptions.length
-                    });
-                    
                     if (parentIdValue) {
                         parentControl.setValue(parentIdValue);
-                        console.log('Set TreeSelect value:', parentIdValue);
                     } else {
                         parentControl.setValue(null);
-                        console.log('Set TreeSelect value to null');
                     }
-                    
-                    // Force change detection
                     this.cdr.detectChanges();
                 }
-            }, 200); // Increase delay slightly
+            }, 200);
         } else {
             // Create mode - set default values
             this.form.patchValue({
@@ -210,48 +185,11 @@ export class MenuItemForm implements OnInit, OnChanges {
         this.submitting = true;
         const formValue = { ...this.form.value };
 
-        // Debug TreeSelect form value
-        console.log('TreeSelect form value debug:', {
-            parentId: formValue.parentId,
-            type: typeof formValue.parentId,
-            isArray: Array.isArray(formValue.parentId),
-            hasKey: formValue.parentId?.key,
-            stringified: JSON.stringify(formValue.parentId)
-        });
-
-        // Handle different TreeSelect return types
-        let parentIdValue = null;
-        if (formValue.parentId) {
-            if (
-                typeof formValue.parentId === 'string' &&
-                formValue.parentId !== ''
-            ) {
-                // If it's a string key
-                parentIdValue = parseInt(formValue.parentId, 10);
-            } else if (
-                typeof formValue.parentId === 'object' &&
-                formValue.parentId.key
-            ) {
-                // If TreeSelect returns the full node object with key property
-                parentIdValue = parseInt(formValue.parentId.key, 10);
-            } else if (typeof formValue.parentId === 'number') {
-                // If it's already a number
-                parentIdValue = formValue.parentId;
-            } else if (Array.isArray(formValue.parentId) && formValue.parentId.length > 0) {
-                // If TreeSelect returns array (shouldn't happen in single mode but handle it)
-                const firstItem = formValue.parentId[0];
-                if (typeof firstItem === 'object' && firstItem.key) {
-                    parentIdValue = parseInt(firstItem.key, 10);
-                } else if (typeof firstItem === 'string') {
-                    parentIdValue = parseInt(firstItem, 10);
-                }
-            }
-        }
-
+        // Extract parent ID using helper method
+        const parentIdValue = this.extractParentId(formValue.parentId);
         formValue.parentId = parentIdValue;
 
         const payload: MenuItemDto = formValue;
-        console.log('payload', payload);
 
         try {
             if (this.isEditMode && this.dataEdit) {
@@ -342,6 +280,7 @@ export class MenuItemForm implements OnInit, OnChanges {
                     data: item.id, // Store just the ID for easy access
                     icon: item.icon || undefined,
                     leaf: !item.children || item.children.length === 0,
+                    expanded: true, // Auto expand all nodes
                     children:
                         item.children && item.children.length > 0
                             ? this.buildTreeNodes(item.children, excludeId)
@@ -366,7 +305,6 @@ export class MenuItemForm implements OnInit, OnChanges {
 
         for (const node of nodes) {
             if (node.key === searchId) {
-                console.log('Found TreeNode for parentId:', parentId, node);
                 return node;
             }
 
@@ -382,7 +320,6 @@ export class MenuItemForm implements OnInit, OnChanges {
             }
         }
 
-        console.log('TreeNode not found for parentId:', parentId);
         return null;
     }
 
