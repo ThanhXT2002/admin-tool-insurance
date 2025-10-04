@@ -104,7 +104,7 @@
         <!-- Menu list -->
         @if (!loading && categories().length > 0) { @for (category of
         categories(); track category.id) {
-        <p-panel [toggleable]="true" [collapsed]="false">
+        <p-panel [toggleable]="true" [collapsed]="true">
             <ng-template #header>
                 <div class="flex items-center justify-between gap-3 w-full">
                     <p class="font-bold text-lg text-nowrap !mb-0">
@@ -170,7 +170,7 @@
                     <p-tree [value]="category.menus" class="w-full !p-0">
                         <ng-template let-node pTemplate="default">
                             <a
-                                [href]="feUrl + node.url"
+                                [href]="feUrl + (node.routerLink ? node.routerLink : node.url)"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 class="text-surface-700 dark:text-surface-100 hover:text-primary"
