@@ -13,7 +13,7 @@ import { Select } from 'primeng/select';
 import { Subject, takeUntil } from 'rxjs';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { TreeModule } from 'primeng/tree';
-import { MenuTreeNode } from '@/interfaces/menu.interface';
+import { MenuTreeNode, MenuCategory } from '@/interfaces/menu.interface';
 import { env } from 'process';
 import { environment } from 'src/environments/environment';
 import { ToggleSwitch } from 'primeng/toggleswitch';
@@ -52,7 +52,7 @@ export class MenuList implements OnInit, OnDestroy {
 
     loading = false;
 
-    selectedMenu = null;
+    selectedMenu: MenuCategory | null = null;
     isEditing = false;
     isFormOpen = false;
 
@@ -346,7 +346,6 @@ export class MenuList implements OnInit, OnDestroy {
 
     addItemToMenu(categoryId: number) {
         this.router.navigate(['/menu/item', categoryId]);
-
     }
 
     expandAll() {

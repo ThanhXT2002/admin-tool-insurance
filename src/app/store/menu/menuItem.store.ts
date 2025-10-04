@@ -72,11 +72,8 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
         const cacheKey = JSON.stringify({ categoryId, query });
         const currentState = this.snapshot();
 
-        // Kiểm tra cache: nếu cùng key thì không cần gọi API
-        if (
-            currentState._lastApiCall === cacheKey &&
-            currentState.items.length > 0
-        ) {
+        // Kiểm tra cache: nếu cùng key thì không cần gọi API (kể cả khi items rỗng)
+        if (currentState._lastApiCall === cacheKey) {
             return currentState.items;
         }
 
@@ -117,9 +114,7 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
 
         // Kiểm tra cache
         const currentState = this.snapshot();
-        const hasCachedData =
-            currentState.currentCategoryId === categoryId &&
-            currentState.items.length > 0;
+        const hasCachedData = currentState.currentCategoryId === categoryId;
         const hasUrlParams = Object.keys(qp).length > 0;
 
         // So sánh filter: URL params vs cache filter
@@ -436,7 +431,6 @@ export class MenuItemStore extends BaseStoreSignal<MenuItemState> {
             }
 
             if (!identical) {
-                
             }
         } catch (e) {
             console.warn('MenuItemStore: syncQueryParamsToUrl error', e);

@@ -89,8 +89,10 @@ export class MenuItem implements OnInit, OnDestroy {
 
     private _loadingEffect = effect(() => {
         const items = this.itemStore.items();
-        // Nếu có data và đang loading, tắt loading
-        if (items.length > 0 && this.loading) {
+        const storeLoading = this.itemStore.loading();
+
+        // Tắt loading local khi store không còn loading (bất kể có data hay không)
+        if (!storeLoading && this.loading) {
             this.loading = false;
         }
     });

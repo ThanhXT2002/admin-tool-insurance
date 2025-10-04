@@ -1,23 +1,87 @@
-<p-drawer [visible]="isShow" (visibleChange)="onVisibleChange($event)" position="right" styleClass="max-w-[350px] !w-[100%] !md:w-full" [header]="isEditMode ? 'Cập thông tin Menu' : 'Thêm Menu'">
+<p-drawer
+    [visible]="isShow"
+    (visibleChange)="onVisibleChange($event)"
+    position="right"
+    styleClass="max-w-[450px] !w-[100%] !md:w-full"
+    [header]="isEditMode ? 'Cập nhật Menu Category' : 'Thêm Menu Category'"
+>
     <form [formGroup]="form" (ngSubmit)="submit()" class="py-3 space-y-6">
         <p-floatlabel variant="in" class="!w-full">
-            <input pInputText id="key" formControlName="key" class="w-full" autocomplete="off" [invalid]="isInvalid('key')" />
+            <input
+                pInputText
+                id="key"
+                formControlName="key"
+                class="w-full"
+                autocomplete="off"
+                [invalid]="isInvalid('key')"
+                placeholder="menu-header, menu-footer..."
+            />
             <label for="key">Key (*)</label>
+        </p-floatlabel>
+        @if (isInvalid('key') && form.get('key')?.errors?.['required']) {
+        <small class="text-red-500">Key là bắt buộc</small>
+        } @if (isInvalid('key') && form.get('key')?.errors?.['pattern']) {
+        <small class="text-red-500"
+            >Key phải là chữ thường và dấu gạch ngang (vd: menu-header)</small
+        >
+        }
+
+        <p-floatlabel variant="in" class="!w-full">
+            <input
+                pInputText
+                id="name"
+                formControlName="name"
+                class="w-full"
+                autocomplete="off"
+                [invalid]="isInvalid('name')"
+            />
+            <label for="name">Tên Menu (*)</label>
+        </p-floatlabel>
+        @if (isInvalid('name') && form.get('name')?.errors?.['required']) {
+        <small class="text-red-500">Tên menu là bắt buộc</small>
+        } @if (isInvalid('name') && form.get('name')?.errors?.['minlength']) {
+        <small class="text-red-500">Tên menu phải có ít nhất 2 ký tự</small>
+        }
+
+        <p-floatlabel variant="in">
+            <textarea
+                pTextarea
+                id="description"
+                formControlName="description"
+                rows="4"
+                class="h-full w-full"
+            ></textarea>
+            <label for="description">Mô tả</label>
         </p-floatlabel>
 
         <p-floatlabel variant="in" class="!w-full">
-            <input pInputText id="name" formControlName="name" class="w-full" autocomplete="off" [invalid]="isInvalid('name')" />
-            <label for="name">Tên Menu (*)</label>
+            <input
+                pInputText
+                id="position"
+                formControlName="position"
+                class="w-full"
+                autocomplete="off"
+                placeholder="Nhập vị trí tùy ý: header, footer, sidebar, mobile, top-nav..."
+            />
+            <label for="position">Vị trí</label>
         </p-floatlabel>
 
-        <p-floatlabel variant="in">
-            <textarea pTextarea id="description" formControlName="description" rows="4" class="h-full w-full"></textarea>
-            <label for="description">Mô tả</label>
-        </p-floatlabel>
+        <div class="flex items-center gap-3">
+            <label for="active" class="font-medium"
+                >Trạng thái hoạt động:</label
+            >
+            <p-toggleswitch id="active" formControlName="active" />
+        </div>
     </form>
     <ng-template #footer>
-        <button (click)="submit()" class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white">
-            <i class="pi mr-3" [ngClass]="isEditMode? 'pi-pen-to-square':'pi-plus-circle' "></i>
+        <button
+            (click)="submit()"
+            class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white"
+        >
+            <i
+                class="pi mr-3"
+                [ngClass]="isEditMode? 'pi-pen-to-square':'pi-plus-circle' "
+            ></i>
             {{ isEditMode ? 'Cập nhật ngay' : 'Thêm mới' }}
         </button>
     </ng-template>

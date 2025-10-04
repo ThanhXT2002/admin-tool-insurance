@@ -4,8 +4,7 @@ import {
     EventEmitter,
     Input,
     Output,
-    effect,
-
+    effect
 } from '@angular/core';
 import {
     FormBuilder,
@@ -17,41 +16,36 @@ import { DrawerModule } from 'primeng/drawer';
 import { FloatLabelModule } from 'primeng/floatlabel';
 import { InputTextModule } from 'primeng/inputtext';
 import { ButtonModule } from 'primeng/button';
-import { PermissionsFacade } from '@/store/permissions/permissions.facade';
-import { Permission } from '@/interfaces/permission.interface';
+import { MenuCateStore } from '@/store/menu/menuCate.store';
+import { MenuCategory } from '@/interfaces/menu.interface';
 import { CommonModule } from '@angular/common';
-import { PasswordModule } from 'primeng/password';
-import { InputIconModule } from 'primeng/inputicon';
-import { IconFieldModule } from 'primeng/iconfield';
 import { DividerModule } from 'primeng/divider';
 import { TextareaModule } from 'primeng/textarea';
-
+import { ToggleSwitch } from 'primeng/toggleswitch';
+import { inject } from '@angular/core';
 
 @Component({
-  selector: 'app-menu-form',
-  imports: [
-    DrawerModule,
+    selector: 'app-menu-form',
+    imports: [
+        DrawerModule,
         ReactiveFormsModule,
         InputTextModule,
         FloatLabelModule,
         ButtonModule,
         CommonModule,
-        PasswordModule,
-        InputIconModule,
-        IconFieldModule,
         DividerModule,
-        TextareaModule
-  ],
-  templateUrl: './menu-form.html',
-  styleUrl: './menu-form.scss'
+        TextareaModule,
+        ToggleSwitch
+    ],
+    templateUrl: './menu-form.html',
+    styleUrl: './menu-form.scss'
 })
 export class MenuForm {
-
-  @Input() isShow = false;
+    @Input() isShow = false;
     @Output() isShowChange = new EventEmitter<boolean>();
 
     @Input() isEditMode = false;
-    @Input() dataEdit: Permission | null = null;
+    @Input() dataEdit: MenuCategory | null = null;
 
     @Output() saved = new EventEmitter<void>();
 
@@ -61,43 +55,44 @@ export class MenuForm {
     private waitingForResult = false;
 
     private fb = new FormBuilder();
+    private menuStore = inject(MenuCateStore);
 
-    constructor(
-        private cdr: ChangeDetectorRef,
-        private facade: PermissionsFacade
-    ) {
-      effect(() => {
-        // read signals so effect re-runs when loading/error change
-        const loading = this.facade.loading();
-        const error = this.facade.error();
-        if (this.waitingForResult && !loading) {
-            this.waitingForResult = false;
-            this.submitting = false;
-            if (!error) {
-                // success -> close and emit saved
-                this.isShowChange.emit(false);
-                this.saved.emit();
-                if (this.form) this.form.reset();
-            } else {
-                // failure -> keep drawer open; notifications are handled by effects
+    constructor(private cdr: ChangeDetectorRef) {
+        effect(() => {
+            // read signals so effect re-runs when loading/error change
+            const loading = this.menuStore.loading();
+            const error = this.menuStore.error();
+            if (this.waitingForResult && !loading) {
+                this.waitingForResult = false;
+                this.submitting = false;
+                if (!error) {
+                    // success -> close and emit saved
+                    this.isShowChange.emit(false);
+                    this.saved.emit();
+                    if (this.form) this.form.reset();
+                } else {
+                    // failure -> keep drawer open; notifications are handled by effects
+                }
             }
-        }
-    });
+        });
     }
 
     ngOnInit(): void {
         this.form = this.fb.group({
-            key: ['', [Validators.required]],
-            name: ['', [Validators.required]],
-            description: ['']
+            key: [
+                '',
+                [Validators.required, Validators.pattern(/^[a-z][a-z0-9\-]*$/)]
+            ],
+            name: ['', [Validators.required, Validators.minLength(2)]],
+            description: [''],
+            position: [''], // Không yêu cầu và không giới hạn giá trị
+            active: [true]
         });
 
         this.patchFromEdit();
 
         // effect moved to constructor (must run in an injection context)
     }
-
-
 
     ngOnChanges(): void {
         this.patchFromEdit();
@@ -109,7 +104,9 @@ export class MenuForm {
         this.form.patchValue({
             key: data?.key || '',
             name: data?.name || '',
-            description: data?.description || ''
+            description: data?.description || '',
+            position: data?.position || '',
+            active: data?.active ?? true
         });
         this.cdr.markForCheck();
     }
@@ -129,9 +126,9 @@ export class MenuForm {
         const payload = { ...this.form.value };
 
         if (this.isEditMode && this.dataEdit?.id) {
-            this.facade.update(this.dataEdit.id, payload);
+            this.menuStore.update(this.dataEdit.id, payload);
         } else {
-            this.facade.create(payload);
+            this.menuStore.create(payload);
         }
 
         // wait for the effect/store result before closing
@@ -142,5 +139,4 @@ export class MenuForm {
         const control = this.form.get(controlName);
         return control?.invalid && control.touched;
     }
-
 }
