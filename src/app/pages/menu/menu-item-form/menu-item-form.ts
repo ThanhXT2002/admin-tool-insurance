@@ -26,18 +26,20 @@ import { MessageService } from 'primeng/api';
 import { MenuItemStore } from '@/store/menu/menuItem.store';
 import { MenuItemDto } from '@/interfaces/menu.interface';
 import { Select } from 'primeng/select';
+import { AppLoadingInline } from "@/layout/component/app.loading-inline";
 
 @Component({
     selector: 'app-menu-item-form',
     imports: [
-        DrawerModule,
-        ReactiveFormsModule,
-        InputTextModule,
-        FloatLabelModule,
-        TreeSelect,
-        Select,
-        CommonModule
-    ],
+    DrawerModule,
+    ReactiveFormsModule,
+    InputTextModule,
+    FloatLabelModule,
+    TreeSelect,
+    Select,
+    CommonModule,
+    AppLoadingInline
+],
     templateUrl: './menu-item-form.html',
     styleUrl: './menu-item-form.scss'
 })

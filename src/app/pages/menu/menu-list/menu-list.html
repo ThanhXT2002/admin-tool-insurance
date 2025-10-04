@@ -106,40 +106,10 @@
         categories(); track category.id) {
         <p-panel [toggleable]="true" [collapsed]="false">
             <ng-template #header>
-                <div
-                    class="flex items-center justify-between gap-3 w-full"
-                >
+                <div class="flex items-center justify-between gap-3 w-full">
                     <p class="font-bold text-lg text-nowrap !mb-0">
                         {{ category.name }}
                     </p>
-                    <div class=" hidden w-full  lg:flex__end gap-2">
-                        <p-toggleswitch
-                            [ngModel]="category.active"
-                            class="!h-5 mb-[-3px]"
-                            (onChange)="toggleActiveChange(category)"
-                        />
-                        <p-button
-                            icon="pi pi-info-circle"
-                            severity="primary"
-                            [rounded]="true"
-                            [text]="true"
-                            (onClick)="addItemToMenu(category.id)"
-                        />
-                        <p-button
-                            icon="pi pi-pen-to-square"
-                            severity="secondary"
-                            rounded
-                            text
-                            (onClick)="editCategory(category)"
-                        />
-                        <p-button
-                            icon="pi pi-trash"
-                            severity="danger"
-                            [rounded]="true"
-                            [text]="true"
-                            (onClick)="deleteCategory(category)"
-                        />
-                    </div>
                 </div>
             </ng-template>
             <!-- <ng-template #icons>
@@ -148,10 +118,24 @@
             </ng-template> -->
 
             <div class="space-y-3">
-              <div class="w-full flex__end lg:hidden gap-2">
+                <div class="flex__between flex-col-reverse md:flex-row w-full">
+                    <div class="flex flex-col w-full gap-2">
+                        <span class="text-gray-600">
+                            <strong>Key:</strong> {{ category.key }}
+                        </span>
+                        @if (category.position) {
+                        <span class="text-gray-600">
+                            <strong>Vị trí:</strong> {{ category.position }}
+                        </span>
+                        }
+                         @if (category.description) {
+                <p class="text-gray-700 m-0">{{ category.description }}</p>
+                }
+                    </div>
+                    <div class="w-full flex__end gap-2">
                         <p-toggleswitch
                             [ngModel]="category.active"
-                            class="!h-5 mb-[-3px]"
+                            class=""
                             (onChange)="toggleActiveChange(category)"
                         />
                         <p-button
@@ -176,19 +160,9 @@
                             (onClick)="deleteCategory(category)"
                         />
                     </div>
-                <div class="flex flex-wrap gap-2">
-                    <span class="text-gray-600">
-                        <strong>Key:</strong> {{ category.key }}
-                    </span>
-                    @if (category.position) {
-                    <span class="text-gray-600">
-                        <strong>Vị trí:</strong> {{ category.position }}
-                    </span>
-                    }
                 </div>
-                @if (category.description) {
-                <p class="text-gray-700 m-0">{{ category.description }}</p>
-                } @if (category.menus && category.menus.length > 0) {
+
+                @if (category.menus && category.menus.length > 0) {
                 <div class="border-t pt-3">
                     <p class="font-semibold">
                         Menu Items ({{ category.menus.length }})

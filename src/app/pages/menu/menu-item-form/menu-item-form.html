@@ -114,11 +114,17 @@
             (click)="submit()"
             class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white"
         >
+            @if(submitting){
+            <app-loading-inline
+                [isLoading]="true"
+                customClass="!text-gray-500"
+            />
+            }@else{
             <i
-                class="pi mr-3"
+                class="pi"
                 [ngClass]="isEditMode? 'pi-pen-to-square':'pi-plus-circle' "
             ></i>
-            {{ isEditMode ? 'Cập nhật ngay' : 'Thêm mới' }}
+            } <span class="ml-3">{{ isEditMode ? 'Cập nhật ngay' : 'Thêm mới' }}</span>
         </button>
     </ng-template>
 </p-drawer>
