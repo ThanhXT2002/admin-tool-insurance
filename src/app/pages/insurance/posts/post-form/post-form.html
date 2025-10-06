@@ -25,8 +25,18 @@
                     />
                     <label for="title">Tiêu đề bài viết (*)</label>
                 </p-floatlabel>
-                <!-- Short content (inline editor) -->
-                <div>
+                 <p-floatlabel variant="in">
+                    <textarea
+                        pTextarea
+                        id="excerpt"
+                        formControlName="excerpt"
+                        rows="7"
+                        [invalid]="isInvalid('excerpt')"
+                        class="h-full w-full"
+                    ></textarea>
+                   <label for="excerpt" class="mb-4">Mô tả ngắn</label>
+                </p-floatlabel>
+                <!-- <div>
                     <label for="excerpt" class="mb-4">Mô tả ngắn</label>
                     <app-texteditor-common
                         [height]="'150px'"
@@ -34,7 +44,7 @@
                         [invalid]="isInvalid('excerpt')"
                         [placeholder]="'Mô tả ngắn...'"
                     ></app-texteditor-common>
-                </div>
+                </div> -->
                 <div class="!space-y-3">
                     <label for="shortContent" class="">Nội dung đầu</label>
                     <app-texteditor-common

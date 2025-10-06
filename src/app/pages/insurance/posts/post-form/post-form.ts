@@ -130,7 +130,7 @@ export class PostForm implements OnInit, OnDestroy {
         this.form = this.fb.group(
             {
                 title: ['', [Validators.required]],
-                excerpt: [''],
+                excerpt: ['', [Validators.required]],
                 shortContent: [''],
                 content: ['', [Validators.required]],
                 status: ['DRAFT', [Validators.required]],
