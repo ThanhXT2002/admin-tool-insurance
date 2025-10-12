@@ -30,6 +30,7 @@ import {
     UsageType,
     UsagePurpose
 } from '@/interfaces/vehicle-type.interface';
+import { VehicleTypeForm } from './vehicle-type-form/vehicle-type-form';
 
 /**
  * Component quản lý danh sách loại phương tiện
@@ -48,7 +49,8 @@ import {
         FormsModule,
         Select,
         Popover,
-        Toolbar
+        Toolbar,
+        VehicleTypeForm
     ],
     providers: [ConfirmationService],
     templateUrl: './vehicle-type.html',
@@ -160,6 +162,11 @@ export class VehicleType implements OnInit, OnDestroy {
     selectedActive = this.activeOptions[0];
     selectedUsageType = this.usageTypeOptions[0];
     selectedUsagePurpose = this.usagePurposeOptions[0];
+
+    // Form state
+    showForm = false;
+    isEditMode = false;
+    editingItem: VehicleTypeModel | null = null;
 
     ngOnInit() {
         // Hydrate from query params and prevent duplicate load
@@ -301,11 +308,29 @@ export class VehicleType implements OnInit, OnDestroy {
     }
 
     openNew() {
-        this.router.navigate(['/insurance/vehicle-type/create']);
+        this.isEditMode = false;
+        this.editingItem = null;
+        this.showForm = true;
     }
 
     editItem(id: number) {
-        this.router.navigate(['/insurance/vehicle-type/update', id]);
+        // Tìm item từ store data
+        const item = this.vehicleTypeStore
+            .rows()
+            .find((item) => item.id === id);
+        if (item) {
+            this.isEditMode = true;
+            this.editingItem = item;
+            this.showForm = true;
+        }
+    }
+
+    onFormSaved() {
+        // Form đã save thành công, refresh data nếu cần
+        this.showForm = false;
+        this.isEditMode = false;
+        this.editingItem = null;
+        // Store đã tự động cập nhật data nên không cần refresh thêm
     }
 
     // Toggle active một item

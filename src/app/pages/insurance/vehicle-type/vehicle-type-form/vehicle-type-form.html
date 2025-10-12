@@ -1,0 +1,230 @@
+<p-drawer
+    [visible]="isShow"
+    (visibleChange)="onVisibleChange($event)"
+    position="right"
+    styleClass="max-w-[500px] !w-[100%] !md:w-full"
+    [header]="isEditMode ? 'Cập nhật Loại Phương Tiện' : 'Thêm Loại Phương Tiện'"
+>
+    <form [formGroup]="form" (ngSubmit)="submit()" class="py-3 space-y-6">
+        <!-- Vehicle Type Code -->
+        <p-floatlabel variant="in" class="!w-full">
+            <input
+                pInputText
+                id="vehicleTypeCode"
+                formControlName="vehicleTypeCode"
+                class="w-full"
+                autocomplete="off"
+                [invalid]="isInvalid('vehicleTypeCode')"
+                placeholder="VD: CAR_SEDAN, MOTORBIKE_150CC..."
+            />
+            <label for="vehicleTypeCode">Mã loại phương tiện (*)</label>
+        </p-floatlabel>
+        @if (isInvalid('vehicleTypeCode') &&
+        form.get('vehicleTypeCode')?.errors?.['required']) {
+        <small class="text-red-500">Mã loại phương tiện là bắt buộc</small>
+        } @if (isInvalid('vehicleTypeCode') &&
+        form.get('vehicleTypeCode')?.errors?.['pattern']) {
+        <small class="text-red-500"
+            >Mã phải là chữ in hoa, số và dấu gạch dưới</small
+        >
+        }
+
+        <!-- Vehicle Type Name -->
+        <p-floatlabel variant="in" class="!w-full">
+            <input
+                pInputText
+                id="vehicleTypeName"
+                formControlName="vehicleTypeName"
+                class="w-full"
+                autocomplete="off"
+                [invalid]="isInvalid('vehicleTypeName')"
+            />
+            <label for="vehicleTypeName">Tên loại phương tiện (*)</label>
+        </p-floatlabel>
+        @if (isInvalid('vehicleTypeName') &&
+        form.get('vehicleTypeName')?.errors?.['required']) {
+        <small class="text-red-500">Tên loại phương tiện là bắt buộc</small>
+        } @if (isInvalid('vehicleTypeName') &&
+        form.get('vehicleTypeName')?.errors?.['minlength']) {
+        <small class="text-red-500">Tên phải có ít nhất 2 ký tự</small>
+        }
+
+        <!-- Usage Type -->
+        <p-floatlabel variant="in" class="!w-full">
+            <p-select
+                id="usageType"
+                formControlName="usageType"
+                [options]="usageTypeOptions"
+                optionLabel="name"
+                optionValue="code"
+                class="w-full"
+                [invalid]="isInvalid('usageType')"
+            />
+            <label for="usageType">Loại sử dụng (*)</label>
+        </p-floatlabel>
+        @if (isInvalid('usageType') &&
+        form.get('usageType')?.errors?.['required']) {
+        <small class="text-red-500">Loại sử dụng là bắt buộc</small>
+        }
+
+        <!-- Usage Purpose -->
+        <p-floatlabel variant="in" class="!w-full">
+            <p-select
+                id="usagePurpose"
+                formControlName="usagePurpose"
+                [options]="usagePurposeOptions"
+                optionLabel="name"
+                optionValue="code"
+                class="w-full"
+                [invalid]="isInvalid('usagePurpose')"
+            />
+            <label for="usagePurpose">Mục đích sử dụng (*)</label>
+        </p-floatlabel>
+        @if (isInvalid('usagePurpose') &&
+        form.get('usagePurpose')?.errors?.['required']) {
+        <small class="text-red-500">Mục đích sử dụng là bắt buộc</small>
+        }
+
+        <!-- Seat Range -->
+        <div class="grid grid-cols-2 gap-4">
+            <p-floatlabel variant="in" class="!w-full">
+                <p-inputnumber
+                    id="seatMin"
+                    formControlName="seatMin"
+                    [min]="0"
+                    [max]="100"
+                    class="w-full"
+                    [invalid]="isInvalid('seatMin')"
+                />
+                <label for="seatMin">Số ghế tối thiểu (*)</label>
+            </p-floatlabel>
+
+            <p-floatlabel variant="in" class="!w-full">
+                <p-inputnumber
+                    id="seatMax"
+                    formControlName="seatMax"
+                    [min]="0"
+                    [max]="100"
+                    class="w-full"
+                    [invalid]="isInvalid('seatMax')"
+                />
+                <label for="seatMax">Số ghế tối đa (*)</label>
+            </p-floatlabel>
+        </div>
+        @if (isInvalid('seatMin') && form.get('seatMin')?.errors?.['required'])
+        {
+        <small class="text-red-500">Số ghế tối thiểu là bắt buộc</small>
+        } @if (isInvalid('seatMax') &&
+        form.get('seatMax')?.errors?.['required']) {
+        <small class="text-red-500">Số ghế tối đa là bắt buộc</small>
+        }
+
+        <!-- Weight Range -->
+        <div class="grid grid-cols-2 gap-4">
+            <p-floatlabel variant="in" class="!w-full">
+                <p-inputnumber
+                    id="weightMin"
+                    formControlName="weightMin"
+                    [min]="0"
+                    [max]="1000"
+                    [minFractionDigits]="1"
+                    [maxFractionDigits]="2"
+                    suffix=" tấn"
+                    class="w-full"
+                    [invalid]="isInvalid('weightMin')"
+                />
+                <label for="weightMin">Trọng tải tối thiểu (*)</label>
+            </p-floatlabel>
+
+            <p-floatlabel variant="in" class="!w-full">
+                <p-inputnumber
+                    id="weightMax"
+                    formControlName="weightMax"
+                    [min]="0"
+                    [max]="1000"
+                    [minFractionDigits]="1"
+                    [maxFractionDigits]="2"
+                    suffix=" tấn"
+                    class="w-full"
+                    [invalid]="isInvalid('weightMax')"
+                />
+                <label for="weightMax">Trọng tải tối đa (*)</label>
+            </p-floatlabel>
+        </div>
+        @if (isInvalid('weightMin') &&
+        form.get('weightMin')?.errors?.['required']) {
+        <small class="text-red-500">Trọng tải tối thiểu là bắt buộc</small>
+        } @if (isInvalid('weightMax') &&
+        form.get('weightMax')?.errors?.['required']) {
+        <small class="text-red-500">Trọng tải tối đa là bắt buộc</small>
+        }
+
+        <!-- Price Per Year -->
+        <p-floatlabel variant="in" class="!w-full">
+            <p-inputnumber
+                id="pricePerYear"
+                formControlName="pricePerYear"
+                [min]="0"
+                [max]="999999999"
+                mode="currency"
+                currency="VND"
+                locale="vi-VN"
+                class="w-full"
+                [invalid]="isInvalid('pricePerYear')"
+            />
+            <label for="pricePerYear">Giá bảo hiểm/năm (*)</label>
+        </p-floatlabel>
+        @if (isInvalid('pricePerYear') &&
+        form.get('pricePerYear')?.errors?.['required']) {
+        <small class="text-red-500">Giá bảo hiểm là bắt buộc</small>
+        } @if (isInvalid('pricePerYear') &&
+        form.get('pricePerYear')?.errors?.['min']) {
+        <small class="text-red-500">Giá bảo hiểm phải lớn hơn 0</small>
+        }
+
+        <!-- Display Options -->
+        <div class="space-y-3">
+            <div class="flex items-center gap-3">
+                <label for="isShowSeat" class="font-medium"
+                    >Hiển thị số ghế:</label
+                >
+                <p-toggleswitch id="isShowSeat" formControlName="isShowSeat" />
+            </div>
+
+            <div class="flex items-center gap-3">
+                <label for="isShowWeight" class="font-medium"
+                    >Hiển thị trọng tải:</label
+                >
+                <p-toggleswitch
+                    id="isShowWeight"
+                    formControlName="isShowWeight"
+                />
+            </div>
+
+            <div class="flex items-center gap-3">
+                <label for="active" class="font-medium"
+                    >Trạng thái hoạt động:</label
+                >
+                <p-toggleswitch id="active" formControlName="active" />
+            </div>
+        </div>
+    </form>
+
+    <ng-template #footer>
+        <button
+            (click)="submit()"
+            [disabled]="submitting"
+            class="rounded-md w-full py-2 border border-primary text-primary hover:bg-primary hover:text-white disabled:opacity-50"
+        >
+            @if (submitting) {
+            <i class="pi pi-spin pi-spinner mr-3"></i>
+            } @else {
+            <i
+                class="pi mr-3"
+                [ngClass]="isEditMode ? 'pi-pen-to-square' : 'pi-plus-circle'"
+            ></i>
+            } {{ submitting ? 'Đang xử lý...' : (isEditMode ? 'Cập nhật ngay' :
+            'Thêm mới') }}
+        </button>
+    </ng-template>
+</p-drawer>

@@ -62,7 +62,7 @@
     [first]="first"
     [lazy]="true"
     (onLazyLoad)="onLazyLoad($event)"
-    [globalFilterFields]="['code','name','description']"
+    [globalFilterFields]="['vehicleTypeCode','vehicleTypeName']"
     [tableStyle]="{ 'max-width': '100%' }"
     [(selection)]="selectedItems"
     [rowHover]="true"
@@ -147,23 +147,32 @@
                 <p-tableCheckbox [value]="item" />
             </td>
             <td>
-                <p class="font-bold">{{ item.code || 'N/A' }}</p>
+                <p class="font-bold">{{ item.vehicleTypeCode || 'N/A' }}</p>
             </td>
             <td>
                 <div>
-                    <p class="font-medium">{{ item.name || 'N/A' }}</p>
-                    @if (item.description) {
-                        <small class="text-muted">{{ item.description }}</small>
-                    }
+                    <p class="font-medium">
+                        {{ item.vehicleTypeName || 'N/A' }}
+                    </p>
+                    <small class="text-muted">
+                        Ghế: {{item.seatMin}}-{{item.seatMax}} | Tải:
+                        {{item.weightMin}}-{{item.weightMax}}T |
+                        {{item.pricePerYear |
+                        currency:'VND':'symbol-narrow':'1.0-0'}}
+                    </small>
                 </div>
             </td>
             <td>
-                <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                <span
+                    class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm"
+                >
                     {{ getUsageTypeLabel(item.usageType) }}
                 </span>
             </td>
             <td>
-                <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm">
+                <span
+                    class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm"
+                >
                     {{ getUsagePurposeLabel(item.usagePurpose) }}
                 </span>
             </td>
@@ -198,3 +207,12 @@
     </ng-template>
 </p-table>
 <p-confirmdialog />
+
+<!-- Vehicle Type Form -->
+<app-vehicle-type-form
+    [isShow]="showForm"
+    (isShowChange)="showForm = $event"
+    [isEditMode]="isEditMode"
+    [dataEdit]="editingItem"
+    (saved)="onFormSaved()"
+/>
