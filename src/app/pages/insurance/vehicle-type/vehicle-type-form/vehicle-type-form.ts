@@ -72,9 +72,9 @@ export class VehicleTypeForm {
     ];
 
     usagePurposeOptions = [
-        { name: 'Xe cá nhân', code: 'XCN' },
+        { name: 'Xe chở người', code: 'XCN' },
         { name: 'Xe chở hàng', code: 'XCH' },
-        { name: 'Xe cá nhân và chở hàng', code: 'XCN_CH' }
+        { name: 'Xe chở người và chở hàng', code: 'XCN_CH' }
     ];
 
     constructor(private cdr: ChangeDetectorRef) {
@@ -109,10 +109,10 @@ export class VehicleTypeForm {
             ],
             usageType: ['', Validators.required],
             usagePurpose: ['', Validators.required],
-            seatMin: [0, [Validators.required, Validators.min(0)]],
-            seatMax: [0, [Validators.required, Validators.min(0)]],
-            weightMin: [0, [Validators.required, Validators.min(0)]],
-            weightMax: [0, [Validators.required, Validators.min(0)]],
+            seatMin: [0],
+            seatMax: [0],
+            weightMin: [0],
+            weightMax: [0],
             isShowSeat: [false],
             isShowWeight: [false],
             pricePerYear: [0, [Validators.required, Validators.min(0)]],
