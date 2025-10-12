@@ -85,6 +85,8 @@ export class VehicleType implements OnInit, OnDestroy {
     private _suppressApplyParamsLoad = false;
     // Đặt true sau khi hydrate/load ban đầu hoàn tất để bỏ qua các sự kiện ngModelChange sinh ra trong khởi tạo
     private _initialized = false;
+    // Track error đã hiển thị để tránh duplicate
+    private _lastErrorMessage: string | null = null;
 
     private _totalEffect = effect(() => {
         const t = this.vehicleTypeStore.total();
@@ -118,12 +120,19 @@ export class VehicleType implements OnInit, OnDestroy {
                 errorMessage = error;
             }
 
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Lỗi',
-                detail: errorMessage,
-                life: 5000
-            });
+            // Chỉ hiển thị nếu message khác với lần trước để tránh duplicate
+            if (this._lastErrorMessage !== errorMessage) {
+                this._lastErrorMessage = errorMessage;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Lỗi',
+                    detail: errorMessage,
+                    life: 5000
+                });
+            }
+        } else {
+            // Reset error message khi không còn lỗi
+            this._lastErrorMessage = null;
         }
     });
 
@@ -143,9 +152,9 @@ export class VehicleType implements OnInit, OnDestroy {
 
     usagePurposeOptions = [
         { name: 'Tất cả mục đích sử dụng', code: undefined },
-        { name: 'Xe cá nhân', code: 'XCN' },
+        { name: 'Xe chở người', code: 'XCN' },
         { name: 'Xe chở hàng', code: 'XCH' },
-        { name: 'Xe cá nhân và chở hàng', code: 'XCN_CH' }
+        { name: 'Xe chở người và chở hàng', code: 'XCN_CH' }
     ];
 
     selectedActive = this.activeOptions[0];
@@ -198,12 +207,13 @@ export class VehicleType implements OnInit, OnDestroy {
                 this.reloadCurrentData();
             });
 
-        // Nếu store đã load data thì không cần gọi API thêm
+        // Chỉ gọi API nếu thực sự cần thiết
+        // hydrateFromQueryParams đã tự động load nếu cần rồi
         if (!hasUrlParams && !hasCachedData) {
-            this.loadData();
-        } else if (hasUrlParams && !cacheMatched) {
+            // Không có URL params và không có cache data - load mặc định
             this.loadData();
         } else {
+            // Đã có data hoặc đã load trong hydrateFromQueryParams
             this.loading = false;
         }
 
