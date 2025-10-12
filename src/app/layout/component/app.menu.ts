@@ -27,8 +27,11 @@ export class AppMenu {
                 items: [{ label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/'] }]
             },
             {
-                label: 'Quản lý sản phẩm',
-                items: [{ label: 'QL Sản Phẩm - Dịch Vụ', icon: 'pi pi-fw pi-box', routerLink: ['/insurance/products'] }]
+                label: 'Quản lý dịch vụ',
+                items: [{ label: 'QL Sản Phẩm', icon: 'pi pi-fw pi-box', routerLink: ['/insurance/products'] },
+                { label: 'QL Loại sử dụng xe', icon: 'pi pi-fw pi-car', routerLink: ['/insurance/vehicle-type'] }
+              ]
+
             },
             {
                 label: 'Quản Lý Bài Viết',

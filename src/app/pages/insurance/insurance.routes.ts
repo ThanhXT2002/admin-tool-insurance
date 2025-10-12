@@ -10,6 +10,7 @@ import { PostForm } from './posts/post-form/post-form';
 import { Products } from './products/products/products';
 import { ProductForm } from './products/product-form/product-form';
 import { Contact } from './contact/contact';
+import { VehicleType } from './vehicle-type/vehicle-type';
 
 
 export default [
@@ -27,4 +28,5 @@ export default [
     { path: 'product/create', component: ProductForm },
     { path: 'product/update/:id', component: ProductForm },
     { path: 'contact', component: Contact },
+    { path: 'vehicle-type', component: VehicleType },
 ] as Routes;
