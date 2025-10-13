@@ -81,12 +81,14 @@ export class Posts implements OnInit, OnDestroy {
         this.totalRecords = t;
     });
 
+    // Sync component loading state with store.loading (store is source of truth)
     private _loadingEffect = effect(() => {
-        const items = this.postStore.rows();
-        // Nếu có data và đang loading, tắt loading
-        if (items.length > 0 && this.loading) {
-            this.loading = false;
-        }
+        const storeLoading = (this.postStore as any).loading
+            ? (this.postStore as any).loading()
+            : false;
+
+        if (storeLoading && !this.loading) this.loading = true;
+        else if (!storeLoading && this.loading) this.loading = false;
     });
 
     statusOptions = [
@@ -237,10 +239,9 @@ export class Posts implements OnInit, OnDestroy {
             this.loadData(this.currentKeyword);
         } else if (hasUrlParams && !cacheMatched) {
             // Có URL params nhưng cache không match -> store đã tự load trong hydrateFromQueryParams
-            this.loading = true; // Hiển thị loading vì store đang gọi API
+            // rely on store.loading signal to reflect loading state
         } else {
-            // Có cache data phù hợp -> không cần gọi API
-            this.loading = false;
+            // Có cache data phù hợp -> store not loading
         }
 
         // cho phép các handler thay đổi select chỉ chạy sau khi hydrate/tải ban đầu hoàn tất
@@ -306,8 +307,6 @@ export class Posts implements OnInit, OnDestroy {
     loadData(keyword?: string) {
         // avoid duplicate concurrent loads
         if (this._isLoadingInFlight) return;
-
-        this.loading = true;
         this._isLoadingInFlight = true;
 
         const params: any = this.buildFilterParams(undefined, {
@@ -320,7 +319,6 @@ export class Posts implements OnInit, OnDestroy {
         this.postStore
             .load(params, { skipSync: !this._initialized })
             .finally(() => {
-                this.loading = false;
                 this._isLoadingInFlight = false;
             });
     }
@@ -339,7 +337,7 @@ export class Posts implements OnInit, OnDestroy {
         this.first = first;
         this.page = newPage;
         this.limit = rows;
-        this.loading = true;
+        // rely on store.loading signal; trigger load
         this.loadData(this.currentKeyword);
     }
 
@@ -530,11 +528,9 @@ export class Posts implements OnInit, OnDestroy {
         };
 
         // Load data với store cache logic sẽ tự xử lý duplicate calls
-        this.loading = true;
         this._isLoadingInFlight = true;
 
         this.postStore.load(params).finally(() => {
-            this.loading = false;
             this._isLoadingInFlight = false;
         });
     }

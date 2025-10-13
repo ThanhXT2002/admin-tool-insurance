@@ -96,18 +96,18 @@ export class VehicleType implements OnInit, OnDestroy {
     });
 
     private _loadingEffect = effect(() => {
-        const items = this.vehicleTypeStore.rows();
-        // Nếu có data và đang loading, tắt loading
-        if (items.length > 0 && this.loading) {
-            this.loading = false;
-        }
+        const storeLoading = (this.vehicleTypeStore as any).loading
+            ? (this.vehicleTypeStore as any).loading()
+            : false;
+
+        if (storeLoading && !this.loading) this.loading = true;
+        else if (!storeLoading && this.loading) this.loading = false;
     });
 
     private _errorEffect = effect(() => {
         const error = this.vehicleTypeStore.error();
         if (error) {
-            // Tắt loading khi có error
-            this.loading = false;
+            // Ensure dedupe flag reset so UI can retry
             this._isLoadingInFlight = false;
 
             // Hiển thị error message
@@ -221,7 +221,7 @@ export class VehicleType implements OnInit, OnDestroy {
             this.loadData();
         } else {
             // Đã có data hoặc đã load trong hydrateFromQueryParams
-            this.loading = false;
+            // rely on store.loading signal
         }
 
         // cho phép các handler thay đổi select chỉ chạy sau khi hydrate/tải ban đầu hoàn tất
@@ -271,7 +271,6 @@ export class VehicleType implements OnInit, OnDestroy {
         // avoid duplicate concurrent loads
         if (this._isLoadingInFlight) return;
 
-        this.loading = true;
         this._isLoadingInFlight = true;
 
         const params: any = this.buildFilterParams(undefined, {
@@ -284,7 +283,6 @@ export class VehicleType implements OnInit, OnDestroy {
         this.vehicleTypeStore
             .load(params, { skipSync: !this._initialized })
             .finally(() => {
-                this.loading = false;
                 this._isLoadingInFlight = false;
             });
     }
@@ -303,7 +301,7 @@ export class VehicleType implements OnInit, OnDestroy {
         this.first = first;
         this.page = newPage;
         this.limit = rows;
-        this.loading = true;
+        // rely on store.loading; trigger load
         this.loadData(this.currentKeyword);
     }
 
@@ -434,11 +432,9 @@ export class VehicleType implements OnInit, OnDestroy {
         };
 
         // Load data với store cache logic sẽ tự xử lý duplicate calls
-        this.loading = true;
         this._isLoadingInFlight = true;
 
         this.vehicleTypeStore.load(params).finally(() => {
-            this.loading = false;
             this._isLoadingInFlight = false;
         });
     }

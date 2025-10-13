@@ -78,12 +78,14 @@ export class Products implements OnInit, OnDestroy {
         this.totalRecords = t;
     });
 
+    // Sync component loading state with store.loading (store is source of truth)
     private _loadingEffect = effect(() => {
-        const items = this.productStore.rows();
-        // Nếu có data và đang loading, tắt loading
-        if (items.length > 0 && this.loading) {
-            this.loading = false;
-        }
+        const storeLoading = (this.productStore as any).loading
+            ? (this.productStore as any).loading()
+            : false;
+
+        if (storeLoading && !this.loading) this.loading = true;
+        else if (!storeLoading && this.loading) this.loading = false;
     });
 
     // selectedItem: Product | null = null;
@@ -131,8 +133,7 @@ export class Products implements OnInit, OnDestroy {
             this.limit = parsed.limit ?? 10;
             this.currentKeyword = parsed.keyword ?? undefined;
             this.active = parsed.active ?? undefined;
-            // Hiển thị loading vì store đang gọi API
-            this.loading = true;
+            // Store will expose loading signal; component relies on that
         }
 
         this.selectedStatus =
@@ -210,9 +211,6 @@ export class Products implements OnInit, OnDestroy {
         // avoid duplicate concurrent loads
         if (this._isLoadingInFlight) return;
 
-        this.loading = true;
-        this._isLoadingInFlight = true;
-
         const params: any = this.buildFilterParams(undefined, {
             page: this.page,
             limit: this.limit,
@@ -224,7 +222,6 @@ export class Products implements OnInit, OnDestroy {
             .load(params, { skipSync: !this._initialized })
             .finally(() => {
                 this._isLoadingInFlight = false;
-                this.loading = false;
             });
     }
 
@@ -242,7 +239,7 @@ export class Products implements OnInit, OnDestroy {
         this.first = first;
         this.page = newPage;
         this.limit = rows;
-        this.loading = true;
+        // rely on store.loading signal; trigger load
         this.loadData(this.currentKeyword);
     }
 
@@ -269,11 +266,9 @@ export class Products implements OnInit, OnDestroy {
         };
 
         // Load data với store cache logic sẽ tự xử lý duplicate calls
-        this.loading = true;
+        // rely on store.loading signal; trigger load
         this._isLoadingInFlight = true;
-
         this.productStore.load(params).finally(() => {
-            this.loading = false;
             this._isLoadingInFlight = false;
         });
     }
@@ -442,7 +437,6 @@ export class Products implements OnInit, OnDestroy {
 
     // Shared: perform store.load then navigate to reflect params in URL
     private applyFiltersAndNavigate(params: any) {
-        this.loading = true;
         this._isLoadingInFlight = true;
 
         this.productStore.load(params).finally(() => {
